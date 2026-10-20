@@ -286,6 +286,13 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                     <span className="text-slate-500">Royalti:</span>
                     <span className="font-bold text-emerald-600">70% ({bankName})</span>
                   </div>
+                  <div className="flex justify-between items-center border-t border-slate-200 pt-1 mt-1">
+                    <span className="text-slate-500">Storan Aset:</span>
+                    <span className="font-semibold text-[11px] text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-200 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                      Cloudflare R2 & Firestore
+                    </span>
+                  </div>
                 </div>
               </div>
 

@@ -279,3 +279,34 @@ export async function updateOrderStatusInFirestore(
     console.warn('[Firestore Order Update Error]:', error);
   }
 }
+
+// 5. Published Books Collection (Penyimpanan Manuskrip & Karya Penulis)
+export async function saveBookToFirestore(book: any): Promise<void> {
+  const path = `published_books/${book.id}`;
+  try {
+    const bookDocRef = doc(db, 'published_books', book.id);
+    await setDoc(bookDocRef, {
+      ...book,
+      publishedAt: new Date().toISOString(),
+      storageProvider: 'Cloudflare R2 & Firestore',
+    });
+    console.log(`[Firestore] Naskhah "${book.title}" (${book.id}) disimpan ke koleksi published_books`);
+  } catch (error) {
+    console.warn('[Firestore] Gagal menyimpan ke published_books:', error);
+  }
+}
+
+export async function getPublishedBooksFromFirestore(): Promise<any[]> {
+  try {
+    const colRef = collection(db, 'published_books');
+    const snap = await getDocs(colRef);
+    const books: any[] = [];
+    snap.forEach((d) => {
+      books.push(d.data());
+    });
+    return books;
+  } catch (error) {
+    console.warn('[Firestore] Gagal membaca published_books:', error);
+    return [];
+  }
+}

@@ -1,0 +1,37 @@
+[
+  {
+    "id": "karya-user-1792513665252",
+    "title": "Hikayat Pendekar Rimba",
+    "author": "Bang Karim",
+    "category": "novel",
+    "genre": "Misteri & Thriller",
+    "synopsis": "Naskhah pertarungan mistik dan silat pendekar terulung di belantara nusantara.",
+    "rating": 5,
+    "reviewsCount": 1,
+    "price": 15,
+    "isFree": false,
+    "pages": 140,
+    "readTime": "3 jam 30 min",
+    "publisher": "Penerbitan Bebas KaryaDigital",
+    "publicationYear": 2026,
+    "isbn": "978-967-KD9755-M",
+    "coverGradient": "from-slate-900 via-indigo-950 to-slate-950",
+    "coverAccent": "#818cf8",
+    "coverBadge": "Karya Asli",
+    "sampleContent": {
+      "chapters": [
+        {
+          "id": 1,
+          "title": "Bab 1: Permulaan Kembara",
+          "subtitle": "Karya Asli Penulis",
+          "paragraphs": [
+            "Hujan renyai mula membasahi laluan desa ketika langkah kaki pertama dihayun. Udara dingin menyusup ke celah baju.",
+            "Ini adalah permulaan kepada sebuah kisah yang tidak pernah terbayang dek akal fikiran."
+          ]
+        }
+      ]
+    },
+    "r2Key": "ebooks/karya-user-1792513665252.json",
+    "r2StorageUrl": "/api/books/stream/karya-user-1792513665252?token=8d8f03f78a579aef0458b3a17fd57b9743c9c8b54550ac7316f348b4ec4e21cd&expires=1792600066&user=author%40karyadigital.my"
+  }
+]

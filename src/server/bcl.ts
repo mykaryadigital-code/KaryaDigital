@@ -87,8 +87,8 @@ export async function createBclBill(params: CreateBclBillParams): Promise<BclBil
   const callbackUrl = `${appBaseUrl}/api/payment/bcl-callback`;
   const returnUrl = `${appBaseUrl}/api/payment/bcl-return?order_id=${orderId}&bill_code=${billCode}`;
 
-  // Jika kunci API sebenar BCL/Bayarcash dibekalkan dalam .env
-  if (config.apiKey && config.secretKey && config.apiKey !== 'your_bcl_api_key_here') {
+  // Jika kunci API sebenar BCL dibekalkan dan bukan dalam mod sandbox
+  if (!config.isSandbox && config.apiKey && config.secretKey && config.apiKey !== 'your_bcl_api_key_here') {
     try {
       const response = await fetch(`${config.baseUrl}/bills`, {
         method: 'POST',
@@ -123,10 +123,10 @@ export async function createBclBill(params: CreateBclBillParams): Promise<BclBil
           gateway: 'bcl',
         };
       } else {
-        console.warn('[BCL API] Gagal berhubung ke pelayan BCL langsung, beralih ke simulasi sandbox.');
+        console.log('[BCL API] Pelayan BCL luaran mengembalikan status bukan 200, menggunakan mod simulasi sandbox.');
       }
-    } catch (apiErr) {
-      console.warn('[BCL API Error]: Menggunakan mod sandbox.', apiErr);
+    } catch (apiErr: any) {
+      console.log(`[BCL API] Sambungan ke pelayan luaran tidak aktif (${apiErr?.code || 'Sandbox Fallback'}). Menggunakan mod sandbox BCL.`);
     }
   }
 

@@ -38,9 +38,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   onTriggerSecurityWarning,
   buyerEmail = 'mykaryadigital@gmail.com - ID: 88392',
 }) => {
-  if (!isOpen || !book) return null;
-
-  // Reader Settings State
+  // Reader Settings State (Hooks must run unconditionally)
   const [settings, setSettings] = useState<ReaderSettings>({
     fontSize: 'base',
     theme: 'light',
@@ -66,16 +64,21 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
 
+  // State for consolidated "Aa" settings menu
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+
   // Reset indices when book changes
   useEffect(() => {
+    if (!book) return;
     setCurrentChapterIndex(0);
     setCurrentComicPageIndex(0);
     setComicZoom(1);
     setIsBookmarked(false);
-  }, [book.id]);
+  }, [book?.id]);
 
   // Security Event Listeners (Sekat right click, copy, and shortcuts)
   useEffect(() => {
+    if (!isOpen || !book) return;
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       onTriggerSecurityWarning(
@@ -165,6 +168,8 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
     mono: 'font-mono-code',
   };
 
+  if (!isOpen || !book) return null;
+
   const isNovel = book.category === 'novel';
   const chapters = book.sampleContent?.chapters || [];
   const currentChapter = chapters[currentChapterIndex] || null;
@@ -176,9 +181,6 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   const totalSteps = isNovel ? chapters.length : comicPanels.length;
   const currentStep = isNovel ? currentChapterIndex + 1 : currentComicPageIndex + 1;
   const progressPercent = calculateReadingProgress(currentStep, totalSteps);
-
-  // State for consolidated "Aa" settings menu
-  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
   // Theme Toggle Helper
   const themes = [
@@ -489,7 +491,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                     {currentChapterIndex < chapters.length - 1
                       ? 'Teruskan membaca bab seterusnya di bawah.'
                       : isOwned
-                      ? 'Tahniah, anda telah selesai membaca sampel naskhah ini!'
+                      ? 'Tahniah, anda telah selesai membaca keseluruhan naskhah ini!'
                       : 'Naskhah penuh mengandungi 348 muka surat lagi! Dapatkan versi penuh untuk sokong penulis.'}
                   </p>
                 </div>

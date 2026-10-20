@@ -78,5 +78,12 @@ service cloud.firestore {
                     && incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt', 'billCode', 'paymentUrl', 'transactionId']);
       allow delete: if false;
     }
+
+    // Published Books Collection (Katalog Karya Komuniti & Penulis Asli)
+    match /published_books/{bookId} {
+      allow read: if true;
+      allow create, update: if true;
+      allow delete: if false;
+    }
   }
 }

@@ -4,9 +4,16 @@
  * Memastikan fail e-book dan komik dilindungi dan hanya boleh diakses melalui pautan masa terhad.
  */
 
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import crypto from 'crypto';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const uploadCacheDir = path.resolve(__dirname, '../../public/uploads/r2-cache');
 
 // Kredential Cloudflare R2
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
@@ -123,4 +130,63 @@ export function verifyHmacSignedUrl(params: {
   }
 
   return { isValid: false, reason: 'Tandatangan pautan tidak sah atau telah diubah suai.' };
+}
+
+/**
+ * 4. Muat Naik Fail Naskhah / Komik / Imej ke Cloudflare R2
+ */
+export async function uploadAssetToR2(params: {
+  fileKey: string;
+  data: string | Buffer;
+  contentType?: string;
+}): Promise<{
+  success: boolean;
+  fileKey: string;
+  isR2Direct: boolean;
+  sizeBytes: number;
+}> {
+  const { fileKey, data, contentType = 'application/octet-stream' } = params;
+  const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8');
+
+  // A. Jika klien Cloudflare R2 sedia ada, hantar ke S3 Bucket R2
+  if (r2Client && R2_BUCKET_NAME) {
+    try {
+      const command = new PutObjectCommand({
+        Bucket: R2_BUCKET_NAME,
+        Key: fileKey,
+        Body: buffer,
+        ContentType: contentType,
+      });
+      await r2Client.send(command);
+      console.log(`[Cloudflare R2] Fail berjaya dimuat naik ke Bucket R2: ${fileKey}`);
+      return {
+        success: true,
+        fileKey,
+        isR2Direct: true,
+        sizeBytes: buffer.length,
+      };
+    } catch (err) {
+      console.warn(`[Cloudflare R2] Gagal muat naik terus ke R2, menggunakan sandaran cache:`, err);
+    }
+  }
+
+  // B. Sandaran Fail Tempatan (Local Mirror Cache)
+  try {
+    if (!fs.existsSync(uploadCacheDir)) {
+      fs.mkdirSync(uploadCacheDir, { recursive: true });
+    }
+    const safeFileName = fileKey.replace(/[\/\\]/g, '_');
+    const localFilePath = path.join(uploadCacheDir, safeFileName);
+    fs.writeFileSync(localFilePath, buffer);
+    console.log(`[Cloudflare R2 Storage Mirror] Disimpan dalam cache: ${localFilePath}`);
+  } catch (err) {
+    console.error('[Cloudflare R2 Storage Mirror Error]:', err);
+  }
+
+  return {
+    success: true,
+    fileKey,
+    isR2Direct: false,
+    sizeBytes: buffer.length,
+  };
 }

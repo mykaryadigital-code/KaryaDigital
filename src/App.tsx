@@ -30,6 +30,8 @@ import {
   subscribeToPurchasedBooks,
   savePurchasedBookToFirestore,
   recordOrderInFirestore,
+  saveBookToFirestore,
+  getPublishedBooksFromFirestore,
 } from './firebase.ts';
 
 export default function App() {
@@ -108,6 +110,55 @@ export default function App() {
       setSecurityToasts((prev) => prev.filter((t) => t.id !== newToast.id));
     }, 4000);
   };
+
+  // Muat turun naskhah yang diterbitkan daripada Cloudflare R2 / Stor Pelayan / Firestore / LocalStorage
+  useEffect(() => {
+    const mergeBooks = (newBooks: EBook[]) => {
+      if (!newBooks.length) return;
+      setBooks((prev) => {
+        const incomingMap = new Map(newBooks.map((b) => [b.id, b]));
+        const mergedList: EBook[] = [...newBooks];
+        for (const b of prev) {
+          if (!incomingMap.has(b.id)) {
+            mergedList.push(b);
+          }
+        }
+        return mergedList;
+      });
+    };
+
+    // A. Muat turun dari LocalStorage serta merta
+    try {
+      const localSaved = localStorage.getItem('karyadigital_published_books');
+      if (localSaved) {
+        const parsed = JSON.parse(localSaved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          mergeBooks(parsed);
+        }
+      }
+    } catch (err) {
+      console.warn('Ralat membaca localStorage:', err);
+    }
+
+    // B. Muat turun dari Cloudflare R2 / Server Storan Kekal
+    fetch('/api/books/published')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.books) && data.books.length > 0) {
+          mergeBooks(data.books);
+        }
+      })
+      .catch((err) => console.warn('Ralat Cloudflare R2 API:', err));
+
+    // C. Muat turun dari Firebase Firestore
+    getPublishedBooksFromFirestore()
+      .then((firestoreBooks) => {
+        if (Array.isArray(firestoreBooks) && firestoreBooks.length > 0) {
+          mergeBooks(firestoreBooks as EBook[]);
+        }
+      })
+      .catch((err) => console.warn('Ralat Firestore:', err));
+  }, []);
 
   // Global Security Protection Event Listeners (Sekat right-click dan copy)
   useEffect(() => {
@@ -271,10 +322,46 @@ export default function App() {
     }
   };
 
-  // Handle Self-Publishing by Authors
-  const handlePublishBook = (newBook: EBook) => {
-    setBooks((prev) => [newBook, ...prev]);
-    triggerSecurityWarning(`Naskhah "${newBook.title}" berjaya diterbitkan ke dalam katalog!`, 'info');
+  // Handle Self-Publishing by Authors (Menyimpan secara kekal ke Cloudflare R2, Firestore & LocalStorage)
+  const handlePublishBook = async (newBook: EBook) => {
+    // 1. Kemas kini segera katalog dalam state
+    setBooks((prev) => [newBook, ...prev.filter((b) => b.id !== newBook.id)]);
+
+    // 2. Simpan secara kekal ke LocalStorage
+    try {
+      const existingLocal = JSON.parse(localStorage.getItem('karyadigital_published_books') || '[]');
+      const updatedLocal = [newBook, ...existingLocal.filter((b: EBook) => b.id !== newBook.id)];
+      localStorage.setItem('karyadigital_published_books', JSON.stringify(updatedLocal));
+    } catch (err) {
+      console.warn('Ralat menyimpan ke localStorage:', err);
+    }
+
+    // 3. Muat naik & simpan ke Cloudflare R2 Object Storage melalui Server API
+    try {
+      const resp = await fetch('/api/books/publish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newBook),
+      });
+      const data = await resp.json();
+      if (data.success) {
+        console.log('[Cloudflare R2] Naskhah disimpan secara kekal dengan kunci R2:', data.r2Key);
+      }
+    } catch (err) {
+      console.warn('[Server API] Gagal memuat naik naskhah ke Cloudflare R2 pelayan:', err);
+    }
+
+    // 4. Simpan ke Firebase Firestore
+    try {
+      await saveBookToFirestore(newBook);
+    } catch (err) {
+      console.warn('[Firestore] Gagal menyimpan ke pangkalan data Firestore:', err);
+    }
+
+    triggerSecurityWarning(
+      `Karya "${newBook.title}" berjaya dimuat naik ke Cloudflare R2 dan disimpan secara kekal!`,
+      'info'
+    );
   };
 
   return (

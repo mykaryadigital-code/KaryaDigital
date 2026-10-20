@@ -127,6 +127,38 @@
         }
       },
       "required": ["orderId", "userId", "userEmail", "totalAmount", "status"]
+    },
+    "PublishedBook": {
+      "title": "PublishedBook",
+      "description": "Karya e-buku atau komik yang dimuat naik atau diterbitkan oleh penulis",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "author": { "type": "string" },
+        "category": { "type": "string" },
+        "genre": { "type": "string" },
+        "synopsis": { "type": "string" },
+        "price": { "type": "number" },
+        "isFree": { "type": "boolean" },
+        "coverImage": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "title", "author", "category", "price"]
+    },
+    "BookReview": {
+      "title": "BookReview",
+      "description": "Penilaian bintang 1-5 dan ulasan pembaca",
+      "type": "object",
+      "properties": {
+        "reviewId": { "type": "string" },
+        "bookId": { "type": "string" },
+        "rating": { "type": "number" },
+        "comment": { "type": "string" },
+        "reviewerName": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["reviewId", "bookId", "rating", "reviewerName"]
     }
   },
   "firestore": {
@@ -141,6 +173,14 @@
     "/orders/{orderId}": {
       "schema": "Order",
       "description": "Invois dan rekod pembayaran BCL & ToyyibPay"
+    },
+    "/published_books/{bookId}": {
+      "schema": "PublishedBook",
+      "description": "Karya e-buku yang dimuat naik dan diterbitkan oleh komuniti penulis"
+    },
+    "/books/{bookId}/reviews/{reviewId}": {
+      "schema": "BookReview",
+      "description": "Maklum balas dan ulasan bintang pembaca untuk buku"
     }
   }
 }

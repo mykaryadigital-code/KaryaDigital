@@ -73,6 +73,8 @@ export interface UserProfile {
   email: string;
   balance: number;
   tier: string;
+  isSubscribed?: boolean;
+  subscriptionExpiresAt?: string;
   ownedBookIds: string[];
   bookmarks: Record<string, { chapterId?: number; pageNumber?: number; savedAt: string; note?: string }>;
 }

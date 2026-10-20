@@ -20,6 +20,10 @@ import {
   verifyHmacSignedUrl,
   generateHmacSignedUrl,
 } from './src/server/cloudflareR2.ts';
+import {
+  getAllPublishedBooks,
+  savePublishedBookToStorage,
+} from './src/server/bookStorage.ts';
 
 dotenv.config();
 
@@ -451,7 +455,52 @@ app.get(['/homepage.html', '/homepage'], (_req: Request, res: Response) => {
 });
 
 // ====================================================================
-// 4. INTEGRASI DEV VITE / PRODUKSI SERVING
+// 4. PENERBITAN KARYA KE CLOUDFLARE R2 & STORAN KEKAL
+// ====================================================================
+
+/**
+ * POST /api/books/publish
+ * Menyimpan naskhah e-buku & komik secara kekal dan memuat naiknya ke Cloudflare R2
+ */
+app.post('/api/books/publish', async (req: Request, res: Response) => {
+  try {
+    const bookData = req.body;
+    if (!bookData || !bookData.title) {
+      return res.status(400).json({ success: false, error: 'Data naskhah dan tajuk diperlukan.' });
+    }
+
+    console.log(`[Penerbitan Cloudflare R2] Memproses karya: "${bookData.title}" (${bookData.id})`);
+    const result = await savePublishedBookToStorage(bookData);
+
+    return res.json({
+      success: true,
+      message: 'Naskhah berjaya dimuat naik ke Cloudflare R2 dan disimpan secara kekal!',
+      book: result.book,
+      r2Key: result.r2Key,
+      isR2Direct: result.isR2Direct,
+    });
+  } catch (error: any) {
+    console.error('[Publish Error]:', error);
+    return res.status(500).json({ success: false, error: 'Gagal menerbitkan karya: ' + error.message });
+  }
+});
+
+/**
+ * GET /api/books/published
+ * Mengambil semua karya yang telah diterbitkan dari Cloudflare R2 / Stor Kekal
+ */
+app.get('/api/books/published', (_req: Request, res: Response) => {
+  try {
+    const books = getAllPublishedBooks();
+    return res.json({ success: true, count: books.length, books });
+  } catch (error: any) {
+    console.error('[Get Published Books Error]:', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// ====================================================================
+// 5. INTEGRASI DEV VITE / PRODUKSI SERVING
 // ====================================================================
 
 async function startServer() {
