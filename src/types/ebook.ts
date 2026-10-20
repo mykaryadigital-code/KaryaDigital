@@ -1,4 +1,4 @@
-export type BookCategory = 'novel' | 'komik' | 'seram' | 'agama';
+export type BookCategory = 'novel' | 'komik';
 
 export interface Chapter {
   id: number;

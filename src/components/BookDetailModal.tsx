@@ -52,7 +52,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
         <div className="p-5 sm:p-6 overflow-y-auto space-y-5 text-slate-800">
           {/* Top Section: Cover & Key Info */}
           <div className="flex flex-col sm:flex-row gap-5 items-start">
-            <div className="w-28 sm:w-36 shrink-0 aspect-[3/4] rounded-xl overflow-hidden bg-slate-100 shadow-md border border-slate-200">
+            <div className="w-28 sm:w-36 shrink-0 aspect-[2/3] rounded-xl overflow-hidden bg-slate-900 shadow-md border border-slate-200">
               {book.coverImage ? (
                 <img
                   src={book.coverImage}
@@ -60,8 +60,21 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className={`w-full h-full bg-gradient-to-br ${book.coverGradient} flex items-center justify-center p-2 text-center text-white text-xs font-bold`}>
-                  {book.title}
+                <div className="w-full h-full bg-slate-900 border-l-4 border-amber-500/50 flex flex-col justify-between p-3 text-white text-center select-none">
+                  <div className="text-[9px] font-bold uppercase tracking-widest text-amber-400">
+                    {book.category === 'komik' ? 'KOMIK GRAFIK' : 'NOVEL TEKS'}
+                  </div>
+                  <div className="space-y-1 my-auto">
+                    <h4 className="font-serif-book font-bold text-xs text-white line-clamp-3 leading-snug">
+                      {book.title}
+                    </h4>
+                    <p className="text-[9px] text-slate-400 line-clamp-1 italic">
+                      {book.genre}
+                    </p>
+                  </div>
+                  <div className="text-[9px] font-medium text-slate-300 truncate border-t border-white/10 pt-1">
+                    {book.author}
+                  </div>
                 </div>
               )}
             </div>
@@ -163,7 +176,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 onClose();
                 onRead(book);
               }}
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-sm"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1.5 transition shadow-xs"
             >
               <Check className="w-4 h-4" />
               <span>Buka Dalam Rak</span>
@@ -174,7 +187,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 onClose();
                 onAddToCart(book);
               }}
-              className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold transition shadow-sm"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition shadow-xs"
             >
               <span>Dapatkan Percuma</span>
             </button>

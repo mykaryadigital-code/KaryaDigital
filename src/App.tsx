@@ -14,7 +14,6 @@ import { ToyyibPayModal } from './components/ToyyibPayModal.tsx';
 import { BclPaymentModal } from './components/BclPaymentModal.tsx';
 import { SecureAssetModal } from './components/SecureAssetModal.tsx';
 import { SecurityBannerToast } from './components/SecurityBannerToast.tsx';
-import { FreemiumSection } from './components/FreemiumSection.tsx';
 import { ContinueReadingSection } from './components/ContinueReadingSection.tsx';
 import { MobileBottomNav } from './components/MobileBottomNav.tsx';
 import { BookDetailModal } from './components/BookDetailModal.tsx';
@@ -321,16 +320,6 @@ export default function App() {
           searchQuery={searchQuery}
         />
       </main>
-
-      {/* Freemium Hook Section: Mula Membaca Secara Percuma */}
-      {!searchQuery && activeCategory !== 'koleksi' && (
-        <FreemiumSection
-          books={books}
-          onRead={handleOpenReader}
-          onAddToCart={handleAddToCart}
-          ownedBookIds={user.ownedBookIds}
-        />
-      )}
 
       {/* In-Browser Reader Modal */}
       <InBrowserReaderModal

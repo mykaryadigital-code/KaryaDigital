@@ -19,41 +19,39 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
   };
 
   return (
-    <section className="bg-gradient-to-r from-slate-950 via-slate-900 to-indigo-950 text-white py-10 sm:py-14 px-4 sm:px-6 lg:px-8 border-b border-slate-800">
-      <div className="max-w-4xl mx-auto text-center space-y-5">
-        {/* Tajuk Utama */}
-        <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-tight">
+    <section className="bg-slate-900 text-white border-b border-slate-800">
+      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-7 sm:py-8 min-h-[200px] max-h-[240px] flex flex-col justify-center text-center space-y-3">
+        {/* Tajuk Utama Ringkas */}
+        <h1 className="text-xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
           Dunia E-Buku & Komik Tempatan Malaysia
         </h1>
 
         {/* Satu Ayat Penerangan Ringkas */}
-        <p className="text-sm sm:text-base text-slate-300 max-w-2xl mx-auto font-normal leading-relaxed">
-          Platform jualan dan bacaan naskhah asli penulis fiksyen, sastera, dan pelukis komik tanah air terus dalam pelayar anda tanpa perlu muat turun aplikasi.
+        <p className="text-xs sm:text-sm text-slate-300 max-w-xl mx-auto font-normal leading-relaxed line-clamp-2">
+          Platform rasmi naskhah asli penulis fiksyen, sastera, dan pelukis komik tanah air terus dalam pelayar anda tanpa aplikasi tambahan.
         </p>
 
-        {/* Butang Terokai Buku & Baucar Sekali Sahaja */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-          {/* Butang Utama */}
+        {/* Butang Terokai Buku (Ungu Utama) & Baucar Ringkas (Kuning Aksen) */}
+        <div className="flex items-center justify-center gap-2.5 pt-1">
           <button
             onClick={onExploreClick}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 cursor-pointer"
+            className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
           >
             <span>Terokai Buku</span>
-            <ArrowDown className="w-4 h-4" />
+            <ArrowDown className="w-3.5 h-3.5" />
           </button>
 
-          {/* Baucar Diskaun Sekali Sahaja */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
-            <span className="flex items-center gap-1 text-amber-300 font-medium">
-              <Sparkles className="w-3.5 h-3.5" />
-              Baucar RM5.00:
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[11px] text-slate-300">
+            <span className="flex items-center gap-1 text-amber-400 font-medium">
+              <Sparkles className="w-3 h-3 text-amber-400" />
+              Baucar RM5:
             </span>
-            <span className="font-mono font-bold text-white bg-slate-900/90 px-2 py-0.5 rounded border border-white/10">
+            <span className="font-mono font-bold text-white bg-slate-800 px-1.5 py-0.5 rounded text-[10px]">
               KARYALOKAL
             </span>
             <button
               onClick={handleCopy}
-              className="text-[11px] font-bold text-amber-400 hover:text-amber-300 ml-1 transition-colors flex items-center gap-1 cursor-pointer"
+              className="text-[10px] font-bold text-amber-400 hover:text-amber-300 ml-0.5 transition-colors flex items-center gap-1 cursor-pointer"
               title="Salin baucar"
             >
               {copied ? (

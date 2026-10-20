@@ -660,15 +660,14 @@ export const INITIAL_EBOOKS: EBook[] = [
     },
   },
   // ==========================================
-  // SERAM & KISAH MISTIK TEMPATAN
+  // NOVEL SERAM & KISAH MISTIK TEMPATAN
   // ==========================================
   {
     id: 'seram-1',
     title: 'Misteri Rumah Agam Bukit Fraser',
     author: 'Tamar Jalis Muda & Zaid Harith',
-    category: 'seram',
-    genre: 'Seram & Paranormal',
-    coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80',
+    category: 'novel',
+    genre: 'Seram & Kisah Mistik',
     synopsis:
       'Sebuah banglo kolonial peninggalan era British di puncak Bukit Fraser menyimpan rahsia hilangnya ekspedisi pemetaan 1948. Setiap kali kabus tebal menyelimuti lereng bukit, derap tapak kaki kedengaran di loteng.',
     rating: 4.88,
@@ -704,9 +703,8 @@ export const INITIAL_EBOOKS: EBook[] = [
     id: 'seram-2',
     title: 'Jeritan Dari Teluk Gong',
     author: 'Haryati Mustapha',
-    category: 'seram',
-    genre: 'Misteri & Paranormal Pantai',
-    coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+    category: 'novel',
+    genre: 'Seram & Kisah Mistik',
     synopsis:
       'Di sebuah perkampungan nelayan lama Teluk Gong, penduduk diganggu suara ratapan wanita setiap kali air pasang perbani memukul pantai bakau.',
     rating: 4.75,
@@ -737,15 +735,14 @@ export const INITIAL_EBOOKS: EBook[] = [
   },
 
   // ==========================================
-  // AGAMA & MOTIVASI (SPIRITUAL & MOTIVATION)
+  // NOVEL AGAMA & MOTIVASI (SPIRITUAL & MOTIVATION)
   // ==========================================
   {
     id: 'agama-1',
     title: 'Menyelami Ketenangan Hati: Motivasi & Tadabbur Jiwa',
     author: 'Ustaz Zahiruddin & Dr. Nurul Huda',
-    category: 'agama',
+    category: 'novel',
     genre: 'Agama & Motivasi',
-    coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
     synopsis:
       'Sebuah panduan kontemporari mengubat keresahan jiwa moden berasaskan intipati ayat suci al-Quran, hikmah Sirah Nabawiyyah, dan amalan muhasabah kendiri yang menenangkan minda serta nurani.',
     rating: 4.96,
@@ -781,9 +778,8 @@ export const INITIAL_EBOOKS: EBook[] = [
     id: 'agama-2',
     title: 'Kembara Menuju Redha Ilahi: Panduan Hijrah Hakiki',
     author: "Dato' Dr. Harun Din Al-Hafiz",
-    category: 'agama',
-    genre: 'Tarbiah & Pembangunan Insan',
-    coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+    category: 'novel',
+    genre: 'Agama & Motivasi',
     synopsis:
       'Koleksi tazkirah dan motivasi praktikal untuk membina disiplin diri, memperbaiki solat fardu, dan membina integriti akhlak seorang Muslim berwawasan di zaman digital.',
     rating: 4.9,
