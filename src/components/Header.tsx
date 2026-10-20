@@ -6,6 +6,7 @@ import {
   User,
   X,
   Library,
+  PenTool,
 } from 'lucide-react';
 import { BookCategory, UserProfile } from '../types/ebook.ts';
 
@@ -19,6 +20,7 @@ interface HeaderProps {
   onSelectCategory: (cat: 'semua' | BookCategory | 'percuma' | 'koleksi') => void;
   user: UserProfile;
   onFocusSearch?: () => void;
+  onOpenAuthorPortal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -30,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeCategory,
   onSelectCategory,
   user,
+  onOpenAuthorPortal,
 }) => {
   const [mobileSearchVisible, setMobileSearchVisible] = useState(false);
 
@@ -116,6 +119,18 @@ export const Header: React.FC<HeaderProps> = ({
                 {user.ownedBookIds.length}
               </span>
             </button>
+
+            {/* Terbit Karya / Portal Penulis */}
+            {onOpenAuthorPortal && (
+              <button
+                onClick={onOpenAuthorPortal}
+                className="hidden md:flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-bold text-indigo-700 hover:text-indigo-900 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 transition-colors cursor-pointer"
+                title="Portal Penulis & Terbit Karya"
+              >
+                <PenTool className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Terbit Karya</span>
+              </button>
+            )}
 
             {/* Cart Button */}
             <button

@@ -17,6 +17,7 @@ import { SecurityBannerToast } from './components/SecurityBannerToast.tsx';
 import { ContinueReadingSection } from './components/ContinueReadingSection.tsx';
 import { MobileBottomNav } from './components/MobileBottomNav.tsx';
 import { BookDetailModal } from './components/BookDetailModal.tsx';
+import { AuthorPublishModal } from './components/AuthorPublishModal.tsx';
 import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent } from './types/ebook.ts';
@@ -32,12 +33,13 @@ import {
 } from './firebase.ts';
 
 export default function App() {
-  const [books] = useState<EBook[]>(INITIAL_EBOOKS);
+  const [books, setBooks] = useState<EBook[]>(INITIAL_EBOOKS);
   const [activeCategory, setActiveCategory] = useState<'semua' | BookCategory | 'percuma' | 'koleksi'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
+  const [isAuthorPortalOpen, setIsAuthorPortalOpen] = useState(false);
   const [activeReadingBook, setActiveReadingBook] = useState<EBook | null>(null);
   const [selectedDetailBook, setSelectedDetailBook] = useState<EBook | null>(null);
   const [isReaderOpen, setIsReaderOpen] = useState(false);
@@ -78,8 +80,8 @@ export default function App() {
 
   // User Profile State (Simulating registered Malaysian reader & syncing with Firebase)
   const [user, setUser] = useState<UserProfile>({
-    name: 'Ahmad Danial',
-    email: 'mykaryadigital@gmail.com',
+    name: 'Bang Karim',
+    email: 'bangkarim@karyadigital.my',
     balance: 45.0,
     tier: 'Pembaca VIP Malaysia',
     ownedBookIds: ['novel-4'], // Naskhah percuma sudah ada dalam rak
@@ -269,6 +271,12 @@ export default function App() {
     }
   };
 
+  // Handle Self-Publishing by Authors
+  const handlePublishBook = (newBook: EBook) => {
+    setBooks((prev) => [newBook, ...prev]);
+    triggerSecurityWarning(`Naskhah "${newBook.title}" berjaya diterbitkan ke dalam katalog!`, 'info');
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 protected-content pb-16 md:pb-0 overflow-x-hidden w-full max-w-full">
       {/* Header & Navigation */}
@@ -281,6 +289,7 @@ export default function App() {
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
         user={user}
+        onOpenAuthorPortal={() => setIsAuthorPortalOpen(true)}
       />
 
       {/* Hero Banner Section (shown when not searching and viewing main katalog) */}
@@ -361,6 +370,7 @@ export default function App() {
         firebaseUser={auth.currentUser}
         onSignInGoogle={signInWithGoogle}
         onSignOut={signOutUser}
+        onOpenAuthorPortal={() => setIsAuthorPortalOpen(true)}
       />
 
       {/* BCL (Bayarcash Commerce Layer) Payment Portal Modal */}
@@ -424,8 +434,16 @@ export default function App() {
         onAddToCart={(b) => handleAddToCart(b)}
       />
 
+      {/* Portal Penulis & Terbit Karya Modal */}
+      <AuthorPublishModal
+        isOpen={isAuthorPortalOpen}
+        onClose={() => setIsAuthorPortalOpen(false)}
+        onPublishBook={handlePublishBook}
+        currentUserName={user.name}
+      />
+
       {/* Footer */}
-      <Footer />
+      <Footer onOpenAuthorPortal={() => setIsAuthorPortalOpen(true)} />
 
       {/* Mobile Bottom Navigation Bar (Utama, Cari, Rak Saya, Akaun) */}
       <MobileBottomNav

@@ -1,7 +1,11 @@
 import React from 'react';
 import { BookOpen, ShieldCheck } from 'lucide-react';
 
-export const Footer: React.FC = () => {
+interface FooterProps {
+  onOpenAuthorPortal?: () => void;
+}
+
+export const Footer: React.FC<FooterProps> = ({ onOpenAuthorPortal }) => {
   return (
     <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800">
       <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -41,13 +45,30 @@ export const Footer: React.FC = () => {
             </h4>
             <ul className="space-y-1 text-[11px]">
               <li>
-                <span className="hover:text-amber-400 text-slate-300 font-semibold transition-colors cursor-pointer flex items-center gap-1">
+                <button
+                  onClick={onOpenAuthorPortal}
+                  className="hover:text-amber-400 text-slate-300 font-semibold transition-colors cursor-pointer flex items-center gap-1 text-left"
+                >
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
                   Portal Penulis (Self-Publishing)
-                </span>
+                </button>
               </li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Kadar Royalti 70% ke Akaun Bank</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Panduan Hak Cipta Akta 1987</span></li>
+              <li>
+                <button
+                  onClick={onOpenAuthorPortal}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  Daftar Manuskrip e-Buku & Komik (70% Royalti)
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={onOpenAuthorPortal}
+                  className="hover:text-white transition-colors cursor-pointer text-left"
+                >
+                  Panduan Hak Cipta Akta 1987
+                </button>
+              </li>
             </ul>
           </div>
 

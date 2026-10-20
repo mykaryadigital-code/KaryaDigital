@@ -24,6 +24,7 @@ interface AccountModalProps {
   firebaseUser?: any;
   onSignInGoogle?: () => Promise<any>;
   onSignOut?: () => Promise<void>;
+  onOpenAuthorPortal?: () => void;
 }
 
 export const AccountModal: React.FC<AccountModalProps> = ({
@@ -37,6 +38,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   firebaseUser,
   onSignInGoogle,
   onSignOut,
+  onOpenAuthorPortal,
 }) => {
   const [activeTab, setActiveTab] = useState<'profil' | 'rak' | 'baki'>('profil');
   const [topUpSuccess, setTopUpSuccess] = useState(false);
@@ -145,6 +147,45 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </div>
                   <div className="text-[11px] text-slate-400">Boleh guna terus</div>
                 </div>
+              </div>
+
+              {/* Portal Penulis & Terbit Karya */}
+              <div className="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200/90 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                      ✍️
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">
+                        Portal Penulis & Terbit Karya
+                      </div>
+                      <div className="text-[11px] text-indigo-700 font-semibold">
+                        Royalti 70% Terus ke Akaun Bank
+                      </div>
+                    </div>
+                  </div>
+                  <span className="text-[10px] bg-indigo-200 text-indigo-900 font-extrabold px-2 py-0.5 rounded-full">
+                    Terbuka
+                  </span>
+                </div>
+
+                <p className="text-xs text-slate-600 leading-relaxed">
+                  Ingin menulis atau memasukkan karya anda ke KaryaDigital? Anda boleh mendaftar dan menerbitkan manuskrip e-buku atau komik anda terus dalam platform.
+                </p>
+
+                {onOpenAuthorPortal && (
+                  <button
+                    onClick={() => {
+                      onClose();
+                      onOpenAuthorPortal();
+                    }}
+                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    <span>Buka Portal Penulis & Hantar Karya</span>
+                    <span>→</span>
+                  </button>
+                )}
               </div>
 
               {/* Firebase Cloud Sync & Authentication Section */}

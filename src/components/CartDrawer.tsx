@@ -39,8 +39,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onApplyVoucher,
   onTriggerToyyibPay,
   onTriggerBclPayment,
-  currentUserEmail = 'mykaryadigital@gmail.com',
-  currentUserName = 'Ahmad Danial',
+  currentUserEmail = 'bangkarim@karyadigital.my',
+  currentUserName = 'Bang Karim',
 }) => {
   const [inputCode, setInputCode] = useState(voucherCode);
   const [voucherError, setVoucherError] = useState('');
