@@ -27,12 +27,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Middleware parsing JSON dan x-www-form-urlencoded (diperlukan untuk webhook ToyyibPay)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Sajikan fail statik dari folder public
+app.use(express.static(path.resolve(__dirname, 'public')));
 
 // Helper URL Asas Aplikasi
 function getAppBaseUrl(req: Request): string {
@@ -438,9 +441,13 @@ app.get('/api/user/library', async (req: Request, res: Response) => {
   return res.json({ success: true, email, ownedBookIds: bookIds });
 });
 
-// Rute untuk melihat fail prototaip HTML tunggal (reader-prototype.html)
+// Rute untuk melihat fail prototaip HTML tunggal (reader-prototype.html & homepage.html)
 app.get(['/reader-prototype.html', '/prototype'], (_req: Request, res: Response) => {
-  res.sendFile(path.resolve(__dirname, 'reader-prototype.html'));
+  res.sendFile(path.resolve(__dirname, 'public', 'reader-prototype.html'));
+});
+
+app.get(['/homepage.html', '/homepage'], (_req: Request, res: Response) => {
+  res.sendFile(path.resolve(__dirname, 'public', 'homepage.html'));
 });
 
 // ====================================================================
@@ -462,8 +469,8 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, () => {
-    console.log(`[KaryaDigital] Server sedang berjalan pada port ${PORT} (http://localhost:${PORT})`);
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`[KaryaDigital] Server sedang berjalan pada port ${PORT} (http://0.0.0.0:${PORT})`);
   });
 }
 

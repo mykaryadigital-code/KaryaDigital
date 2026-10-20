@@ -783,7 +783,7 @@ export const INITIAL_EBOOKS: EBook[] = [
     author: "Dato' Dr. Harun Din Al-Hafiz",
     category: 'agama',
     genre: 'Tarbiah & Pembangunan Insan',
-    coverImage: 'https://images.unsplash.com/photo-1507842229458-7729f273d100?auto=format&fit=crop&w=600&q=80',
+    coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
     synopsis:
       'Koleksi tazkirah dan motivasi praktikal untuk membina disiplin diri, memperbaiki solat fardu, dan membina integriti akhlak seorang Muslim berwawasan di zaman digital.',
     rating: 4.9,

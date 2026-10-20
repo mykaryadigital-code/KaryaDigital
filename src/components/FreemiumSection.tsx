@@ -21,10 +21,10 @@ export const FreemiumSection: React.FC<FreemiumSectionProps> = ({
     .slice(0, 4);
 
   return (
-    <section className="bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white py-14 px-4 sm:px-6 lg:px-8 border-y border-indigo-900/40 relative overflow-hidden">
+    <section className="bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white py-14 px-4 sm:px-6 lg:px-8 border-y border-indigo-900/40 relative overflow-hidden w-full max-w-full">
       {/* Decorative ambient background glows */}
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
-      <div className="absolute bottom-0 left-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute top-0 right-0 w-72 sm:w-96 h-72 sm:h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div className="absolute bottom-0 left-0 w-72 sm:w-96 h-72 sm:h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="max-w-7xl mx-auto space-y-8 relative z-10">
         {/* Section Header */}

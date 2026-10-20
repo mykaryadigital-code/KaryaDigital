@@ -15,6 +15,9 @@ import { BclPaymentModal } from './components/BclPaymentModal.tsx';
 import { SecureAssetModal } from './components/SecureAssetModal.tsx';
 import { SecurityBannerToast } from './components/SecurityBannerToast.tsx';
 import { FreemiumSection } from './components/FreemiumSection.tsx';
+import { ContinueReadingSection } from './components/ContinueReadingSection.tsx';
+import { MobileBottomNav } from './components/MobileBottomNav.tsx';
+import { BookDetailModal } from './components/BookDetailModal.tsx';
 import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent } from './types/ebook.ts';
@@ -37,6 +40,7 @@ export default function App() {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [activeReadingBook, setActiveReadingBook] = useState<EBook | null>(null);
+  const [selectedDetailBook, setSelectedDetailBook] = useState<EBook | null>(null);
   const [isReaderOpen, setIsReaderOpen] = useState(false);
   const [voucherCode, setVoucherCode] = useState<string>('KARYALOKAL');
   const [securityToasts, setSecurityToasts] = useState<SecurityToastEvent[]>([]);
@@ -267,7 +271,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 protected-content">
+    <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 protected-content pb-16 md:pb-0 overflow-x-hidden w-full max-w-full">
       {/* Header & Navigation */}
       <Header
         searchQuery={searchQuery}
@@ -283,14 +287,22 @@ export default function App() {
       {/* Hero Banner Section (shown when not searching and viewing main katalog) */}
       {!searchQuery && activeCategory !== 'koleksi' && (
         <HeroBanner
-          onSelectCategory={(cat) => {
-            setActiveCategory(cat);
-            handleScrollToCatalog();
-          }}
           onExploreClick={handleScrollToCatalog}
           onCopyVoucher={(code) => {
             setVoucherCode(code);
             triggerSecurityWarning(`Kod baucar "${code}" berjaya disalin!`, 'info');
+          }}
+        />
+      )}
+
+      {/* Sambung Membaca Section for users with owned books */}
+      {!searchQuery && activeCategory !== 'koleksi' && user.ownedBookIds.length > 0 && (
+        <ContinueReadingSection
+          ownedBooks={books.filter((b) => user.ownedBookIds.includes(b.id))}
+          onRead={handleOpenReader}
+          onViewShelf={() => {
+            setActiveCategory('koleksi');
+            handleScrollToCatalog();
           }}
         />
       )}
@@ -305,6 +317,7 @@ export default function App() {
           cartBookIds={cart.map((c) => c.book.id)}
           onRead={handleOpenReader}
           onAddToCart={handleAddToCart}
+          onViewDetails={(book) => setSelectedDetailBook(book)}
           searchQuery={searchQuery}
         />
       </main>
@@ -408,8 +421,40 @@ export default function App() {
         onDismiss={(id) => setSecurityToasts((prev) => prev.filter((t) => t.id !== id))}
       />
 
+      {/* Book Detail Modal */}
+      <BookDetailModal
+        book={selectedDetailBook}
+        isOpen={!!selectedDetailBook}
+        onClose={() => setSelectedDetailBook(null)}
+        isOwned={selectedDetailBook ? user.ownedBookIds.includes(selectedDetailBook.id) : false}
+        isInCart={selectedDetailBook ? cart.some((c) => c.book.id === selectedDetailBook.id) : false}
+        onRead={(b) => {
+          setSelectedDetailBook(null);
+          handleOpenReader(b);
+        }}
+        onAddToCart={(b) => handleAddToCart(b)}
+      />
+
       {/* Footer */}
       <Footer />
+
+      {/* Mobile Bottom Navigation Bar (Utama, Cari, Rak Saya, Akaun) */}
+      <MobileBottomNav
+        activeCategory={activeCategory}
+        onSelectCategory={(cat) => {
+          setActiveCategory(cat);
+          setSearchQuery('');
+          handleScrollToCatalog();
+        }}
+        ownedBooksCount={user.ownedBookIds.length}
+        onOpenSearch={() => {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+          const input = document.querySelector('input[type="text"]') as HTMLInputElement;
+          if (input) input.focus();
+        }}
+        onOpenAccount={() => setIsAccountOpen(true)}
+        isSearchActive={!!searchQuery}
+      />
     </div>
   );
 }

@@ -177,6 +177,16 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   const currentStep = isNovel ? currentChapterIndex + 1 : currentComicPageIndex + 1;
   const progressPercent = calculateReadingProgress(currentStep, totalSteps);
 
+  // State for consolidated "Aa" settings menu
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+
+  // Theme Toggle Helper
+  const themes = [
+    { id: 'light', label: 'Cerah', icon: Sun },
+    { id: 'sepia', label: 'Sepia', icon: Sun },
+    { id: 'dark', label: 'Gelap', icon: Moon },
+  ];
+
   return (
     <div
       className="fixed inset-0 z-50 overflow-hidden flex flex-col bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200"
@@ -192,214 +202,180 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
       >
         {/* Top Header & Reading Controls */}
         <header
-          className={`flex flex-col sm:flex-row sm:items-center justify-between px-3 sm:px-4 py-2.5 sm:py-3 shrink-0 backdrop-blur-md z-20 gap-2 ${
+          className={`flex items-center justify-between px-3 sm:px-4 py-2.5 shrink-0 backdrop-blur-md z-30 border-b border-current/10 relative ${
             themeHeaderClasses[settings.theme]
           }`}
         >
-          {/* Top Row on Mobile: Close button, Title & Badge */}
-          <div className="flex items-center justify-between gap-2 min-w-0">
-            <div className="flex items-center gap-2 min-w-0">
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
-                aria-label="Tutup pembaca e-buku"
-              >
-                <X className="w-5 h-5" />
-              </button>
+          {/* Left: Close button & Book title */}
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors shrink-0"
+              aria-label="Tutup pembaca e-buku"
+            >
+              <X className="w-5 h-5" />
+            </button>
 
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  <h3 className="font-bold text-sm sm:text-base truncate max-w-[160px] sm:max-w-xs">
-                    {book.title}
-                  </h3>
-                  <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-700 dark:text-amber-300 shrink-0">
-                    {isOwned ? 'Versi Penuh' : 'Pratonton Percuma'}
-                  </span>
-                </div>
-                <p className="text-[11px] opacity-75 truncate">
-                  Oleh {book.author} · {isNovel ? `Bab ${currentStep} dari ${totalSteps}` : `Muka Surat ${currentStep} dari ${totalSteps}`}
-                </p>
-              </div>
-            </div>
-
-            {/* Mobile close or quick bookmark indicator */}
-            <div className="flex sm:hidden items-center gap-1">
-              <button
-                onClick={() => {
-                  setIsBookmarked(!isBookmarked);
-                  onTriggerSecurityWarning(
-                    isBookmarked
-                      ? 'Penanda buku telah dibuang.'
-                      : 'Halaman ini telah ditandakan dalam koleksi anda!',
-                    'info'
-                  );
-                }}
-                className={`p-1.5 rounded-lg ${
-                  isBookmarked
-                    ? 'bg-amber-500 text-slate-950'
-                    : 'bg-black/5 dark:bg-white/10'
-                }`}
-                aria-label="Tanda halaman"
-              >
-                {isBookmarked ? (
-                  <BookMarked className="w-4 h-4 fill-current" />
-                ) : (
-                  <Bookmark className="w-4 h-4" />
-                )}
-              </button>
+            <div className="min-w-0">
+              <h3 className="font-bold text-xs sm:text-sm truncate max-w-[150px] sm:max-w-xs">
+                {book.title}
+              </h3>
+              <p className="text-[10px] opacity-70 truncate">
+                {isNovel ? `Bahagian ${currentStep} / ${totalSteps}` : `Halaman ${currentStep} / ${totalSteps}`}
+              </p>
             </div>
           </div>
 
-          {/* Controls Row: Font Size, Theme, Font Family, Bookmark */}
-          <div className="flex items-center justify-between sm:justify-end gap-1.5 overflow-x-auto no-scrollbar">
-            {/* Font Size Selector (for novels) */}
-            {isNovel && (
-              <div className="flex items-center bg-black/5 dark:bg-white/10 rounded-lg p-0.5 shrink-0">
-                <button
-                  onClick={() => setSettings((s) => ({ ...s, fontSize: 'sm' }))}
-                  className={`px-2 py-1 text-xs rounded-md font-bold ${
-                    settings.fontSize === 'sm' ? 'bg-white dark:bg-slate-800 shadow-xs' : ''
-                  }`}
-                  title="Saiz Teks Kecil"
-                >
-                  A-
-                </button>
-                <button
-                  onClick={() => setSettings((s) => ({ ...s, fontSize: 'base' }))}
-                  className={`px-2 py-1 text-xs rounded-md font-bold ${
-                    settings.fontSize === 'base' ? 'bg-white dark:bg-slate-800 shadow-xs' : ''
-                  }`}
-                  title="Saiz Teks Biasa"
-                >
-                  A
-                </button>
-                <button
-                  onClick={() => setSettings((s) => ({ ...s, fontSize: 'lg' }))}
-                  className={`px-2 py-1 text-xs rounded-md font-bold ${
-                    settings.fontSize === 'lg' ? 'bg-white dark:bg-slate-800 shadow-xs' : ''
-                  }`}
-                  title="Saiz Teks Besar"
-                >
-                  A+
-                </button>
-              </div>
-            )}
-
-            {/* Font Family Selector (for novels) */}
-            {isNovel && (
-              <button
-                onClick={() =>
-                  setSettings((s) => ({
-                    ...s,
-                    fontFamily:
-                      s.fontFamily === 'serif'
-                        ? 'sans'
-                        : s.fontFamily === 'sans'
-                        ? 'mono'
-                        : 'serif',
-                  }))
-                }
-                className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-black/5 dark:bg-white/10 hover:bg-black/10 transition-colors shrink-0"
-                title="Tukar Jenis Tulisan"
-              >
-                <Type className="w-3.5 h-3.5" />
-                <span className="capitalize">{settings.fontFamily}</span>
-              </button>
-            )}
-
-            {/* Comic Scroll Mode & Zoom Controls */}
+          {/* Right: Consolidated "Aa" Menu, Comic Mode, Bookmark, Fullscreen */}
+          <div className="flex items-center gap-1.5 relative">
+            {/* Comic Scroll Mode Selector */}
             {!isNovel && (
-              <div className="flex items-center gap-1.5 flex-wrap">
-                {/* Mode Selector: Webtoon (Vertical) vs Horizontal */}
-                <div className="flex items-center bg-black/5 dark:bg-white/10 rounded-lg p-0.5 shrink-0 text-xs font-bold">
-                  <button
-                    onClick={() => setComicMode('vertical')}
-                    className={`px-2 py-1 rounded-md transition-colors ${
-                      comicMode === 'vertical'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'opacity-70 hover:opacity-100'
-                    }`}
-                    title="Mod Skrol Menegak (Webtoon)"
-                  >
-                    📜 Webtoon
-                  </button>
-                  <button
-                    onClick={() => setComicMode('horizontal')}
-                    className={`px-2 py-1 rounded-md transition-colors ${
-                      comicMode === 'horizontal'
-                        ? 'bg-indigo-600 text-white shadow-xs'
-                        : 'opacity-70 hover:opacity-100'
-                    }`}
-                    title="Mod Selakan Halaman (Manga)"
-                  >
-                    📖 Halaman
-                  </button>
-                </div>
-
-                {/* Zoom & Fit to screen */}
-                <div className="flex items-center bg-black/5 dark:bg-white/10 rounded-lg p-0.5 shrink-0">
-                  <button
-                    onClick={() => setComicZoom((z) => Math.max(0.7, +(z - 0.15).toFixed(2)))}
-                    className="p-1 rounded-md hover:bg-white/50"
-                    title="Zum Keluar"
-                  >
-                    <ZoomOut className="w-3.5 h-3.5" />
-                  </button>
-                  <span className="text-[10px] font-mono px-1.5 font-bold">
-                    {Math.round(comicZoom * 100)}%
-                  </span>
-                  <button
-                    onClick={() => setComicZoom((z) => Math.min(1.8, +(z + 0.15).toFixed(2)))}
-                    className="p-1 rounded-md hover:bg-white/50"
-                    title="Zum Masuk"
-                  >
-                    <ZoomIn className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => setComicZoom(1.0)}
-                    className="px-1.5 py-0.5 text-[10px] font-bold rounded bg-black/10 dark:bg-white/10 ml-0.5"
-                    title="Muat-kan ke Skrin"
-                  >
-                    Fit
-                  </button>
-                </div>
+              <div className="flex items-center bg-black/5 dark:bg-white/10 rounded-lg p-0.5 text-xs font-bold mr-1">
+                <button
+                  onClick={() => setComicMode('vertical')}
+                  className={`px-2 py-1 rounded-md text-[11px] ${
+                    comicMode === 'vertical' ? 'bg-indigo-600 text-white shadow-xs' : 'opacity-70'
+                  }`}
+                >
+                  Webtoon
+                </button>
+                <button
+                  onClick={() => setComicMode('horizontal')}
+                  className={`px-2 py-1 rounded-md text-[11px] ${
+                    comicMode === 'horizontal' ? 'bg-indigo-600 text-white shadow-xs' : 'opacity-70'
+                  }`}
+                >
+                  Halaman
+                </button>
               </div>
             )}
 
-            {/* Theme Toggle: Light / Sepia / Dark */}
-            <div className="flex items-center bg-black/5 dark:bg-white/10 rounded-lg p-0.5 shrink-0">
+            {/* Consolidated "Aa" Settings Button */}
+            <div className="relative">
               <button
-                onClick={() => setSettings((s) => ({ ...s, theme: 'light' }))}
-                className={`p-1.5 rounded-md ${
-                  settings.theme === 'light' ? 'bg-white shadow-xs text-amber-600' : 'opacity-70'
+                onClick={() => setShowSettingsMenu(!showSettingsMenu)}
+                className={`px-2.5 py-1.5 rounded-xl font-serif text-sm font-bold border transition-colors flex items-center gap-1 cursor-pointer ${
+                  showSettingsMenu
+                    ? 'bg-amber-500 text-slate-950 border-amber-600'
+                    : 'bg-black/5 dark:bg-white/10 border-transparent hover:bg-black/10'
                 }`}
-                title="Mod Cerah"
+                title="Tetapan Paparan & Fon"
+                aria-label="Menu Tetapan Paparan"
               >
-                <Sun className="w-3.5 h-3.5" />
+                <span>Aa</span>
               </button>
-              <button
-                onClick={() => setSettings((s) => ({ ...s, theme: 'sepia' }))}
-                className={`p-1.5 rounded-md ${
-                  settings.theme === 'sepia'
-                    ? 'bg-[#faf6ee] shadow-xs text-amber-800 font-bold'
-                    : 'opacity-70'
-                }`}
-                title="Mod Kertas Sepia"
-              >
-                <span className="text-xs font-bold font-serif leading-none">S</span>
-              </button>
-              <button
-                onClick={() => setSettings((s) => ({ ...s, theme: 'dark' }))}
-                className={`p-1.5 rounded-md ${
-                  settings.theme === 'dark' ? 'bg-slate-800 shadow-xs text-sky-400' : 'opacity-70'
-                }`}
-                title="Mod Malam Gelap"
-              >
-                <Moon className="w-3.5 h-3.5" />
-              </button>
+
+              {/* "Aa" Popover Menu */}
+              {showSettingsMenu && (
+                <div className="absolute right-0 top-full mt-2 w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3.5 space-y-3 z-50 text-slate-800 dark:text-slate-200 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                      Tetapan Paparan
+                    </span>
+                    <button
+                      onClick={() => setShowSettingsMenu(false)}
+                      className="text-xs text-slate-400 hover:text-slate-600"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {/* 1. Tema Warna */}
+                  <div className="space-y-1">
+                    <span className="text-[11px] font-semibold text-slate-500 block">Tema:</span>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      <button
+                        onClick={() => setSettings((s) => ({ ...s, theme: 'light' }))}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-1 ${
+                          settings.theme === 'light'
+                            ? 'bg-white border-amber-500 text-amber-700 shadow-xs'
+                            : 'bg-slate-50 border-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <Sun className="w-3 h-3 text-amber-500" />
+                        <span>Cerah</span>
+                      </button>
+
+                      <button
+                        onClick={() => setSettings((s) => ({ ...s, theme: 'sepia' }))}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-1 ${
+                          settings.theme === 'sepia'
+                            ? 'bg-[#faf6ee] border-amber-600 text-amber-900 shadow-xs'
+                            : 'bg-[#faf6ee]/60 border-slate-200 text-amber-900'
+                        }`}
+                      >
+                        <span>Sepia</span>
+                      </button>
+
+                      <button
+                        onClick={() => setSettings((s) => ({ ...s, theme: 'dark' }))}
+                        className={`py-1.5 px-2 rounded-lg text-xs font-bold border flex items-center justify-center gap-1 ${
+                          settings.theme === 'dark'
+                            ? 'bg-slate-800 border-indigo-400 text-white shadow-xs'
+                            : 'bg-slate-900 border-slate-700 text-slate-300'
+                        }`}
+                      >
+                        <Moon className="w-3 h-3 text-sky-400" />
+                        <span>Gelap</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 2. Saiz Tulisan (Novel) */}
+                  {isNovel && (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold text-slate-500 block">Saiz Fon:</span>
+                      <div className="flex items-center justify-between gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                        {(['sm', 'base', 'lg', 'xl'] as const).map((sz, i) => (
+                          <button
+                            key={sz}
+                            onClick={() => setSettings((s) => ({ ...s, fontSize: sz }))}
+                            className={`flex-1 py-1 rounded-lg text-xs font-bold transition ${
+                              settings.fontSize === sz
+                                ? 'bg-white dark:bg-slate-700 text-indigo-600 dark:text-amber-400 shadow-xs'
+                                : 'text-slate-600 dark:text-slate-400'
+                            }`}
+                          >
+                            {i === 0 ? 'A-' : i === 1 ? 'A' : i === 2 ? 'A+' : 'A++'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* 3. Jenis Tulisan (Serif vs Sans) */}
+                  {isNovel && (
+                    <div className="space-y-1">
+                      <span className="text-[11px] font-semibold text-slate-500 block">Jenis Tulisan:</span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          onClick={() => setSettings((s) => ({ ...s, fontFamily: 'serif' }))}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-serif ${
+                            settings.fontFamily === 'serif'
+                              ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-amber-300 font-bold border border-indigo-200 dark:border-slate-700'
+                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'
+                          }`}
+                        >
+                          Serif (Klasik)
+                        </button>
+                        <button
+                          onClick={() => setSettings((s) => ({ ...s, fontFamily: 'sans' }))}
+                          className={`py-1.5 px-2 rounded-lg text-xs font-sans ${
+                            settings.fontFamily === 'sans'
+                              ? 'bg-indigo-50 dark:bg-slate-800 text-indigo-700 dark:text-amber-300 font-bold border border-indigo-200 dark:border-slate-700'
+                              : 'bg-slate-50 dark:bg-slate-800/50 text-slate-700 dark:text-slate-400'
+                          }`}
+                        >
+                          Sans (Moden)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
-            {/* Bookmark button (desktop) */}
+            {/* Bookmark button */}
             <button
               onClick={() => {
                 setIsBookmarked(!isBookmarked);
@@ -410,7 +386,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                   'info'
                 );
               }}
-              className={`hidden sm:flex p-1.5 rounded-lg transition-colors shrink-0 ${
+              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
                 isBookmarked
                   ? 'bg-amber-500 text-slate-950 font-bold'
                   : 'bg-black/5 dark:bg-white/10 hover:bg-black/10'
@@ -427,7 +403,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="hidden md:flex p-1.5 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 transition-colors shrink-0"
+              className="hidden sm:flex p-1.5 rounded-lg bg-black/5 dark:bg-white/10 hover:bg-black/10 transition-colors shrink-0"
               title="Togol Skrin Penuh"
             >
               <Maximize2 className="w-4 h-4" />
@@ -508,7 +484,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-base">Tamat {currentChapter.title}</h4>
+                  <h4 className="font-bold text-base">Tamat Bahagian Ini</h4>
                   <p className="text-xs opacity-75 mt-1 max-w-md mx-auto">
                     {currentChapterIndex < chapters.length - 1
                       ? 'Teruskan membaca bab seterusnya di bawah.'
@@ -733,11 +709,14 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                 onChange={(e) => setCurrentChapterIndex(Number(e.target.value))}
                 className="bg-transparent font-bold border border-current/20 rounded-md px-2 py-1 text-xs focus:outline-none cursor-pointer"
               >
-                {chapters.map((ch, idx) => (
-                  <option key={ch.id} value={idx} className="bg-white text-slate-900">
-                    Bab {ch.id}: {ch.title.substring(0, 24)}...
-                  </option>
-                ))}
+                {chapters.map((ch, idx) => {
+                  const label = ch.title.startsWith('Bab') ? ch.title : `Bab ${ch.id}: ${ch.title}`;
+                  return (
+                    <option key={ch.id} value={idx} className="bg-white text-slate-900">
+                      {label.length > 30 ? label.substring(0, 30) + '...' : label}
+                    </option>
+                  );
+                })}
               </select>
             ) : (
               <span className="font-mono text-xs">
