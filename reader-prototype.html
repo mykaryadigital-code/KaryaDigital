@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KaryaDigital - Prototaip 2 Komponen Reader (Novel ePub & Komik Manga)</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+  
+  <style>
+    body {
+      font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    }
+    .font-serif-novel {
+      font-family: 'Playfair Display', Georgia, serif;
+    }
+    .font-mono-code {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* 3. Ciri Keselamatan (Anti-Cetak Rompak) - CSS User Select None */
+    .protected-reader-area {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -khtml-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
+    /* Watermark Dinamik Berulang Secara Diagonal */
+    .watermark-overlay {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='340' height='220' viewBox='0 0 340 220'><text x='20' y='110' fill='rgba(100,116,139,0.09)' font-size='12' font-family='sans-serif' font-weight='bold' transform='rotate(-25 170 110)'>HAK CIPTA TERPELIHARA · KARYADIGITAL</text><text x='20' y='135' fill='rgba(220,38,38,0.08)' font-size='11' font-family='sans-serif' font-weight='bold' transform='rotate(-25 170 110)'>Pembeli: mykaryadigital@gmail.com - ID: 88392</text></svg>");
+      background-repeat: repeat;
+      pointer-events: none;
+    }
+
+    /* Custom Scrollbar for Smooth Reading */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.03);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 antialiased min-h-screen flex flex-col protected-reader-area">
+
+  <!-- Top Global Security Banner & Watermark Info -->
+  <div class="bg-slate-900 text-white text-xs px-4 py-2 border-b border-slate-800 flex items-center justify-between z-50">
+    <div class="flex items-center gap-2">
+      <span class="flex h-2 w-2 relative">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+      </span>
+      <span class="font-bold text-amber-400">KaryaDigital Reader Studio</span>
+      <span class="text-slate-500">|</span>
+      <span class="text-slate-300 hidden sm:inline">Prototaip 2 Komponen: Novel ePub & Komik/Manga</span>
+    </div>
+
+    <!-- Dynamic Buyer Identification Tag -->
+    <div class="flex items-center gap-2 text-xs font-mono">
+      <span class="hidden md:inline text-slate-400">Lesen Digital:</span>
+      <span class="bg-slate-800 text-amber-300 px-2 py-0.5 rounded border border-slate-700 font-semibold" id="topBuyerTag">
+        Pembeli: mykaryadigital@gmail.com - ID: 88392
+      </span>
+    </div>
+  </div>
+
+  <!-- Main Reader Container -->
+  <div class="flex-1 max-w-5xl w-full mx-auto p-2 sm:p-4 md:p-6 flex flex-col">
+
+    <!-- Prototype Mode Selector Tabs -->
+    <div class="bg-white rounded-2xl p-2 mb-4 border border-slate-200/90 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <span class="text-xs font-bold text-slate-500 uppercase tracking-wider pl-2">Pilih Komponen Reader:</span>
+      </div>
+      <div class="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-full sm:w-auto">
+        <button id="btnTabNovel" onclick="switchReaderMode('novel')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-sm">
+          <span>📖 1. Reader Novel Teks (ePub)</span>
+        </button>
+        <button id="btnTabComic" onclick="switchReaderMode('comic')" class="flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900">
+          <span>💥 2. Reader Komik / Manga</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- KOMPONEN 1: READER NOVEL TEKS (ePub-Style) -->
+    <!-- ============================================================== -->
+    <div id="novelReaderContainer" class="flex-1 flex flex-col rounded-2xl border border-slate-300 shadow-xl overflow-hidden transition-colors duration-200 bg-white text-slate-800">
+      
+      <!-- Pembaris Peratusan Bacaan (Reading Progress Bar) di bahagian paling atas -->
+      <div class="w-full bg-slate-200 h-1.5 relative overflow-hidden" title="Kemajuan Bacaan">
+        <div id="readingProgressBar" class="h-full bg-amber-500 transition-all duration-300" style="width: 33%;"></div>
+      </div>
+
+      <!-- Novel Reader Toolbar (Antaramuka Yang Bersih) -->
+      <div id="novelToolbar" class="px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/90 backdrop-blur-md">
+        <!-- Tajuk & Status -->
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-extrabold text-slate-900 truncate" id="novelBookTitle">Bayang Di Sebalik Menara</h2>
+            <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800 border border-amber-200">ePub Reader</span>
+          </div>
+          <p class="text-[11px] text-slate-500 truncate" id="novelAuthorTitle">Ramlee Awang Harun · Edisi Rasmi</p>
+        </div>
+
+        <!-- Controls: Mod Bacaan, Saiz Tulisan, Navigasi Bab -->
+        <div class="flex flex-wrap items-center gap-2">
+          
+          <!-- Pelarasan Saiz Tulisan (Buttons A- / A+ & Slider) -->
+          <div class="flex items-center gap-1.5 bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-2xs">
+            <button onclick="changeFontSize(-1)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-xs font-bold" title="Kecilkan Teks (A-)">A-</button>
+            <input type="range" id="fontSizeSlider" min="14" max="26" value="17" step="1" oninput="applyFontSizeFromSlider(this.value)" class="w-16 h-1 bg-slate-200 rounded-lg cursor-pointer accent-amber-600">
+            <button onclick="changeFontSize(1)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 text-xs font-bold" title="Besarkan Teks (A+)">A+</button>
+            <span id="fontSizeDisplay" class="text-[11px] font-mono text-slate-500 font-bold w-7 text-center">17px</span>
+          </div>
+
+          <!-- Mod Bacaan: Light Mode, Dark Mode, Sepia -->
+          <div class="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-2xs gap-1">
+            <button onclick="setTheme('light')" id="btnThemeLight" class="px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 text-slate-950 flex items-center gap-1 shadow-xs" title="Mod Cerah (Light)">
+              ☀️ <span>Light</span>
+            </button>
+            <button onclick="setTheme('sepia')" id="btnThemeSepia" class="px-2.5 py-1 text-xs font-bold rounded-lg text-amber-900 hover:bg-amber-50 flex items-center gap-1" title="Mod Kertas Sepia">
+              📜 <span>Sepia</span>
+            </button>
+            <button onclick="setTheme('dark')" id="btnThemeDark" class="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1" title="Mod Malam Gelap (Dark)">
+              🌙 <span>Dark</span>
+            </button>
+          </div>
+
+          <!-- Navigasi Bab (Table of Contents Dropdown) -->
+          <div class="flex items-center bg-white border border-slate-200 rounded-xl px-2 py-1 shadow-2xs">
+            <select id="chapterSelect" onchange="goToChapter(this.value)" class="text-xs font-bold text-slate-800 bg-transparent focus:outline-none cursor-pointer py-1">
+              <option value="0">Bab 1: Dentuman Hujan di Bukit Bintang</option>
+              <option value="1">Bab 2: Kunci Enkripsi Kayangan</option>
+              <option value="2">Bab 3: Sumpah di Jambatan Saloma</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Novel Reading Content Area with Watermark Layer -->
+      <div class="relative flex-1 overflow-y-auto" id="novelScrollArea" onscroll="updateNovelScrollProgress()">
+        <!-- Dynamic Anti-Piracy Watermark Overlay -->
+        <div class="absolute inset-0 watermark-overlay z-10 pointer-events-none"></div>
+
+        <!-- Novel Text Content -->
+        <div class="max-w-2xl mx-auto px-6 sm:px-12 py-10 space-y-6 relative z-0" id="novelContent">
+          <!-- Chapter Title & Heading -->
+          <div class="text-center pb-6 border-b border-current/10 space-y-2">
+            <span class="text-xs uppercase font-extrabold tracking-widest text-amber-600" id="chapterSubBadge">KARYA ASLI TEMPATAN · BAB 1</span>
+            <h1 class="text-2xl sm:text-3xl font-black font-serif-novel" id="chapterTitle">Bab 1: Dentuman Hujan di Jalan Bukit Bintang</h1>
+            <p class="text-xs opacity-70 italic" id="chapterLocation">Kuala Lumpur, 11:45 Malam</p>
+          </div>
+
+          <!-- Paragraphs -->
+          <div id="chapterParagraphs" class="space-y-4 font-serif-novel leading-relaxed text-justify" style="font-size: 17px;">
+            <!-- Rendered by JS -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Novel Reader Bottom Bar: Prev / Next Chapter Buttons -->
+      <div id="novelFooter" class="px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs font-bold">
+        <button id="btnPrevChapter" onclick="navigateChapter(-1)" class="px-4 py-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-100 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-2xs">
+          ← Bab Sebelumnya
+        </button>
+        <span id="chapterProgressText" class="text-slate-500 font-mono">Bab 1 dari 3 (33%)</span>
+        <button id="btnNextChapter" onclick="navigateChapter(1)" class="px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center gap-1.5 shadow-xs">
+          Bab Seterusnya →
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================================== -->
+    <!-- KOMPONEN 2: READER KOMIK / MANGA (Image Reader) -->
+    <!-- ============================================================== -->
+    <div id="comicReaderContainer" class="hidden flex-1 flex flex-col rounded-2xl border border-slate-800 bg-slate-950 text-slate-100 shadow-2xl overflow-hidden">
+      
+      <!-- Comic Toolbar -->
+      <div class="px-4 py-3 border-b border-slate-800 bg-slate-900/90 backdrop-blur-md flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-extrabold text-white">Lawak Kampus Generasi Z: Jilid 1</h2>
+            <span class="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Manga Reader</span>
+          </div>
+          <p class="text-[11px] text-slate-400">Keith & Cikgu Zaki · Komik Rasmi</p>
+        </div>
+
+        <!-- Controls: Selakan Vertical/Horizontal, Zoom & Fit to Screen -->
+        <div class="flex flex-wrap items-center gap-2">
+          
+          <!-- Mode Selakan: Vertical Scroll (Webtoon) vs Horizontal (Page-by-Page) -->
+          <div class="flex items-center bg-slate-800 border border-slate-700 rounded-xl p-1 gap-1">
+            <button onclick="setComicScrollMode('vertical')" id="btnModeVertical" class="px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white flex items-center gap-1" title="Mod Skrol Menegak (Webtoon)">
+              📜 <span>Webtoon (Vertical)</span>
+            </button>
+            <button onclick="setComicScrollMode('horizontal')" id="btnModeHorizontal" class="px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white flex items-center gap-1" title="Mod Selakan Halaman (Manga / Page-by-Page)">
+              📖 <span>Halaman (Horizontal)</span>
+            </button>
+          </div>
+
+          <!-- Fungsi Zoom & Fit to Screen -->
+          <div class="flex items-center bg-slate-800 border border-slate-700 rounded-xl p-1 gap-1">
+            <button onclick="adjustComicZoom(-0.15)" class="px-2 py-1 text-xs font-bold hover:bg-slate-700 rounded" title="Zum Keluar">🔍-</button>
+            <span id="comicZoomPercent" class="text-xs font-mono font-bold text-amber-400 px-1 w-12 text-center">100%</span>
+            <button onclick="adjustComicZoom(0.15)" class="px-2 py-1 text-xs font-bold hover:bg-slate-700 rounded" title="Zum Masuk">🔍+</button>
+            <button onclick="resetComicFit()" class="px-2.5 py-1 text-xs font-bold bg-slate-700 hover:bg-slate-600 text-white rounded ml-1" title="Muat-kan ke Skrin (Fit to Screen)">
+              Fit to Screen
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Comic Reading Viewport with Watermark Layer -->
+      <div id="comicViewport" class="relative flex-1 overflow-auto bg-slate-900 p-4 flex items-center justify-center">
+        <!-- Dynamic Anti-Piracy Watermark Overlay -->
+        <div class="absolute inset-0 watermark-overlay z-20 pointer-events-none"></div>
+
+        <!-- Mode 1: Vertical Scroll Container (Webtoon style) -->
+        <div id="comicVerticalContainer" class="w-full max-w-2xl mx-auto space-y-6 transition-transform duration-200 origin-top z-10">
+          <!-- Comic Strips rendered here -->
+        </div>
+
+        <!-- Mode 2: Horizontal / Page-by-Page Container -->
+        <div id="comicHorizontalContainer" class="hidden w-full h-full max-w-3xl mx-auto flex flex-col items-center justify-center z-10">
+          <div id="comicPageWrapper" class="relative transition-transform duration-200 origin-center max-w-full">
+            <!-- Single active comic page rendered here -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Comic Horizontal Navigation Footer (Visible in Horizontal Mode) -->
+      <div id="comicHorizontalFooter" class="hidden px-4 py-3 border-t border-slate-800 bg-slate-900 flex items-center justify-between text-xs font-bold">
+        <button onclick="navigateComicPage(-1)" id="btnComicPrev" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white flex items-center gap-1">
+          ← Muka Surat Sebelumnya
+        </button>
+        <span id="comicPageIndicator" class="text-amber-400 font-mono">Muka Surat 1 dari 3</span>
+        <button onclick="navigateComicPage(1)" id="btnComicNext" class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1">
+          Muka Surat Seterusnya →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Dynamic Security Alert Toast (Muncul jika user cuba right click atau copy) -->
+  <div id="securityToast" class="fixed bottom-6 right-6 z-50 hidden max-w-md bg-slate-950 text-white border border-rose-500/60 p-4 rounded-2xl shadow-2xl backdrop-blur-md transition-all duration-300">
+    <div class="flex items-start gap-3">
+      <div class="p-2 bg-rose-500/20 text-rose-400 rounded-xl shrink-0">
+        🛡️
+      </div>
+      <div class="flex-1">
+        <div class="text-xs font-bold text-rose-400 uppercase tracking-wider">Perlindungan Anti-Cetak Rompak</div>
+        <p class="text-xs text-slate-300 mt-0.5 leading-snug" id="securityToastMessage">
+          Tindakan ini disekat bagi memelihara hak cipta karya penulis tempatan.
+        </p>
+      </div>
+      <button onclick="dismissSecurityToast()" class="text-slate-400 hover:text-white text-xs p-1">✕</button>
+    </div>
+  </div>
+
+  <!-- Footer Info -->
+  <footer class="bg-white border-t border-slate-200 px-4 py-3 text-center text-xs text-slate-500">
+    KaryaDigital Malaysia Prototype · Hak Cipta Terpelihara di bawah Akta Hak Cipta 1987 · Dilengkapi Perlindungan Salinan Digital
+  </footer>
+
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT LOGIC & MOCK ENGINE -->
+  <!-- ============================================================== -->
+  <script>
+    // -------------------------------------------------------------
+    // DATA NOVEL & BAB
+    // -------------------------------------------------------------
+    const novelData = {
+      title: "Bayang Di Sebalik Menara",
+      author: "Ramlee Awang Harun",
+      chapters: [
+        {
+          id: 1,
+          title: "Bab 1: Dentuman Hujan di Jalan Bukit Bintang",
+          location: "Kuala Lumpur, 11:45 Malam",
+          paragraphs: [
+            "Hujan lebat yang membasahi aspal Jalan Bukit Bintang tidak menghalang keriuhan kota raya. Lampu neon yang terpantul pada lopak air membiaskan warna merah dan jingga, bagai darah yang bercampur minyak di atas jalanan.",
+            "Zafran merapatkan jaket kulit hitamnya. Payung hitam yang dipegangnya sudah beberapa kali bergoyang dihembus angin monsun timur laut. Di hadapannya, Menara Merdeka 118 berdiri gah menembusi kabus tebal seolah-olah gergasi yang sedang memerhati setiap rahsia kota.",
+            "\"Kau pasti dia akan datang ke mari?\" bisik Zafran ke mikrofon mini di kolar bajunya.",
+            "\"Menurut data satelit dan transaksi kad akses, suspek baru sahaja melepasi pintu putar lobi aras bawah tanah,\" balas suara wanita berdesir halus di telinga kirinya. Nadia, penganalisis forensik digitalnya di Cheras.",
+            "Zafran menarik nafas panjang. Udara malam Kuala Lumpur berbau hujan dan asap kenderaan. Seketika kemudian, seorang lelaki berkemeja kelabu basah kuyup meluru keluar dari pintu sisi bangunan lama berhampiran kedai mamak 24 jam. Di tangannya, sebuah beg bimbit aluminium digenggam kemas.",
+            "Misi ini bukan lagi tentang kecurian dokumen korporat biasa. Ini tentang nyawa ribuan rakyat yang datanya bakal dijual ke pasaran gelap antarabangsa."
+          ]
+        },
+        {
+          id: 2,
+          title: "Bab 2: Kunci Enkripsi Kayangan",
+          location: "Pondok Siber Aras 42",
+          paragraphs: [
+            "Bilik pelayan itu sedingin peti mayat. Deruman kipas penyejuk server menghasilkan dengungan monoton yang membingitkan telinga jika dibiarkan terlalu lama.",
+            "Zafran memasukkan pemacu kilat bersalut titanium ke dalam terminal utama. Skrin OLED memaparkan bar kemajuan merah jambu yang berkedip ganas.",
+            "\"Zafran, kau ada tiga minit sebelum sistem pertahanan protokol Cyberjaya mengunci seluruh bangunan!\" jerit Nadia melalui sambungan suara.",
+            "\"Beri aku dua minit. Protokol lama Datuk Mansor masih menggunakan algoritma sandi Jawi digital abad ke-19,\" jari Zafran menari lincah di atas papan kekunci mekanikal.",
+            "Satu demi satu baris kod keselamatan terungkai, mendedahkan nama-nama berprofil tinggi yang selama ini berselindung di sebalik tabir kebajikan yayasan korporat."
+          ]
+        },
+        {
+          id: 3,
+          title: "Bab 3: Sumpah di Jambatan Saloma",
+          location: "Fajar Menyinsing di Kuala Lumpur",
+          paragraphs: [
+            "Cahaya fajar mula menyapa kubah dan siluet menara berkembar Petronas. Jambatan Pejalan Kaki Saloma yang sepi itu menjadi saksi pertemuan dua insan yang membawa beban rahsia negara.",
+            "Nadia berdiri menanti di tengah laluan berbumbung kaca itu, matanya sayu namun penuh kecekalan seorang pejuang maklumat.",
+            "\"Jika fail ini tersebar, kita tidak lagi boleh berpatah balik, Zafran. Tiada siapa yang akan menyelamatkan kita jika pihak berkuasa tersalah faham.\"",
+            "Zafran tersenyum kelat, menyerahkan kad memori mikro ke tapak tangan Nadia. \"Sebab itu kita panggil diri kita penjaga bayang. Biar kita yang terkorban, asalkan kebenaran tidak terkubur di bawah konkrit ibu kota.\""
+          ]
+        }
+      ]
+    };
+
+    // -------------------------------------------------------------
+    // DATA KOMIK & PANEL GAMBAR
+    // -------------------------------------------------------------
+    const comicPagesData = [
+      {
+        pageNumber: 1,
+        title: "Panel 1: Pintu Pagar Sekolah Jam 7:31 Pagi",
+        badge: "SMK Seri Bangsar - Isnin Jam 7:31 Pagi (Lewat 1 Minit!)",
+        themeColor: "from-amber-600 to-red-700",
+        artCaption: "🏫 KELAS 5 SASTERA!",
+        dialogues: [
+          { speaker: "Pengawas Amir", text: "BERHENTI! Jam sekolah dah 7:31 pagi! Sila catat nama dalam buku disiplin!", side: "left", style: "bg-amber-400 text-slate-950 font-black" },
+          { speaker: "Vanness", text: "Relaks kawan lama! Jam kau tu laju 2 minit, ikut jam telefon aku baru 7:29 saat ke-58!", side: "right", style: "bg-indigo-600 text-white font-bold" },
+          { speaker: "Froggy", text: "Kroakk! Logik yang tak masuk akal tapi patut cuba!", side: "center", style: "bg-sky-100 text-sky-900 italic font-semibold" }
+        ]
+      },
+      {
+        pageNumber: 2,
+        title: "Panel 2: Makmal Sains & Eksperimen Meletup",
+        badge: "Makmal Fizik & Kimia Aras 3",
+        themeColor: "from-blue-700 to-indigo-900",
+        artCaption: "🧪 REAKSI KIMIA MELETUP!",
+        dialogues: [
+          { speaker: "Cikgu Sains", text: "Titiskan TIGA titis sahaja... Jangan sesekali tuang banyak...", side: "left", style: "bg-slate-200 text-slate-900" },
+          { speaker: "Aditas", text: "Alamak cikgu! Buih dia membesar macam Gunung Kinabalu!", side: "right", style: "bg-rose-600 text-white font-black" },
+          { speaker: "Kesan Bunyi", text: "BOOOOMMM! (Asap ungu wangi strawberi memenuhi kelas)", side: "center", style: "bg-amber-300 text-slate-950 font-black uppercase" }
+        ]
+      },
+      {
+        pageNumber: 3,
+        title: "Panel 3: Kantin Waktu Rehat & Karipap Oksigen",
+        badge: "Kantin Sekolah Jam 10:15 Pagi",
+        themeColor: "from-emerald-700 to-teal-900",
+        artCaption: "🥟 KANTIN SERBUAN!",
+        dialogues: [
+          { speaker: "Vanness", text: "Mak Cik Timah! Karipap seringgit ni kenapa bila gigit rasa angin sejuk je?! Mana intinya?", side: "left", style: "bg-slate-200 text-slate-900" },
+          { speaker: "Mak Cik Timah", text: "Itu karipap edisi aero-dinamik bertaraf aeroangkasa cu! Bagus untuk pernafasan!", side: "right", style: "bg-amber-400 text-slate-950 font-black" }
+        ]
+      }
+    ];
+
+    // State Aplikasi
+    let currentChapterIndex = 0;
+    let currentFontSize = 17;
+    let currentTheme = 'light';
+    let currentComicMode = 'vertical'; // 'vertical' | 'horizontal'
+    let currentComicPage = 0;
+    let currentComicZoom = 1.0;
+
+    // -------------------------------------------------------------
+    // FUNGSI SWITCH TAB READER
+    // -------------------------------------------------------------
+    function switchReaderMode(mode) {
+      const btnNovel = document.getElementById('btnTabNovel');
+      const btnComic = document.getElementById('btnTabComic');
+      const novelContainer = document.getElementById('novelReaderContainer');
+      const comicContainer = document.getElementById('comicReaderContainer');
+
+      if (mode === 'novel') {
+        novelContainer.classList.remove('hidden');
+        comicContainer.classList.add('hidden');
+        btnNovel.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 bg-white text-slate-900 shadow-sm";
+        btnComic.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900";
+      } else {
+        novelContainer.classList.add('hidden');
+        comicContainer.classList.remove('hidden');
+        btnComic.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 bg-indigo-600 text-white shadow-sm";
+        btnNovel.className = "flex-1 sm:flex-none px-4 py-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 text-slate-600 hover:text-slate-900";
+        renderComic();
+      }
+    }
+
+    // -------------------------------------------------------------
+    // LOGIK NOVEL READER (ePub-Style)
+    // -------------------------------------------------------------
+    function renderNovelChapter() {
+      const chapter = novelData.chapters[currentChapterIndex];
+      document.getElementById('chapterSubBadge').innerText = `KARYA ASLI TEMPATAN · BAB ${chapter.id}`;
+      document.getElementById('chapterTitle').innerText = chapter.title;
+      document.getElementById('chapterLocation').innerText = chapter.location;
+      document.getElementById('chapterSelect').value = currentChapterIndex;
+
+      const container = document.getElementById('chapterParagraphs');
+      container.innerHTML = '';
+      chapter.paragraphs.forEach(p => {
+        const pEl = document.createElement('p');
+        pEl.className = "indent-6 first:indent-0 leading-relaxed";
+        pEl.innerText = p;
+        container.appendChild(pEl);
+      });
+
+      // Update progress bar & button states
+      const totalChapters = novelData.chapters.length;
+      const progress = Math.round(((currentChapterIndex + 1) / totalChapters) * 100);
+      document.getElementById('readingProgressBar').style.width = `${progress}%`;
+      document.getElementById('chapterProgressText').innerText = `Bab ${currentChapterIndex + 1} dari ${totalChapters} (${progress}%)`;
+
+      document.getElementById('btnPrevChapter').disabled = currentChapterIndex === 0;
+      document.getElementById('btnNextChapter').disabled = currentChapterIndex >= totalChapters - 1;
+
+      // Scroll to top
+      document.getElementById('novelScrollArea').scrollTop = 0;
+    }
+
+    function goToChapter(index) {
+      currentChapterIndex = parseInt(index);
+      renderNovelChapter();
+    }
+
+    function navigateChapter(direction) {
+      const newIndex = currentChapterIndex + direction;
+      if (newIndex >= 0 && newIndex < novelData.chapters.length) {
+        currentChapterIndex = newIndex;
+        renderNovelChapter();
+      }
+    }
+
+    function changeFontSize(delta) {
+      currentFontSize = Math.max(13, Math.min(26, currentFontSize + delta));
+      applyFontSizeFromSlider(currentFontSize);
+    }
+
+    function applyFontSizeFromSlider(val) {
+      currentFontSize = parseInt(val);
+      document.getElementById('fontSizeSlider').value = currentFontSize;
+      document.getElementById('fontSizeDisplay').innerText = `${currentFontSize}px`;
+      document.getElementById('chapterParagraphs').style.fontSize = `${currentFontSize}px`;
+    }
+
+    function setTheme(theme) {
+      currentTheme = theme;
+      const container = document.getElementById('novelReaderContainer');
+      const toolbar = document.getElementById('novelToolbar');
+      const footer = document.getElementById('novelFooter');
+      
+      const btnLight = document.getElementById('btnThemeLight');
+      const btnSepia = document.getElementById('btnThemeSepia');
+      const btnDark = document.getElementById('btnThemeDark');
+
+      // Reset active button classes
+      [btnLight, btnSepia, btnDark].forEach(btn => {
+        btn.className = "px-2.5 py-1 text-xs font-bold rounded-lg text-slate-600 hover:bg-slate-100 flex items-center gap-1";
+      });
+
+      if (theme === 'light') {
+        container.className = "flex-1 flex flex-col rounded-2xl border border-slate-300 shadow-xl overflow-hidden transition-colors duration-200 bg-white text-slate-800";
+        toolbar.className = "px-4 py-3 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3 bg-slate-50/90 backdrop-blur-md";
+        footer.className = "px-4 py-3 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs font-bold";
+        btnLight.className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-amber-500 text-slate-950 flex items-center gap-1 shadow-xs";
+      } else if (theme === 'sepia') {
+        container.className = "flex-1 flex flex-col rounded-2xl border border-[#e2d8c3] shadow-xl overflow-hidden transition-colors duration-200 bg-[#faf6ee] text-[#433422]";
+        toolbar.className = "px-4 py-3 border-b border-[#e2d8c3] flex flex-wrap items-center justify-between gap-3 bg-[#f3ecdd]/90 backdrop-blur-md text-[#433422]";
+        footer.className = "px-4 py-3 border-t border-[#e2d8c3] bg-[#f3ecdd] flex items-center justify-between text-xs font-bold text-[#433422]";
+        btnSepia.className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-[#e8dfcf] text-[#433422] flex items-center gap-1 shadow-xs";
+      } else if (theme === 'dark') {
+        container.className = "flex-1 flex flex-col rounded-2xl border border-slate-800 shadow-xl overflow-hidden transition-colors duration-200 bg-slate-950 text-slate-200";
+        toolbar.className = "px-4 py-3 border-b border-slate-800 flex flex-wrap items-center justify-between gap-3 bg-slate-900/90 backdrop-blur-md text-slate-200";
+        footer.className = "px-4 py-3 border-t border-slate-800 bg-slate-900 flex items-center justify-between text-xs font-bold text-slate-300";
+        btnDark.className = "px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-800 text-sky-400 flex items-center gap-1 shadow-xs";
+      }
+    }
+
+    function updateNovelScrollProgress() {
+      const el = document.getElementById('novelScrollArea');
+      const maxScroll = el.scrollHeight - el.clientHeight;
+      if (maxScroll > 0) {
+        const scrollPercent = (el.scrollTop / maxScroll);
+        const chapterBase = (currentChapterIndex / novelData.chapters.length);
+        const chapterShare = (1 / novelData.chapters.length);
+        const totalProgress = Math.round((chapterBase + scrollPercent * chapterShare) * 100);
+        document.getElementById('readingProgressBar').style.width = `${Math.min(100, Math.max(0, totalProgress))}%`;
+      }
+    }
+
+    // -------------------------------------------------------------
+    // LOGIK KOMIK / MANGA READER
+    // -------------------------------------------------------------
+    function setComicScrollMode(mode) {
+      currentComicMode = mode;
+      const btnV = document.getElementById('btnModeVertical');
+      const btnH = document.getElementById('btnModeHorizontal');
+      const containerV = document.getElementById('comicVerticalContainer');
+      const containerH = document.getElementById('comicHorizontalContainer');
+      const footerH = document.getElementById('comicHorizontalFooter');
+
+      if (mode === 'vertical') {
+        btnV.className = "px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white flex items-center gap-1";
+        btnH.className = "px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white flex items-center gap-1";
+        containerV.classList.remove('hidden');
+        containerH.classList.add('hidden');
+        footerH.classList.add('hidden');
+      } else {
+        btnH.className = "px-3 py-1 text-xs font-bold rounded-lg bg-indigo-600 text-white flex items-center gap-1";
+        btnV.className = "px-3 py-1 text-xs font-bold rounded-lg text-slate-400 hover:text-white flex items-center gap-1";
+        containerH.classList.remove('hidden');
+        containerV.classList.add('hidden');
+        footerH.classList.remove('hidden');
+      }
+      renderComic();
+    }
+
+    function adjustComicZoom(delta) {
+      currentComicZoom = Math.max(0.6, Math.min(1.8, +(currentComicZoom + delta).toFixed(2)));
+      applyComicZoom();
+    }
+
+    function resetComicFit() {
+      currentComicZoom = 1.0;
+      applyComicZoom();
+    }
+
+    function applyComicZoom() {
+      document.getElementById('comicZoomPercent').innerText = `${Math.round(currentComicZoom * 100)}%`;
+      document.getElementById('comicVerticalContainer').style.transform = `scale(${currentComicZoom})`;
+      document.getElementById('comicPageWrapper').style.transform = `scale(${currentComicZoom})`;
+    }
+
+    function renderComic() {
+      if (currentComicMode === 'vertical') {
+        const vContainer = document.getElementById('comicVerticalContainer');
+        vContainer.innerHTML = '';
+        comicPagesData.forEach(page => {
+          vContainer.appendChild(createComicPanelElement(page));
+        });
+      } else {
+        const hWrapper = document.getElementById('comicPageWrapper');
+        hWrapper.innerHTML = '';
+        const page = comicPagesData[currentComicPage];
+        hWrapper.appendChild(createComicPanelElement(page));
+
+        document.getElementById('comicPageIndicator').innerText = `Muka Surat ${currentComicPage + 1} dari ${comicPagesData.length}`;
+        document.getElementById('btnComicPrev').disabled = currentComicPage === 0;
+        document.getElementById('btnComicNext').disabled = currentComicPage >= comicPagesData.length - 1;
+      }
+    }
+
+    function navigateComicPage(dir) {
+      const next = currentComicPage + dir;
+      if (next >= 0 && next < comicPagesData.length) {
+        currentComicPage = next;
+        renderComic();
+      }
+    }
+
+    function createComicPanelElement(page) {
+      const card = document.createElement('div');
+      card.className = "rounded-2xl border-4 border-slate-700 bg-slate-900 overflow-hidden shadow-2xl p-4 sm:p-6 space-y-4";
+
+      // Header of comic strip
+      const headerDiv = document.createElement('div');
+      headerDiv.className = "flex items-center justify-between text-xs pb-2 border-b border-slate-800";
+      headerDiv.innerHTML = `
+        <span class="font-mono font-bold text-amber-400">${page.badge}</span>
+        <span class="text-slate-400">M/S ${page.pageNumber}</span>
+      `;
+      card.appendChild(headerDiv);
+
+      // Art Panel Box (Simulasi visual komik berkualiti tinggi)
+      const artBox = document.createElement('div');
+      artBox.className = `relative aspect-[16/9] w-full rounded-xl bg-gradient-to-br ${page.themeColor} flex flex-col justify-between p-4 border border-white/20 shadow-inner overflow-hidden`;
+      artBox.innerHTML = `
+        <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#fff_1px,transparent_1px)] [background-size:16px_16px]"></div>
+        <div class="relative z-10 self-start bg-slate-950/80 text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded">
+          ${page.title}
+        </div>
+        <div class="relative z-10 text-center my-auto">
+          <div class="text-3xl sm:text-4xl font-black text-white drop-shadow-lg tracking-wider">${page.artCaption}</div>
+        </div>
+        <div class="relative z-10 self-end text-[10px] font-mono text-slate-300 bg-black/40 px-2 py-0.5 rounded">
+          Siri Komik Tempatan Malaysia
+        </div>
+      `;
+      card.appendChild(artBox);
+
+      // Dialogue Bubbles
+      const dlgContainer = document.createElement('div');
+      dlgContainer.className = "space-y-2 pt-2";
+      page.dialogues.forEach(dlg => {
+        const row = document.createElement('div');
+        row.className = `flex flex-col ${dlg.side === 'right' ? 'items-end' : dlg.side === 'center' ? 'items-center text-center' : 'items-start'}`;
+        row.innerHTML = `
+          <span class="text-[10px] font-bold text-slate-400 px-1">${dlg.speaker}</span>
+          <div class="max-w-md p-3 rounded-2xl text-xs sm:text-sm shadow-md border border-slate-700 ${dlg.style}">
+            ${dlg.text}
+          </div>
+        `;
+        dlgContainer.appendChild(row);
+      });
+      card.appendChild(dlgContainer);
+
+      return card;
+    }
+
+    // -------------------------------------------------------------
+    // 3. CIRI KESELAMATAN (ANTI-CETAK ROMPAK JS)
+    // -------------------------------------------------------------
+    function triggerSecurityAlert(msg) {
+      const toast = document.getElementById('securityToast');
+      document.getElementById('securityToastMessage').innerText = msg;
+      toast.classList.remove('hidden');
+
+      if (window.securityTimeout) clearTimeout(window.securityTimeout);
+      window.securityTimeout = setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 3500);
+    }
+
+    function dismissSecurityToast() {
+      document.getElementById('securityToast').classList.add('hidden');
+    }
+
+    // Sekat Right-Click (Disable context menu)
+    window.addEventListener('contextmenu', function(e) {
+      e.preventDefault();
+      triggerSecurityAlert("⚠️ Klik Kanan Disekat: Kandungan e-buku dilindungi daripada disalin atau disimpan.");
+    });
+
+    // Sekat Copy Event
+    window.addEventListener('copy', function(e) {
+      e.preventDefault();
+      triggerSecurityAlert("🔒 Salinan Disekat: Teks dan imej dilindungi sepenuhnya di bawah Akta Hak Cipta.");
+    });
+
+    // Sekat Keyboard Shortcuts (Ctrl+C, Ctrl+P, Ctrl+U, Ctrl+S, F12)
+    window.addEventListener('keydown', function(e) {
+      const isCtrlOrMeta = e.ctrlKey || e.metaKey;
+      const key = e.key.toLowerCase();
+
+      if (isCtrlOrMeta && ['c', 'u', 'p', 's'].includes(key)) {
+        e.preventDefault();
+        let name = "Pintasan papan kekunci";
+        if (key === 'c') name = "Salinan teks (Ctrl+C)";
+        if (key === 'p') name = "Mencetak helaian (Ctrl+P)";
+        if (key === 'u') name = "Melihat kod sumber (Ctrl+U)";
+        if (key === 's') name = "Menyimpan fail mentah (Ctrl+S)";
+        triggerSecurityAlert(`🛡️ Tindakan ${name} disekat bagi melindungi hak cipta digital.`);
+      } else if (e.key === 'F12') {
+        e.preventDefault();
+        triggerSecurityAlert("🛡️ Panel pemeriksa pembangun (F12) disekat pada komponen pembaca.");
+      }
+    });
+
+    // Inisialisasi Mula
+    renderNovelChapter();
+  </script>
+</body>
+</html>

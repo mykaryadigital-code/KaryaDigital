@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KaryaDigital - Muka Depan & Katalog Kedai Buku Digital Malaysia</title>
+  <meta name="description" content="Platform e-buku dan komik tempatan Malaysia moden dengan pembaca pelayar dalam talian, gerbang pembayaran BCL & ToyyibPay, dan perlindungan DRM.">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Plus Jakarta Sans & Playfair Display -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,600&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind Config Customization -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            serif: ['"Playfair Display"', 'Georgia', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#eef2ff',
+              100: '#e0e7ff',
+              500: '#6366f1',
+              600: '#4f46e5',
+              700: '#4338ca',
+              900: '#312e81',
+              950: '#1e1b4b',
+            },
+            syiling: {
+              400: '#fbbf24',
+              500: '#f59e0b',
+              600: '#d97706',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Halangan cetakan rompak dan copy-paste */
+    .drm-protected {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    /* Watermark background */
+    .watermark-overlay {
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='200' viewBox='0 0 300 200'><text x='20' y='100' fill='rgba(0,0,0,0.04)' font-size='12' font-family='sans-serif' font-weight='bold' transform='rotate(-25 150 100)'>HAK CIPTA KARYADIGITAL · DRM</text></svg>");
+      background-repeat: repeat;
+      pointer-events: none;
+    }
+
+    /* Custom smooth scrollbar */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f5f9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col font-sans">
+
+  <!-- ========================================== -->
+  <!-- 1. TOP ANNOUNCEMENT BAR                    -->
+  <!-- ========================================== -->
+  <div class="bg-gradient-to-r from-slate-950 via-indigo-950 to-slate-900 text-white text-xs py-2 px-4 border-b border-indigo-900/50">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1 sm:gap-4">
+      <div class="flex items-center gap-2">
+        <span class="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span class="font-bold text-amber-300">Pesta Buku Digital Malaysia 2026</span>
+        <span class="hidden md:inline text-slate-400">·</span>
+        <span class="hidden md:inline text-slate-300">Gunakan kod <strong class="text-amber-400 font-mono">KARYALOKAL</strong> untuk diskaun 30 Syiling!</span>
+      </div>
+      <div class="flex items-center gap-4 text-[11px] text-slate-300">
+        <span>🛡️ 100% Hak Cipta Penulis Tempatan</span>
+        <span>⚡ Bayaran Selamat BCL & FPX</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 2. HEADER & NAVIGATION                     -->
+  <!-- ========================================== -->
+  <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16 sm:h-20 gap-3">
+        
+        <!-- Logo Platform: "KaryaDigital" -->
+        <a href="#home" onclick="resetFilters()" class="flex items-center gap-2.5 group">
+          <div class="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-indigo-700 via-indigo-800 to-amber-600 text-white flex items-center justify-center shadow-md group-hover:scale-105 transition-transform duration-200">
+            <svg class="w-6 h-6 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+            </svg>
+          </div>
+          <div>
+            <div class="flex items-center gap-1.5">
+              <span class="text-xl sm:text-2xl font-black tracking-tight text-slate-900 group-hover:text-indigo-900 transition-colors">
+                Karya<span class="text-amber-600">Digital</span>
+              </span>
+              <span class="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded-sm bg-indigo-100 text-indigo-800 border border-indigo-200">
+                MY
+              </span>
+            </div>
+            <p class="text-[10px] text-slate-500 font-medium tracking-wide -mt-0.5 hidden xs:block">
+              Kedai Buku Digital & Komik Tempatan
+            </p>
+          </div>
+        </a>
+
+        <!-- Bar Carian Pantas (Search Bar) -->
+        <div class="flex-1 max-w-md mx-2 sm:mx-6">
+          <div class="relative w-full">
+            <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+              </svg>
+            </div>
+            <input
+              type="text"
+              id="searchInput"
+              oninput="handleSearch(this.value)"
+              placeholder="Cari novel, komik, seram, motivasi, atau penulis..."
+              class="w-full pl-10 pr-9 py-2 bg-slate-100/90 hover:bg-slate-100 focus:bg-white text-xs sm:text-sm text-slate-900 rounded-xl border border-slate-200 focus:border-indigo-600 focus:ring-2 focus:ring-indigo-100 focus:outline-none transition-all placeholder:text-slate-400"
+            />
+            <button
+              id="clearSearchBtn"
+              onclick="clearSearch()"
+              class="hidden absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+              title="Kosongkan carian"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        <!-- Action Items: Baki Syiling, Top-Up, Cart, Profil -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          
+          <!-- Ikon Baki Syiling/Kredit & Butang Top-Up -->
+          <div class="flex items-center gap-1.5 sm:gap-2 px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200/90 text-amber-900 shadow-xs">
+            <span class="text-base select-none">🪙</span>
+            <div class="flex flex-col text-left">
+              <span class="text-[9px] uppercase font-bold text-amber-700 leading-none">Baki Syiling</span>
+              <span id="userCoinBalance" class="text-xs sm:text-sm font-black text-amber-950 leading-tight">150 Syiling</span>
+            </div>
+            <button
+              onclick="openTopUpModal()"
+              class="ml-1 px-2 sm:px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 active:scale-95 text-slate-950 font-black text-[11px] shadow-xs transition"
+              title="Tambah Nilai Syiling"
+            >
+              + Top-Up
+            </button>
+          </div>
+
+          <!-- Ikon Cart / Bakul Belian -->
+          <button
+            onclick="toggleCartDrawer()"
+            class="relative p-2.5 sm:px-3 sm:py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 transition flex items-center gap-1.5"
+            aria-label="Bakul Belian"
+          >
+            <svg class="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>
+            </svg>
+            <span class="hidden md:inline text-xs font-bold">Bakul</span>
+            <span id="cartBadge" class="hidden absolute -top-1.5 -right-1.5 bg-rose-600 text-white text-[11px] font-bold h-5 min-w-[20px] px-1 rounded-full flex items-center justify-center shadow-xs">
+              0
+            </span>
+          </button>
+
+          <!-- Ikon Profil -->
+          <button
+            onclick="openProfileModal()"
+            class="flex items-center gap-2 p-1.5 sm:px-3 sm:py-2 rounded-xl border border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50 transition text-left"
+            aria-label="Akaun Pembaca"
+          >
+            <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-700 to-amber-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+              A
+            </div>
+            <div class="hidden lg:block">
+              <p class="text-xs font-bold text-slate-900 leading-tight">Ahmad Danial</p>
+              <p class="text-[10px] text-emerald-600 font-semibold">VIP Pembaca</p>
+            </div>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- ========================================== -->
+  <!-- 3. HERO BANNER SLIDER / FEATURED SECTION   -->
+  <!-- ========================================== -->
+  <section id="heroSection" class="relative bg-slate-950 text-white overflow-hidden py-10 sm:py-16">
+    <!-- Slider Container -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+      <div id="heroSlider" class="relative rounded-3xl overflow-hidden bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border border-indigo-900/40 shadow-2xl p-6 sm:p-10 lg:p-12">
+        
+        <!-- Slide 1: Bayang Di Sebalik Menara (Novel Terhangat) -->
+        <div id="slide-0" class="hero-slide flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-12 transition-opacity duration-500">
+          <div class="flex-1 space-y-4 sm:space-y-6 text-center lg:text-left">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-black uppercase tracking-wider">
+              <span>🔥 Novel Terhangat Minggu Ini</span>
+            </div>
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white font-serif leading-tight">
+              Bayang Di Sebalik Menara
+            </h1>
+            <p class="text-sm sm:text-base text-slate-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              Di sebalik gemerlap lampu malam Kuala Lumpur dan kemegahan Menara Merdeka 118, seorang penyiasat persendirian membongkar konspirasi digital yang mengancam rahsia perbankan negara.
+            </p>
+            <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-slate-300">
+              <span class="flex items-center gap-1 text-amber-400 font-bold">★ 4.9 (428 ulasan)</span>
+              <span>•</span>
+              <span>Penulis: <strong>Ramlee Awang Harun</strong></span>
+              <span>•</span>
+              <span class="text-emerald-400 font-bold">RM 18.50 · 🪙 185 Syiling</span>
+            </div>
+            <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">
+              <button
+                onclick="openQuickReader('novel-1')"
+                class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/25 flex items-center gap-2 transition"
+              >
+                <span>Baca Sekarang (Percuma)</span>
+                <span>→</span>
+              </button>
+              <button
+                onclick="addToCart('novel-1')"
+                class="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition flex items-center gap-2"
+              >
+                <span>Beli Naskhah Penuh</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Book Cover Mockup -->
+          <div class="w-48 sm:w-64 lg:w-72 shrink-0 relative group">
+            <div class="aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl shadow-indigo-500/30 border-2 border-white/20 relative transform group-hover:-translate-y-2 transition duration-300">
+              <img
+                src="https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80"
+                alt="Bayang Di Sebalik Menara"
+                class="w-full h-full object-cover"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 p-4 flex flex-col justify-between">
+                <span class="self-start text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-500 text-slate-950">Edisi Eksklusif</span>
+                <div>
+                  <p class="text-xs font-bold text-amber-300">Ramlee Awang Harun</p>
+                  <p class="text-sm font-black text-white font-serif">Bayang Di Sebalik Menara</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slide 2: Lawak Kampus Generasi Z (Komik Terhangat) -->
+        <div id="slide-1" class="hero-slide hidden flex flex-col lg:flex-row items-center justify-between gap-8 sm:gap-12 transition-opacity duration-500">
+          <div class="flex-1 space-y-4 sm:space-y-6 text-center lg:text-left">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/30 border border-indigo-400 text-indigo-300 text-xs font-black uppercase tracking-wider">
+              <span>💥 Komik No. 1 Malaysia</span>
+            </div>
+            <h1 class="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-white leading-tight">
+              Lawak Kampus Generasi Z: Jilid 1
+            </h1>
+            <p class="text-sm sm:text-base text-slate-300 max-w-xl mx-auto lg:mx-0 leading-relaxed">
+              Naskhah komik legenda sekolah Malaysia dengan nafas baharu! Ragam lucu kelas 5 Sastera, kelas tuisyen malam, dan inovasi ponteng sekolah era gajet moden.
+            </p>
+            <div class="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-xs text-slate-300">
+              <span class="flex items-center gap-1 text-amber-400 font-bold">★ 4.95 (940 ulasan)</span>
+              <span>•</span>
+              <span>Pelukis: <strong>Keith & Cikgu Zaki</strong></span>
+              <span>•</span>
+              <span class="text-emerald-400 font-bold">RM 12.00 · 🪙 120 Syiling</span>
+            </div>
+            <div class="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2">
+              <button
+                onclick="openQuickReader('komik-1')"
+                class="px-6 py-3 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-sm shadow-lg shadow-amber-500/25 flex items-center gap-2 transition"
+              >
+                <span>Baca Bab 1 (Percuma)</span>
+                <span>→</span>
+              </button>
+              <button
+                onclick="addToCart('komik-1')"
+                class="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-sm border border-white/20 transition flex items-center gap-2"
+              >
+                <span>Beli Naskhah Komik</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Book Cover Mockup -->
+          <div class="w-48 sm:w-64 lg:w-72 shrink-0 relative group">
+            <div class="aspect-[3/4] rounded-2xl overflow-hidden shadow-2xl shadow-indigo-500/30 border-2 border-white/20 relative transform group-hover:-translate-y-2 transition duration-300">
+              <img
+                src="https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80"
+                alt="Lawak Kampus Generasi Z"
+                class="w-full h-full object-cover"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 p-4 flex flex-col justify-between">
+                <span class="self-start text-[10px] font-black uppercase px-2 py-0.5 rounded bg-indigo-500 text-white">Full Colour</span>
+                <div>
+                  <p class="text-xs font-bold text-amber-300">Keith & Cikgu Zaki</p>
+                  <p class="text-sm font-black text-white">Lawak Kampus Gen-Z</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Slider Navigation Indicators -->
+        <div class="flex items-center justify-center gap-2 pt-6">
+          <button onclick="setSlide(0)" id="dot-0" class="w-8 h-2 rounded-full bg-amber-400 transition-all"></button>
+          <button onclick="setSlide(1)" id="dot-1" class="w-2.5 h-2 rounded-full bg-white/30 hover:bg-white/60 transition-all"></button>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 4. PAPIS KATEGORI (CATEGORY FILTER TABS)   -->
+  <!-- ========================================== -->
+  <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-4">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+      <div>
+        <h2 id="catalogHeading" class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+          Katalog Buku & Komik Malaysia
+        </h2>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">
+          Pilih kategori karya tempatan kegemaran anda untuk bacaan segera.
+        </p>
+      </div>
+
+      <!-- Category Filter Tabs: Semua, Novel Teks, Komik & Manga, Seram, Agama & Motivasi, Percuma -->
+      <div class="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-2xl border border-slate-200">
+        <button onclick="filterCategory('semua')" id="tab-semua" class="tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition bg-white text-slate-900 shadow-xs">
+          Semua
+        </button>
+        <button onclick="filterCategory('novel')" id="tab-novel" class="tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900">
+          📖 Novel Teks
+        </button>
+        <button onclick="filterCategory('komik')" id="tab-komik" class="tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900">
+          💥 Komik & Manga
+        </button>
+        <button onclick="filterCategory('seram')" id="tab-seram" class="tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900">
+          👻 Seram
+        </button>
+        <button onclick="filterCategory('agama')" id="tab-agama" class="tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900">
+          🕌 Agama & Motivasi
+        </button>
+        <button onclick="filterCategory('percuma')" id="tab-percuma" class="tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900">
+          🎁 Percuma
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 5. GRID KATALOG BUKU (BOOK CARDS)          -->
+  <!-- ========================================== -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex-1">
+    <div id="booksGrid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <!-- Populated via JavaScript -->
+    </div>
+
+    <!-- Empty State -->
+    <div id="emptyCatalog" class="hidden text-center py-16 px-4 bg-white rounded-3xl border border-slate-200 shadow-xs">
+      <div class="text-4xl mb-3">📚</div>
+      <h3 class="text-lg font-bold text-slate-900">Tiada Naskhah Ditemui</h3>
+      <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+        Cuba taipkan kata carian yang lain atau pilih tab 'Semua' untuk melihat seluruh katalog.
+      </p>
+      <button onclick="resetFilters()" class="mt-4 px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl hover:bg-indigo-500 transition">
+        Lihat Semua Katalog
+      </button>
+    </div>
+  </main>
+
+  <!-- ========================================== -->
+  <!-- 6. FREEMIUM HOOK: MULA MEMBACA PERCUMA     -->
+  <!-- ========================================== -->
+  <section class="bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-950 text-white py-14 px-4 sm:px-6 lg:px-8 border-y border-indigo-900/40 relative overflow-hidden">
+    <div class="max-w-7xl mx-auto space-y-8 relative z-10">
+      
+      <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div class="space-y-2 max-w-2xl">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-black uppercase tracking-wider">
+            <span>🎁 Ruangan Khas Pembaca Baharu</span>
+          </div>
+          <h2 class="text-2xl sm:text-3xl lg:text-4xl font-black tracking-tight text-white font-serif">
+            Mula Membaca Secara Percuma
+          </h2>
+          <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            Nikmati bab-bab pembuka novel dan komik terhangat tanpa sebarang bayaran atau pendaftaran rumit. Terokai naratif penulis tempatan sebelum membeli naskhah penuh.
+          </p>
+        </div>
+
+        <div class="flex items-center gap-3 text-xs text-slate-400">
+          <span class="text-emerald-400 font-bold">✓ Tiada Bayaran Pendahuluan</span>
+          <span>•</span>
+          <span class="text-amber-300 font-bold">✓ Akses Serta-Merta</span>
+        </div>
+      </div>
+
+      <!-- 4 Freemium Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        
+        <!-- Freemium Item 1 -->
+        <div class="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/50 rounded-2xl p-5 flex flex-col justify-between transition duration-200 group">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-400 text-slate-950">Bab 1 Percuma</span>
+              <span class="text-[11px] text-slate-400 font-medium">📖 ePub</span>
+            </div>
+            <h3 class="font-bold text-white group-hover:text-amber-300 transition line-clamp-1">Bayang Di Sebalik Menara</h3>
+            <p class="text-xs text-slate-400">Ramlee Awang Harun</p>
+            <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+              <div class="text-[10px] font-bold text-amber-400 uppercase">Bab 1: Dentuman Hujan di Bukit Bintang</div>
+              <p class="text-xs text-slate-300 italic line-clamp-3">
+                "Hujan lebat yang membasahi aspal Jalan Bukit Bintang tidak menghalang keriuhan kota raya. Di hadapannya, Menara Merdeka 118 berdiri gah..."
+              </p>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-white/10 flex items-center justify-between mt-3">
+            <span class="text-xs text-emerald-400 font-bold">Percuma</span>
+            <button onclick="openQuickReader('novel-1')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition">
+              Baca Bab Ini →
+            </button>
+          </div>
+        </div>
+
+        <!-- Freemium Item 2 -->
+        <div class="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/50 rounded-2xl p-5 flex flex-col justify-between transition duration-200 group">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-emerald-400 text-slate-950">E-Buku Percuma Penuh</span>
+              <span class="text-[11px] text-slate-400 font-medium">📖 ePub</span>
+            </div>
+            <h3 class="font-bold text-white group-hover:text-amber-300 transition line-clamp-1">Resipi Kasih Mak Tok</h3>
+            <p class="text-xs text-slate-400">Hajah Halimah Che Wan</p>
+            <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+              <div class="text-[10px] font-bold text-emerald-400 uppercase">Bab 1: Asap Tempurung & Rendang Minang</div>
+              <p class="text-xs text-slate-300 italic line-clamp-3">
+                "Kuali tembaga hitam legam itu sudah bertenggek di atas tungku tiga batu sungai sejak sebelum azan subuh berkumandang lagi..."
+              </p>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-white/10 flex items-center justify-between mt-3">
+            <span class="text-xs text-emerald-400 font-bold">100% Percuma</span>
+            <button onclick="openQuickReader('novel-4')" class="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs rounded-xl transition">
+              Buka Naskhah →
+            </button>
+          </div>
+        </div>
+
+        <!-- Freemium Item 3 -->
+        <div class="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/50 rounded-2xl p-5 flex flex-col justify-between transition duration-200 group">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-400 text-slate-950">Panel 1 Percuma</span>
+              <span class="text-[11px] text-slate-400 font-medium">💥 Komik</span>
+            </div>
+            <h3 class="font-bold text-white group-hover:text-amber-300 transition line-clamp-1">Lawak Kampus Gen-Z</h3>
+            <p class="text-xs text-slate-400">Keith & Cikgu Zaki</p>
+            <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+              <div class="text-[10px] font-bold text-amber-400 uppercase">Panel 1: Pintu Pagar Jam 7:31 Pagi</div>
+              <p class="text-xs text-slate-300 italic line-clamp-3">
+                "Vanness: Relaks Amir pengawas! Jam kau tu laju 2 minit, ikut jam telefon aku baru 7:29 saat ke-58!"
+              </p>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-white/10 flex items-center justify-between mt-3">
+            <span class="text-xs text-emerald-400 font-bold">Percuma</span>
+            <button onclick="openQuickReader('komik-1')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition">
+              Baca Bab Ini →
+            </button>
+          </div>
+        </div>
+
+        <!-- Freemium Item 4 -->
+        <div class="bg-white/5 hover:bg-white/10 border border-white/10 hover:border-amber-400/50 rounded-2xl p-5 flex flex-col justify-between transition duration-200 group">
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-amber-400 text-slate-950">Bab 1 Percuma</span>
+              <span class="text-[11px] text-slate-400 font-medium">🕌 Motivasi</span>
+            </div>
+            <h3 class="font-bold text-white group-hover:text-amber-300 transition line-clamp-1">Menyelami Ketenangan Hati</h3>
+            <p class="text-xs text-slate-400">Ustaz Zahiruddin</p>
+            <div class="p-3 rounded-xl bg-black/40 border border-white/5 space-y-1">
+              <div class="text-[10px] font-bold text-amber-400 uppercase">Bab 1: Apabila Dunia Terasa Sempit</div>
+              <p class="text-xs text-slate-300 italic line-clamp-3">
+                "Ketahuilah bahawa kesempitan yang hadir bukan tanda kebencian Sang Pencipta, melainkan jemputan halus untuk kembali mendekat..."
+              </p>
+            </div>
+          </div>
+          <div class="pt-4 border-t border-white/10 flex items-center justify-between mt-3">
+            <span class="text-xs text-emerald-400 font-bold">Percuma</span>
+            <button onclick="openQuickReader('agama-1')" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-xl transition">
+              Baca Bab Ini →
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================== -->
+  <!-- 7. FOOTER                                  -->
+  <!-- ========================================== -->
+  <footer class="bg-slate-950 text-slate-400 text-xs border-t border-slate-800">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-10">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+        
+        <!-- Info Platform -->
+        <div class="space-y-3">
+          <div class="flex items-center gap-2">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-amber-600 flex items-center justify-center text-white">
+              📖
+            </div>
+            <span class="text-lg font-black text-white tracking-tight">
+              Karya<span class="text-amber-500">Digital</span>
+            </span>
+          </div>
+          <p class="text-slate-400 text-xs leading-relaxed">
+            Platform rasmi pasaran dan pembacaan e-buku serta komik tempatan Malaysia. Dikuasakan oleh sokongan teknologi DRM dan gerbang pembayaran BCL & FPX.
+          </p>
+          <div class="flex items-center gap-1.5 text-[11px] text-emerald-400 font-semibold">
+            <span>🛡️ Sistem Keselamatan Hak Cipta 2026</span>
+          </div>
+        </div>
+
+        <!-- Pautan Pendaftaran Penulis (Self-Publishing) -->
+        <div class="space-y-3">
+          <div class="text-xs font-bold uppercase tracking-wider text-white">Pendaftaran Penulis</div>
+          <ul class="space-y-2">
+            <li>
+              <a href="#self-publishing" onclick="showAuthorAlert()" class="hover:text-amber-400 transition flex items-center gap-1.5 text-slate-300 font-semibold">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                Portal Penulis (Self-Publishing Hub)
+              </a>
+            </li>
+            <li><a href="#hantar-manuskrip" onclick="showAuthorAlert()" class="hover:text-white transition">Hantar Manuskrip Digital</a></li>
+            <li><a href="#royalti" onclick="showAuthorAlert()" class="hover:text-white transition">Kadar Royalti 70% Terus ke Bank</a></li>
+            <li><a href="#panduan-akta" onclick="showAuthorAlert()" class="hover:text-white transition">Panduan Akta Hak Cipta 1987</a></li>
+          </ul>
+        </div>
+
+        <!-- Sistem Keselamatan DRM & Pembayaran -->
+        <div class="space-y-3">
+          <div class="text-xs font-bold uppercase tracking-wider text-white">Sistem Keselamatan DRM</div>
+          <div class="p-3 rounded-xl bg-slate-900 border border-slate-800 space-y-1.5 text-[11px]">
+            <div class="text-emerald-400 font-bold">✓ Enkripsi Pelayar & Cloudflare R2</div>
+            <p class="text-slate-400 leading-snug">
+              Sekatan right-click, pencegahan tangkapan skrin, dan watermark digital mengikut e-mel pembeli berlesen.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-1.5 text-[10px] font-mono font-bold text-slate-300">
+            <span class="px-2 py-0.5 bg-white/5 border border-white/10 rounded">BCL / BAYARCASH</span>
+            <span class="px-2 py-0.5 bg-white/5 border border-white/10 rounded">FPX ONLINE</span>
+            <span class="px-2 py-0.5 bg-white/5 border border-white/10 rounded">DUITNOW QR</span>
+          </div>
+        </div>
+
+        <!-- Media Sosial & Sokongan -->
+        <div class="space-y-3">
+          <div class="text-xs font-bold uppercase tracking-wider text-white">Ikuti Kami & Komuniti</div>
+          <p class="text-slate-400 text-xs">
+            Dapatkan berita terkini karya tempatan dan promosi syiling mingguan:
+          </p>
+          <div class="flex items-center gap-2.5 pt-1">
+            <!-- Facebook -->
+            <a href="#facebook" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-indigo-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            </a>
+            <!-- Instagram -->
+            <a href="#instagram" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-pink-600 text-slate-300 hover:text-white flex items-center justify-center transition">
+              <svg class="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>
+            </a>
+            <!-- Twitter/X -->
+            <a href="#twitter" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            </a>
+            <!-- TikTok -->
+            <a href="#tiktok" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-rose-700 text-slate-300 hover:text-white flex items-center justify-center transition">
+              <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg>
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Bar Bawah Hak Cipta -->
+      <div class="pt-8 border-t border-slate-800/80 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-400">
+        <div>
+          © 2026 KaryaDigital Malaysia. Hak Cipta Terpelihara di bawah Akta Hak Cipta 1987.
+        </div>
+        <div class="text-slate-400">
+          Sedia Guna · Dibina dengan Tailwind CSS & JavaScript
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- ========================================== -->
+  <!-- 8. MODAL IN-BROWSER READER (PREVIEW BUKU)  -->
+  <!-- ========================================== -->
+  <div id="readerModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs hidden items-center justify-center p-3 sm:p-6 drm-protected">
+    <div class="w-full max-w-3xl bg-white rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] border border-slate-200">
+      
+      <!-- Reader Header -->
+      <div class="bg-gradient-to-r from-slate-900 to-indigo-950 text-white p-4 sm:p-5 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">📖</span>
+          <div>
+            <h3 id="readerTitle" class="font-bold text-sm sm:text-base text-white">Tajuk Buku</h3>
+            <p id="readerAuthor" class="text-xs text-slate-300">Penulis</p>
+          </div>
+        </div>
+        <button onclick="closeReaderModal()" class="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white text-sm" title="Tutup">
+          ✕
+        </button>
+      </div>
+
+      <!-- Watermark & Reading Content -->
+      <div class="relative flex-1 p-6 sm:p-10 overflow-y-auto space-y-4 bg-amber-50/20 watermark-overlay">
+        <div class="p-2 text-center border-b border-slate-200">
+          <span class="text-[10px] uppercase font-bold tracking-widest text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-full border border-indigo-200">
+            Sampel Bacaan Percuma Pelayar (DRM Active)
+          </span>
+        </div>
+        <h4 id="readerChapterTitle" class="text-xl font-bold font-serif text-slate-900 text-center pt-2">
+          Bab 1
+        </h4>
+        <div id="readerBody" class="space-y-4 text-sm sm:text-base text-slate-800 leading-relaxed font-serif pt-2">
+          <!-- Chapter Paragraphs -->
+        </div>
+      </div>
+
+      <!-- Reader Footer -->
+      <div class="p-4 bg-slate-50 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="text-xs text-slate-500">
+          Tertarik dengan naskhah ini? Dapatkan buku penuh sekarang.
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="closeReaderModal()" class="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl transition">
+            Tutup
+          </button>
+          <button id="readerBuyBtn" onclick="" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-black rounded-xl transition">
+            Beli Naskhah Penuh
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 9. CART DRAWER (SLIDE-OVER)                -->
+  <!-- ========================================== -->
+  <div id="cartDrawer" class="fixed inset-y-0 right-0 z-50 w-full max-w-md bg-white shadow-2xl border-l border-slate-200 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <!-- Cart Header -->
+    <div class="p-4 sm:p-5 bg-slate-900 text-white flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-lg">🛒</span>
+        <h3 class="font-bold text-base">Bakul Belian Buku</h3>
+      </div>
+      <button onclick="toggleCartDrawer()" class="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm">
+        ✕
+      </button>
+    </div>
+
+    <!-- Cart Items List -->
+    <div id="cartItemsList" class="flex-1 p-4 sm:p-5 overflow-y-auto space-y-3">
+      <!-- Populated via JS -->
+    </div>
+
+    <!-- Cart Footer & Checkout -->
+    <div class="p-4 sm:p-5 border-t border-slate-200 bg-slate-50 space-y-3">
+      <div class="flex items-center justify-between text-xs text-slate-500">
+        <span>Kaedah Bayaran:</span>
+        <span class="font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+          BCL (Bayarcash) / FPX
+        </span>
+      </div>
+      <div class="flex items-center justify-between text-base font-extrabold text-slate-900">
+        <span>Jumlah:</span>
+        <span id="cartTotalPrice">RM 0.00</span>
+      </div>
+      <button
+        id="checkoutBtn"
+        onclick="proceedToCheckout()"
+        class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black text-sm rounded-xl shadow-lg transition flex items-center justify-center gap-2"
+      >
+        <span>Bayar Sekarang dengan BCL</span>
+        <span>→</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 10. MODAL TOP-UP SYILING                   -->
+  <!-- ========================================== -->
+  <div id="topUpModal" class="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-slate-200 space-y-5">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">🪙</span>
+          <h3 class="font-black text-base text-slate-900">Top-Up Syiling Nusantara</h3>
+        </div>
+        <button onclick="closeTopUpModal()" class="text-slate-400 hover:text-slate-600">✕</button>
+      </div>
+
+      <p class="text-xs text-slate-500">
+        Pilih pakej syiling untuk membeli novel dan komik tempatan kegemaran anda dengan pantas.
+      </p>
+
+      <div class="grid grid-cols-2 gap-2.5">
+        <button onclick="addCoins(50)" class="p-3 rounded-2xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 text-left transition group">
+          <div class="text-xs text-slate-500">Pakej Mini</div>
+          <div class="text-base font-black text-slate-900 group-hover:text-amber-600">50 Syiling</div>
+          <div class="text-[11px] text-emerald-600 font-bold mt-1">RM 5.00</div>
+        </button>
+
+        <button onclick="addCoins(100)" class="p-3 rounded-2xl border-2 border-amber-400 bg-amber-50/60 text-left transition relative">
+          <span class="absolute -top-2 right-2 text-[9px] font-black uppercase px-1.5 py-0.5 rounded bg-amber-500 text-slate-950">Popular</span>
+          <div class="text-xs text-slate-500">Pakej Standard</div>
+          <div class="text-base font-black text-slate-900 text-amber-900">100 Syiling</div>
+          <div class="text-[11px] text-emerald-600 font-bold mt-1">RM 10.00</div>
+        </button>
+
+        <button onclick="addCoins(250)" class="p-3 rounded-2xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 text-left transition group">
+          <div class="text-xs text-slate-500">Pakej Sastera</div>
+          <div class="text-base font-black text-slate-900 group-hover:text-amber-600">250 Syiling</div>
+          <div class="text-[11px] text-emerald-600 font-bold mt-1">RM 25.00</div>
+        </button>
+
+        <button onclick="addCoins(500)" class="p-3 rounded-2xl border border-slate-200 hover:border-amber-400 bg-slate-50 hover:bg-amber-50/50 text-left transition group">
+          <div class="text-xs text-slate-500">Pakej VIP</div>
+          <div class="text-base font-black text-slate-900 group-hover:text-amber-600">500 Syiling</div>
+          <div class="text-[11px] text-emerald-600 font-bold mt-1">RM 45.00 (+50 Bonus)</div>
+        </button>
+      </div>
+
+      <button onclick="closeTopUpModal()" class="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition">
+        Batal
+      </button>
+    </div>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- 11. MODAL PEMBAYARAN BCL (BAYARCASH) SIMULASI -->
+  <!-- ========================================== -->
+  <div id="bclModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-xs hidden items-center justify-center p-4">
+    <div class="w-full max-w-md bg-white rounded-3xl overflow-hidden shadow-2xl border border-slate-200 flex flex-col">
+      <!-- BCL Header -->
+      <div class="bg-gradient-to-r from-blue-700 via-indigo-800 to-emerald-600 text-white p-5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">💳</span>
+            <div>
+              <h3 class="font-black text-base">BCL · Bayarcash Commerce</h3>
+              <p class="text-[10px] text-blue-100">Gerbang Pembayaran Selamat Malaysia</p>
+            </div>
+          </div>
+          <button onclick="closeBclModal()" class="text-white/80 hover:text-white">✕</button>
+        </div>
+      </div>
+
+      <!-- BCL Content -->
+      <div class="p-6 space-y-4">
+        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+          <div>
+            <div class="text-xs text-slate-500">Jumlah Perlu Dibayar</div>
+            <div id="bclAmount" class="text-xl font-black text-slate-900">RM 18.50</div>
+          </div>
+          <span class="text-xs font-mono font-bold px-2 py-1 bg-emerald-100 text-emerald-800 rounded-lg">FPX ONLINE</span>
+        </div>
+
+        <div class="space-y-2">
+          <label class="text-xs font-bold text-slate-700 block">Pilih Bank Tempatan (FPX):</label>
+          <select id="bankSelect" class="w-full text-xs font-semibold p-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500">
+            <option value="MBB">Maybank2u</option>
+            <option value="CIMB">CIMB Clicks</option>
+            <option value="BIMB">Bank Islam Online</option>
+            <option value="RHB">RHB Now</option>
+            <option value="PBB">Public Bank PBe</option>
+            <option value="TNG">Touch 'n Go eWallet</option>
+          </select>
+        </div>
+
+        <div class="p-3 rounded-xl bg-amber-50 text-[11px] text-amber-800 border border-amber-200">
+          ⚡ <em>Mod Demonstrasi BCL:</em> Transaksi disahkan secara automatik dan rekod disegerakkan ke Firebase Firestore.
+        </div>
+
+        <button
+          onclick="confirmBclPayment()"
+          class="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white font-black text-sm rounded-xl shadow-lg transition active:scale-95"
+        >
+          Sahkan Bayaran Melalui BCL FPX
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-900 text-white text-xs font-bold px-4 py-3 rounded-2xl shadow-xl border border-slate-700 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-2">
+    <span id="toastIcon">✓</span>
+    <span id="toastMsg">Pesanan diterima</span>
+  </div>
+
+  <!-- ========================================== -->
+  <!-- JAVASCRIPT STATE & LOGIC                   -->
+  <!-- ========================================== -->
+  <script>
+    // 1. Data Naskhah Buku & Komik Malaysia
+    const EBOOKS_DATA = [
+      {
+        id: 'novel-1',
+        title: 'Bayang Di Sebalik Menara',
+        author: 'Ramlee Awang Harun',
+        category: 'novel',
+        genre: 'Misteri & Thriller',
+        rating: 4.9,
+        reviewsCount: 428,
+        price: 18.5,
+        originalPrice: 25.0,
+        isFree: false,
+        coverImage: 'https://images.unsplash.com/photo-1543002588-bfa74002ed7e?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-slate-950 via-indigo-950 to-blue-900',
+        badge: 'Pilihan Editor',
+        synopsis: 'Di sebalik gemerlap lampu malam Kuala Lumpur dan kemegahan Menara Merdeka 118, seorang penyiasat membongkar konspirasi digital.',
+        sampleChapter: {
+          title: 'Bab 1: Dentuman Hujan di Jalan Bukit Bintang',
+          paragraphs: [
+            'Hujan lebat yang membasahi aspal Jalan Bukit Bintang tidak menghalang keriuhan kota raya. Lampu neon yang terpantul pada lopak air membiaskan warna merah dan jingga.',
+            'Zafran merapatkan jaket kulit hitamnya. Payung hitam yang dipegangnya sudah beberapa kali bergoyang dihembus angin monsun timur laut.',
+            '"Kau pasti dia akan datang ke mari?" bisik Zafran ke mikrofon mini di kolar bajunya.',
+            '"Menurut data satelit dan transaksi kad akses, suspek baru sahaja melepasi pintu putar lobi aras bawah tanah," balas Nadia dari bilik kawalan Cheras.'
+          ]
+        }
+      },
+      {
+        id: 'komik-1',
+        title: 'Lawak Kampus Generasi Z: Jilid 1',
+        author: 'Keith & Cikgu Zaki',
+        category: 'komik',
+        genre: 'Komedi & Santai',
+        rating: 4.95,
+        reviewsCount: 940,
+        price: 12.0,
+        originalPrice: 16.0,
+        isFree: false,
+        coverImage: 'https://images.unsplash.com/photo-1534447677768-be436bb09401?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-amber-500 via-orange-600 to-red-600',
+        badge: 'Komik No. 1',
+        synopsis: 'Naskhah komik legenda sekolah Malaysia dengan nafas baharu! Ragam lucu kelas 5 Sastera dan kelas tuisyen malam.',
+        sampleChapter: {
+          title: 'Panel 1: Pintu Pagar Sekolah Jam 7:31 Pagi',
+          paragraphs: [
+            'Di hadapan pagar SMK Seri Bangsar, pengawas berdiri tegak memegang buku rekod disiplin.',
+            'Pengawas Amir: "Berhenti! Jam dinding sekolah dah tunjuk 7:31 pagi! Sila catat nama dan serahkan pas!"',
+            'Vanness: "Relaks Amir kawan lama! Jam kau tu laju 2 minit, ikut jam telefon aku baru 7:29 saat ke-58!"',
+            'Katak Froggy: "Kroakk! Logik yang tak masuk akal tapi patut dicuba!"'
+          ]
+        }
+      },
+      {
+        id: 'seram-1',
+        title: 'Misteri Rumah Agam Bukit Fraser',
+        author: 'Tamar Jalis Muda & Zaid Harith',
+        category: 'seram',
+        genre: 'Seram & Paranormal',
+        rating: 4.88,
+        reviewsCount: 520,
+        price: 16.5,
+        originalPrice: 22.0,
+        isFree: false,
+        coverImage: 'https://images.unsplash.com/photo-1509198397868-475647b2a1e5?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-slate-950 via-red-950 to-neutral-950',
+        badge: 'Kisah Seram Laris',
+        synopsis: 'Sebuah banglo kolonial di puncak Bukit Fraser menyimpan rahsia hilangnya ekspedisi pemetaan 1948 yang belum terungkai.',
+        sampleChapter: {
+          title: 'Bab 1: Kabus Tebal di Pintu Gerbang Fraser',
+          paragraphs: [
+            'Hawa sejuk yang menggigit tulang mencengkam tubuh Zaid sebaik sahaja keretanya melepasi stesen The Gap.',
+            'Di hadapannya, Rumah Agam Dunottar berdiri kusam berlatarkan langit malam tanpa bintang. Dinding batu batanya ditumbuhi lumut tebal.',
+            '"Jangan sesekali naik ke bilik tidur utama di sayap kiri selepas tengah malam," terngiang-ngiang pesanan penjaga pos kawalan.'
+          ]
+        }
+      },
+      {
+        id: 'agama-1',
+        title: 'Menyelami Ketenangan Hati: Motivasi Jiwa',
+        author: 'Ustaz Zahiruddin & Dr. Nurul Huda',
+        category: 'agama',
+        genre: 'Agama & Motivasi',
+        rating: 4.96,
+        reviewsCount: 780,
+        price: 17.5,
+        originalPrice: 24.0,
+        isFree: false,
+        coverImage: 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-emerald-950 via-teal-950 to-slate-900',
+        badge: 'Disyorkan',
+        synopsis: 'Sebuah panduan kontemporari mengubat keresahan jiwa moden berasaskan intipati ayat suci al-Quran dan muhasabah kendiri.',
+        sampleChapter: {
+          title: 'Bab 1: Apabila Dunia Terasa Begitu Sempit',
+          paragraphs: [
+            'Pernahkah anda berada dalam situasi di mana dada terasa sesak, seolah-olah seluruh dunia menolak anda ke sudut paling gelap?',
+            'Ketahuilah bahawa kesempitan yang hadir bukan tanda kebencian Sang Pencipta, melainkan jemputan halus untuk kembali mendekat.',
+            '"Ingatlah, hanya dengan mengingati Allah hati akan menjadi tenteram." (Surah Ar-Ra’d: 28).'
+          ]
+        }
+      },
+      {
+        id: 'novel-4',
+        title: 'Resipi Kasih Mak Tok: Warisan Bonda',
+        author: 'Hajah Halimah Che Wan',
+        category: 'novel',
+        genre: 'Keluarga & Inspirasi',
+        rating: 4.7,
+        reviewsCount: 210,
+        price: 0,
+        originalPrice: 15.0,
+        isFree: true,
+        coverImage: 'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-emerald-800 via-teal-900 to-slate-900',
+        badge: 'E-Buku Percuma',
+        synopsis: 'Sebuah naskhah menyentuh hati tentang ikatan kekeluargaan dan nostalgia desa di Kuala Pilah berserta resipi warisan.',
+        sampleChapter: {
+          title: 'Bab 1: Asap Tempurung dan Rendang Minang',
+          paragraphs: [
+            'Kuali tembaga hitam legam itu sudah bertenggek di atas tungku tiga batu sungai sejak sebelum azan subuh berkumandang.',
+            'Mak Tok mengacau santan kelapa sawit segar dengan sudip kayu kelapa panjang.',
+            '"Masak rendang ni macam jaga hati manusia, cucu ku. Sabar itu ramuan utama yang tak tertulis dalam buku masakan."'
+          ]
+        }
+      },
+      {
+        id: 'komik-2',
+        title: 'Pendekar Cyber: Arkib Malaya 2099',
+        author: 'Studio Komik Gempak & Azman',
+        category: 'komik',
+        genre: 'Aksi & Sci-Fi Cyberpunk',
+        rating: 4.9,
+        reviewsCount: 620,
+        price: 14.5,
+        originalPrice: 19.9,
+        isFree: false,
+        coverImage: 'https://images.unsplash.com/photo-1578632767115-351597cf2477?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-violet-950 via-fuchsia-950 to-slate-950',
+        badge: 'Aksi Hangat',
+        synopsis: 'Pahlawan berkeris laser mempertahankan kota Cyber-Malaya daripada pencerobohan virus bio-mekanikal.',
+        sampleChapter: {
+          title: 'Panel 1: Serangan Dron di Menara Cahaya',
+          paragraphs: [
+            'Dron Musuh: "AMARAN: Sasaran kod Pahlawan Biru dikesan. Aktifkan meriam plasma!"',
+            'Pendekar Mika: "Langkah Silat Gayong Gelombang Suara... Bangkitlah bilah Taming Sari Nano!"',
+            'Kesan Bunyi: ZRRZZZZT! (Bilah keris plasma biru bercahaya terang membelah malam)'
+          ]
+        }
+      },
+      {
+        id: 'seram-2',
+        title: 'Jeritan Dari Teluk Gong',
+        author: 'Haryati Mustapha',
+        category: 'seram',
+        genre: 'Misteri & Paranormal Pantai',
+        rating: 4.75,
+        reviewsCount: 340,
+        price: 14.0,
+        originalPrice: 19.0,
+        isFree: false,
+        coverImage: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-slate-900 via-indigo-950 to-emerald-950',
+        badge: 'Kisah Pantai',
+        synopsis: 'Di sebuah perkampungan nelayan lama Teluk Gong, penduduk diganggu suara ratapan wanita setiap kali air pasang perbani.',
+        sampleChapter: {
+          title: 'Bab 1: Bunyi Dayung di Muara Kelam',
+          paragraphs: [
+            'Pak Seman merapatkan sampan kayunya ke tiang jeti kayu bakau.',
+            'Tiba-tiba, bunyi dayung membelah air kedengaran dari celah rimbunan pokok nipah yang gelap pekat.',
+            'Di atas pusaran air muara, terapung sebuah sangkar burung tembaga purba yang diikat dengan kain kuning lusuh.'
+          ]
+        }
+      },
+      {
+        id: 'agama-2',
+        title: 'Kembara Menuju Redha Ilahi',
+        author: "Dato' Dr. Harun Din Al-Hafiz",
+        category: 'agama',
+        genre: 'Tarbiah & Pembangunan Insan',
+        rating: 4.9,
+        reviewsCount: 460,
+        price: 15.0,
+        originalPrice: 21.0,
+        isFree: false,
+        coverImage: 'https://images.unsplash.com/photo-1507842229458-7729f273d100?auto=format&fit=crop&w=600&q=80',
+        coverGradient: 'from-cyan-950 via-teal-900 to-slate-900',
+        badge: 'Bimbingan Rohani',
+        synopsis: 'Koleksi tazkirah dan motivasi praktikal untuk membina disiplin diri dan integriti akhlak di era digital.',
+        sampleChapter: {
+          title: 'Bab 1: Titik Mula Sebuah Perubahan',
+          paragraphs: [
+            'Setiap manusia mempunyai masa lalu yang tidak sempurna.',
+            'Namun keindahan Islam terletak pada pintu taubat dan peluang pembaharuan yang sentiasa terbuka seluas ufuk.',
+            'Mulakan dengan satu amalan kecil yang istiqamah—sama ada dua rakaat witir, atau istighfar seratus kali.'
+          ]
+        }
+      }
+    ];
+
+    // State Aplikasi
+    let currentCategory = 'semua';
+    let searchQuery = '';
+    let cart = [];
+    let userCoins = 150;
+    let activeSlide = 0;
+
+    // Inisialisasi Muka Depan
+    document.addEventListener('DOMContentLoaded', () => {
+      renderBooks();
+      updateCartUI();
+      // Auto slider timer setiap 5 saat
+      setInterval(() => {
+        setSlide((activeSlide + 1) % 2);
+      }, 5000);
+    });
+
+    // 2. Render Kad Buku dalam Grid
+    function renderBooks() {
+      const grid = document.getElementById('booksGrid');
+      const emptyBox = document.getElementById('emptyCatalog');
+      grid.innerHTML = '';
+
+      let filtered = EBOOKS_DATA.filter(b => {
+        // Penapis Kategori
+        if (currentCategory === 'percuma' && !b.isFree) return false;
+        if (currentCategory !== 'semua' && currentCategory !== 'percuma' && b.category !== currentCategory) return false;
+
+        // Penapis Carian Pantas
+        if (searchQuery.trim() !== '') {
+          const q = searchQuery.toLowerCase();
+          const matchTitle = b.title.toLowerCase().includes(q);
+          const matchAuthor = b.author.toLowerCase().includes(q);
+          const matchGenre = b.genre.toLowerCase().includes(q);
+          return matchTitle || matchAuthor || matchGenre;
+        }
+        return true;
+      });
+
+      if (filtered.length === 0) {
+        emptyBox.classList.remove('hidden');
+        return;
+      } else {
+        emptyBox.classList.add('hidden');
+      }
+
+      filtered.forEach(book => {
+        const inCart = cart.some(item => item.id === book.id);
+        const card = document.createElement('div');
+        card.className = "group flex flex-col bg-white rounded-2xl border border-slate-200 hover:border-indigo-400 shadow-xs hover:shadow-xl transition-all duration-300 overflow-hidden transform hover:-translate-y-1";
+
+        // Category Tag
+        let catLabel = '📖 ePub';
+        let catColor = 'bg-amber-400 text-slate-950';
+        if (book.category === 'komik') { catLabel = '💥 Komik'; catColor = 'bg-indigo-600 text-white'; }
+        else if (book.category === 'seram') { catLabel = '👻 Seram'; catColor = 'bg-rose-600 text-white'; }
+        else if (book.category === 'agama') { catLabel = '🕌 Motivasi'; catColor = 'bg-emerald-600 text-white'; }
+
+        card.innerHTML = `
+          <!-- Cover Gambar Unsplash & Art -->
+          <div class="relative pt-[120%] w-full overflow-hidden bg-slate-900">
+            <img src="${book.coverImage}" alt="${book.title}" class="absolute inset-0 w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" loading="lazy" />
+            <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent p-4 flex flex-col justify-between text-white">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-black uppercase px-2 py-0.5 rounded-md ${catColor} shadow-sm">${catLabel}</span>
+                ${book.badge ? `<span class="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white/20 backdrop-blur-md">${book.badge}</span>` : ''}
+              </div>
+              <div>
+                <p class="text-[10px] font-bold text-amber-300 uppercase tracking-widest">${book.genre}</p>
+                <h3 class="font-bold text-sm sm:text-base text-white line-clamp-2 leading-tight">${book.title}</h3>
+                <p class="text-[11px] text-slate-300">oleh ${book.author}</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card Content & Pricing -->
+          <div class="flex-1 p-4 flex flex-col justify-between space-y-3">
+            <div class="space-y-1">
+              <div class="flex items-center justify-between text-xs text-slate-500">
+                <div class="flex items-center gap-1 font-semibold text-slate-700">
+                  <span class="text-amber-400">★</span>
+                  <span>${book.rating.toFixed(1)}</span>
+                  <span class="text-slate-400 font-normal">(${book.reviewsCount})</span>
+                </div>
+                <span class="text-[10px] font-medium text-slate-400">2026 Edition</span>
+              </div>
+              <p class="text-xs text-slate-500 line-clamp-2 leading-relaxed pt-1">${book.synopsis}</p>
+            </div>
+
+            <!-- Pricing & Action Buttons -->
+            <div class="pt-3 border-t border-slate-100 space-y-2.5">
+              <div class="flex items-baseline justify-between">
+                <div class="flex items-baseline gap-1.5">
+                  <span class="text-base sm:text-lg font-black text-slate-900">${book.isFree ? 'RM 0.00' : 'RM ' + book.price.toFixed(2)}</span>
+                  ${book.price > 0 ? `<span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">🪙 ${Math.round(book.price * 10)} Syiling</span>` : ''}
+                </div>
+                ${book.isFree ? '<span class="text-[10px] font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Akses Percuma</span>' : ''}
+              </div>
+
+              <div class="grid grid-cols-2 gap-2">
+                <button
+                  onclick="openQuickReader('${book.id}')"
+                  class="w-full py-2 px-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition flex items-center justify-center gap-1"
+                >
+                  <span>Baca</span>
+                </button>
+                ${book.isFree ? `
+                  <button
+                    onclick="openQuickReader('${book.id}')"
+                    class="w-full py-2 px-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition"
+                  >
+                    Buka
+                  </button>
+                ` : `
+                  <button
+                    onclick="addToCart('${book.id}')"
+                    class="w-full py-2 px-2.5 rounded-xl text-xs font-black transition flex items-center justify-center gap-1 ${inCart ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-indigo-600 hover:bg-indigo-500 text-white'}"
+                  >
+                    <span>${inCart ? 'Dalam Bakul' : 'Beli'}</span>
+                  </button>
+                `}
+              </div>
+            </div>
+
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    // 3. Category Filter
+    function filterCategory(cat) {
+      currentCategory = cat;
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.className = "tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition text-slate-600 hover:text-slate-900";
+      });
+      const activeBtn = document.getElementById('tab-' + cat);
+      if (activeBtn) {
+        activeBtn.className = "tab-btn px-3.5 py-1.5 text-xs font-bold rounded-xl transition bg-white text-slate-900 shadow-xs";
+      }
+
+      // Kemaskini Tajuk
+      const headings = {
+        semua: 'Katalog Buku & Komik Malaysia',
+        novel: 'Katalog Novel Teks Tempatan',
+        komik: 'Katalog Komik & Manga Tempatan',
+        seram: 'Katalog Kisah Seram & Mistik',
+        agama: 'Katalog Agama & Motivasi Rohani',
+        percuma: 'Koleksi E-Buku & Bab Percuma'
+      };
+      document.getElementById('catalogHeading').innerText = headings[cat] || 'Katalog Buku';
+      renderBooks();
+    }
+
+    // 4. Search Handler
+    function handleSearch(val) {
+      searchQuery = val;
+      const clearBtn = document.getElementById('clearSearchBtn');
+      if (val.trim() !== '') {
+        clearBtn.classList.remove('hidden');
+      } else {
+        clearBtn.classList.add('hidden');
+      }
+      renderBooks();
+    }
+
+    function clearSearch() {
+      document.getElementById('searchInput').value = '';
+      searchQuery = '';
+      document.getElementById('clearSearchBtn').classList.add('hidden');
+      renderBooks();
+    }
+
+    function resetFilters() {
+      clearSearch();
+      filterCategory('semua');
+    }
+
+    // 5. Slider Controls
+    function setSlide(index) {
+      activeSlide = index;
+      document.querySelectorAll('.hero-slide').forEach((el, i) => {
+        if (i === index) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+      const dot0 = document.getElementById('dot-0');
+      const dot1 = document.getElementById('dot-1');
+      if (index === 0) {
+        dot0.className = "w-8 h-2 rounded-full bg-amber-400 transition-all";
+        dot1.className = "w-2.5 h-2 rounded-full bg-white/30 hover:bg-white/60 transition-all";
+      } else {
+        dot0.className = "w-2.5 h-2 rounded-full bg-white/30 hover:bg-white/60 transition-all";
+        dot1.className = "w-8 h-2 rounded-full bg-amber-400 transition-all";
+      }
+    }
+
+    // 6. Cart Management
+    function addToCart(bookId) {
+      const book = EBOOKS_DATA.find(b => b.id === bookId);
+      if (!book) return;
+
+      if (!cart.some(item => item.id === book.id)) {
+        cart.push(book);
+        showToast('Naskhah "' + book.title + '" dimasukkan ke bakul!', '🛒');
+      } else {
+        showToast('Naskhah sudah ada dalam bakul belian.', 'ℹ️');
+      }
+      updateCartUI();
+      renderBooks();
+    }
+
+    function removeFromCart(bookId) {
+      cart = cart.filter(item => item.id !== bookId);
+      updateCartUI();
+      renderBooks();
+    }
+
+    function updateCartUI() {
+      const badge = document.getElementById('cartBadge');
+      if (cart.length > 0) {
+        badge.innerText = cart.length;
+        badge.classList.remove('hidden');
+      } else {
+        badge.classList.add('hidden');
+      }
+
+      // Render cart items list
+      const list = document.getElementById('cartItemsList');
+      list.innerHTML = '';
+
+      if (cart.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-12 text-slate-400">
+            <span class="text-3xl block mb-2">🛒</span>
+            <p class="text-xs font-semibold">Bakul belian anda masih kosong.</p>
+          </div>
+        `;
+        document.getElementById('cartTotalPrice').innerText = 'RM 0.00';
+        return;
+      }
+
+      let total = 0;
+      cart.forEach(item => {
+        total += item.price;
+        const row = document.createElement('div');
+        row.className = "flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200 gap-3";
+        row.innerHTML = `
+          <div class="flex-1 truncate">
+            <div class="text-xs font-bold text-slate-900 truncate">${item.title}</div>
+            <div class="text-[11px] text-slate-500">RM ${item.price.toFixed(2)}</div>
+          </div>
+          <button onclick="removeFromCart('${item.id}')" class="text-slate-400 hover:text-rose-600 text-xs font-bold p-1">
+            ✕
+          </button>
+        `;
+        list.appendChild(row);
+      });
+
+      document.getElementById('cartTotalPrice').innerText = 'RM ' + total.toFixed(2);
+    }
+
+    function toggleCartDrawer() {
+      const drawer = document.getElementById('cartDrawer');
+      if (drawer.classList.contains('translate-x-full')) {
+        drawer.classList.remove('translate-x-full');
+      } else {
+        drawer.classList.add('translate-x-full');
+      }
+    }
+
+    // 7. BCL (Bayarcash Commerce Layer) Checkout Flow
+    function proceedToCheckout() {
+      if (cart.length === 0) {
+        showToast('Sila masukkan buku ke bakul terlebih dahulu.', '⚠️');
+        return;
+      }
+      toggleCartDrawer();
+      const total = cart.reduce((sum, item) => sum + item.price, 0);
+      document.getElementById('bclAmount').innerText = 'RM ' + total.toFixed(2);
+      document.getElementById('bclModal').classList.remove('hidden');
+      document.getElementById('bclModal').classList.add('flex');
+    }
+
+    function closeBclModal() {
+      document.getElementById('bclModal').classList.add('hidden');
+      document.getElementById('bclModal').classList.remove('flex');
+    }
+
+    function confirmBclPayment() {
+      const bank = document.getElementById('bankSelect').value;
+      closeBclModal();
+      showToast('Bayaran BCL ' + bank + ' berjaya disahkan! Rekod disimpan ke Firestore.', '🎉');
+      cart = [];
+      updateCartUI();
+      renderBooks();
+    }
+
+    // 8. In-Browser Reader Modal
+    function openQuickReader(bookId) {
+      const book = EBOOKS_DATA.find(b => b.id === bookId);
+      if (!book || !book.sampleChapter) return;
+
+      document.getElementById('readerTitle').innerText = book.title;
+      document.getElementById('readerAuthor').innerText = 'Oleh ' + book.author;
+      document.getElementById('readerChapterTitle').innerText = book.sampleChapter.title;
+
+      const body = document.getElementById('readerBody');
+      body.innerHTML = '';
+      book.sampleChapter.paragraphs.forEach(p => {
+        const pElem = document.createElement('p');
+        pElem.innerText = p;
+        body.appendChild(pElem);
+      });
+
+      const buyBtn = document.getElementById('readerBuyBtn');
+      if (book.isFree) {
+        buyBtn.innerText = 'Naskhah Percuma Penuh';
+        buyBtn.onclick = () => { closeReaderModal(); showToast('Naskhah percuma sedia dibaca!'); };
+      } else {
+        buyBtn.innerText = 'Beli Penuh: RM ' + book.price.toFixed(2);
+        buyBtn.onclick = () => { closeReaderModal(); addToCart(book.id); toggleCartDrawer(); };
+      }
+
+      document.getElementById('readerModal').classList.remove('hidden');
+      document.getElementById('readerModal').classList.add('flex');
+    }
+
+    function closeReaderModal() {
+      document.getElementById('readerModal').classList.add('hidden');
+      document.getElementById('readerModal').classList.remove('flex');
+    }
+
+    // 9. Top-Up Coins
+    function openTopUpModal() {
+      document.getElementById('topUpModal').classList.remove('hidden');
+      document.getElementById('topUpModal').classList.add('flex');
+    }
+
+    function closeTopUpModal() {
+      document.getElementById('topUpModal').classList.add('hidden');
+      document.getElementById('topUpModal').classList.remove('flex');
+    }
+
+    function addCoins(amount) {
+      userCoins += amount;
+      document.getElementById('userCoinBalance').innerText = userCoins + ' Syiling';
+      closeTopUpModal();
+      showToast('Top-Up Berjaya! +' + amount + ' Syiling ditambah.', '🪙');
+    }
+
+    function openProfileModal() {
+      showToast('Akaun Pembaca VIP: Ahmad Danial · Baki: ' + userCoins + ' Syiling', '👤');
+    }
+
+    function showAuthorAlert() {
+      showToast('Portal Pendaftaran Penulis Digital Malaysia dibuka! Hubungi admin untuk penghantaran manuskrip.', '✍️');
+    }
+
+    // 10. Toast Helper
+    function showToast(msg, icon = '✓') {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').innerText = msg;
+      document.getElementById('toastIcon').innerText = icon;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 3500);
+    }
+  </script>
+
+</body>
+</html>

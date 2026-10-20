@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1e293b;
+    background-color: #f8fafc;
+  }
+}
+
+.font-serif-book {
+  font-family: 'Playfair Display', Georgia, Cambria, 'Times New Roman', serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Ciri Keselamatan: Sekat Text Selection */
+.protected-content {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Watermark pembaca digital */
+.reader-watermark {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(148, 163, 184, 0.04) 0px,
+    rgba(148, 163, 184, 0.04) 150px,
+    transparent 150px,
+    transparent 300px
+  );
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

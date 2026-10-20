@@ -1,0 +1,6 @@
+{
+  "name": "KaryaDigital Malaysia - Platform E-Book & Komik Tempatan",
+  "description": "Platform jualan dan bacaan e-buku serta komik tempatan Malaysia dengan pembaca dalam talian dan perlindungan hak cipta digital.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

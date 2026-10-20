@@ -1,0 +1,146 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "Profil pengguna berdaftar dan pembeli e-book",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "ID unik pengguna Firebase Auth"
+        },
+        "email": {
+          "type": "string",
+          "description": "Emel pengguna"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Nama paparan pembaca"
+        },
+        "photoURL": {
+          "type": "string",
+          "description": "Pautan avatar pembaca"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Tarikh pendaftaran akaun"
+        }
+      },
+      "required": ["uid", "email"]
+    },
+    "PurchasedBook": {
+      "title": "PurchasedBook",
+      "description": "Rekod buku digital atau komik yang telah dibeli oleh pengguna",
+      "type": "object",
+      "properties": {
+        "bookId": {
+          "type": "string",
+          "description": "ID unik karya e-book"
+        },
+        "title": {
+          "type": "string",
+          "description": "Tajuk buku / komik"
+        },
+        "author": {
+          "type": "string",
+          "description": "Nama pengarang / pelukis"
+        },
+        "coverImage": {
+          "type": "string",
+          "description": "URL gambar kulit e-book"
+        },
+        "price": {
+          "type": "number",
+          "description": "Harga pembelian dalam MYR"
+        },
+        "purchasedAt": {
+          "type": "string",
+          "description": "Waktu pembelian berjaya"
+        },
+        "paymentGateway": {
+          "type": "string",
+          "description": "Gateway pembayaran yang digunakan (bcl / toyyibpay)"
+        },
+        "transactionId": {
+          "type": "string",
+          "description": "ID rujukan transaksi"
+        },
+        "format": {
+          "type": "string",
+          "description": "Format bacaan (epub / comic)"
+        }
+      },
+      "required": ["bookId", "title", "purchasedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Pesanan pembelian e-book melalui BCL (Bayarcash) atau ToyyibPay",
+      "type": "object",
+      "properties": {
+        "orderId": {
+          "type": "string",
+          "description": "Nombor rujukan pesanan (cth: BCL-ORD-1234)"
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID pengguna pembeli"
+        },
+        "userEmail": {
+          "type": "string",
+          "description": "Emel pembeli untuk invois & watermark"
+        },
+        "userName": {
+          "type": "string",
+          "description": "Nama pembeli"
+        },
+        "bookIds": {
+          "type": "array",
+          "description": "Senarai ID buku dalam pesanan"
+        },
+        "totalAmount": {
+          "type": "number",
+          "description": "Jumlah bayaran dalam RM"
+        },
+        "gateway": {
+          "type": "string",
+          "description": "Gerbang pembayaran (bcl atau toyyibpay)"
+        },
+        "status": {
+          "type": "string",
+          "description": "Status bayaran (pending, paid, failed)"
+        },
+        "billCode": {
+          "type": "string",
+          "description": "Kod bil invois dari BCL / ToyyibPay"
+        },
+        "paymentUrl": {
+          "type": "string",
+          "description": "Pautan halaman pembayaran BCL / ToyyibPay"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Tarikh pesanan dicipta"
+        },
+        "updatedAt": {
+          "type": "string",
+          "description": "Tarikh kemas kini status pesanan"
+        }
+      },
+      "required": ["orderId", "userId", "userEmail", "totalAmount", "status"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "Profil peribadi pengguna yang memegang akaun pembaca"
+    },
+    "/users/{userId}/purchased_books/{bookId}": {
+      "schema": "PurchasedBook",
+      "description": "Koleksi buku sah yang dimiliki dan boleh diakses oleh pembaca"
+    },
+    "/orders/{orderId}": {
+      "schema": "Order",
+      "description": "Invois dan rekod pembayaran BCL & ToyyibPay"
+    }
+  }
+}
