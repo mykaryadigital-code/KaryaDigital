@@ -553,10 +553,6 @@ export default function App() {
             const found = books.find((b) => b.id === bookId);
             if (found) setSelectedDetailBook(found);
           }}
-          onCopyVoucher={(code) => {
-            setVoucherCode(code);
-            triggerSecurityWarning(`Kod baucar "${code}" berjaya disalin!`, 'info');
-          }}
         />
       )}
 

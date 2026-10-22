@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import {
   COVER_MAK_TOK,
   COVER_PENDEKAR_CYBER,
@@ -8,13 +8,11 @@ import {
 
 interface HeroBannerProps {
   onExploreClick: () => void;
-  onCopyVoucher?: (code: string) => void;
   onSelectBook?: (bookId: string) => void;
 }
 
 export const HeroBanner: React.FC<HeroBannerProps> = ({
   onExploreClick,
-  onCopyVoucher,
   onSelectBook,
 }) => {
   const heroBooks = [
@@ -74,11 +72,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-7 items-center">
           {/* Left Column: Typography & Action Buttons */}
           <div className="md:col-span-7 lg:col-span-7 space-y-2.5 sm:space-y-3.5 text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-[11px] font-semibold">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>KaryaDigital Malaysia Rasmi</span>
-            </div>
-
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
               Baca karya tempatan, <span className="text-amber-400 block sm:inline">di mana sahaja.</span>
             </h1>
@@ -95,17 +88,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                 <span>Terokai Buku</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
-
-              {onCopyVoucher && (
-                <button
-                  onClick={() => onCopyVoucher('KARYALOKAL')}
-                  className="min-h-[38px] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
-                  title="Gunakan kod baucar KARYALOKAL"
-                >
-                  <span className="text-amber-400 font-bold">Baucar:</span>
-                  <span className="font-mono text-white">KARYALOKAL</span>
-                </button>
-              )}
             </div>
           </div>
 
