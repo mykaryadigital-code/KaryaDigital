@@ -216,6 +216,11 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 <span className="px-2.5 py-1 rounded-md bg-slate-100 font-medium text-slate-700">
                   {book.genre}
                 </span>
+                {book.pdfUrl && (
+                  <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
+                    Format PDF
+                  </span>
+                )}
                 <span className="text-slate-400">·</span>
                 <span className="text-slate-500 font-medium">{book.pages} m/s</span>
               </div>

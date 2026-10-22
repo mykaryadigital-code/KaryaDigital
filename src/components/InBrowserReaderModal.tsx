@@ -78,6 +78,8 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
 
   // State for bookmarks dropdown popover
   const [showBookmarksList, setShowBookmarksList] = useState(false);
+  // Reader format: 'pdf' if book has pdfUrl, otherwise 'standard'
+  const [readerFormat, setReaderFormat] = useState<'pdf' | 'standard'>('standard');
 
   // Set initial page from bookmark or parameter
   useEffect(() => {
@@ -90,10 +92,15 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
       const maxPanel = Math.max(0, (book.comicSample?.panels?.length || 1) - 1);
       setCurrentComicPageIndex(Math.min(targetPage, maxPanel));
     }
+    if (book.pdfUrl) {
+      setReaderFormat('pdf');
+    } else {
+      setReaderFormat('standard');
+    }
     setComicZoom(1);
     setShowBookmarksList(false);
     setShowSettingsMenu(false);
-  }, [book?.id, isOpen, initialPageNumber]);
+  }, [book?.id, book?.pdfUrl, isOpen, initialPageNumber]);
 
   // Security Event Listeners (Sekat right click, copy, and shortcuts)
   useEffect(() => {
@@ -290,6 +297,18 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
 
           {/* Right: Consolidated "Aa" Menu, Comic Mode, Bookmark, Fullscreen */}
           <div className="flex items-center gap-1.5 relative">
+            {/* Format Switcher (if book has PDF) */}
+            {book.pdfUrl && (
+              <button
+                type="button"
+                onClick={() => setReaderFormat((prev) => (prev === 'pdf' ? 'standard' : 'pdf'))}
+                className="px-2 py-1 rounded-md text-[11px] font-bold bg-rose-600/90 hover:bg-rose-600 text-white shadow-2xs flex items-center gap-1 transition cursor-pointer"
+                title={readerFormat === 'pdf' ? 'Tukar ke Mod Teks' : 'Buka Paparan PDF'}
+              >
+                <span>{readerFormat === 'pdf' ? 'Mod Teks' : 'Paparan PDF'}</span>
+              </button>
+            )}
+
             {/* Comic Scroll Mode Selector */}
             {!isNovel && (
               <div className="flex items-center bg-black/5 dark:bg-white/10 rounded-lg p-0.5 text-xs font-bold mr-1">
@@ -653,9 +672,72 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
           </div>
 
           {/* ============================================================== */}
+          {/* PDF READER VIEW */}
+          {/* ============================================================== */}
+          {readerFormat === 'pdf' && book.pdfUrl && (
+            <div className="max-w-4xl mx-auto space-y-4">
+              <div className="flex items-center justify-between pb-2 border-b border-current/10">
+                <div className="flex items-center gap-2">
+                  <div className="px-2 py-0.5 rounded bg-rose-600 text-white font-black text-[10px]">
+                    PDF
+                  </div>
+                  <div>
+                    <h2 className="text-xs sm:text-sm font-bold">{book.title}</h2>
+                    <p className="text-[10px] opacity-70">
+                      {book.pdfFileName || 'Dokumen PDF Rasmi'} {book.pdfFileSize ? `(${book.pdfFileSize})` : ''}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold border border-emerald-300/40">
+                  {isOwned || book.isFree ? 'Akses Sah Pembeli' : 'Mod Pratonton'}
+                </div>
+              </div>
+
+              {isOwned || book.isFree ? (
+                <div className="relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-2xl h-[76vh]">
+                  {/* Floating Security Watermark Tag */}
+                  <div className="absolute top-2 right-4 z-20 pointer-events-none bg-slate-950/85 text-amber-300 text-[10px] font-mono px-2.5 py-1 rounded-md backdrop-blur-xs border border-amber-400/40">
+                    🔒 Dilesenkan kepada: {buyerEmail}
+                  </div>
+                  <iframe
+                    src={book.pdfUrl}
+                    className="w-full h-full border-0 rounded-2xl bg-slate-800"
+                    title={book.title}
+                  />
+                </div>
+              ) : (
+                <div className="p-6 sm:p-8 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300/70 text-center space-y-4 max-w-lg mx-auto">
+                  <div className="w-12 h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-sm mx-auto shadow-md">
+                    PDF
+                  </div>
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-base text-slate-900 dark:text-white">
+                      Karya Ini Disediakan Dalam Format Dokumen PDF Penuh
+                    </h3>
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
+                      {book.pdfFileName || book.title} · {book.pages} muka surat
+                    </p>
+                  </div>
+                  <p className="text-xs text-amber-900 dark:text-amber-200/90 leading-relaxed">
+                    Dapatkan akses penuh untuk membaca keseluruhan fail PDF naskhah ini pada pelayar anda dengan perlindungan hak cipta rasmi.
+                  </p>
+                  <button
+                    onClick={() => onAddToCart(book)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    <span>Beli Versi Penuh ({formatMYR(book.price)})</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ============================================================== */}
           {/* TEXT NOVEL READER VIEW */}
           {/* ============================================================== */}
-          {isNovel && currentChapter && (
+          {readerFormat !== 'pdf' && isNovel && currentChapter && (
             <article className={`max-w-2xl mx-auto space-y-6 ${fontFamilyClasses[settings.fontFamily]}`}>
               {/* Chapter Header */}
               <div className="text-center pb-6 border-b border-current/10 space-y-2">
@@ -722,7 +804,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
           {/* ============================================================== */}
           {/* COMIC & GRAPHIC NOVEL READER VIEW */}
           {/* ============================================================== */}
-          {!isNovel && (
+          {readerFormat !== 'pdf' && !isNovel && (
             <div
               className="max-w-3xl mx-auto space-y-8 transition-transform duration-200 origin-top"
               style={{ transform: `scale(${comicZoom})` }}

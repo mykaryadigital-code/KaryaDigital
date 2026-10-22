@@ -41,6 +41,9 @@ export interface PublishedBookPayload {
   reviewsCount?: number;
   r2Key?: string;
   r2StorageUrl?: string;
+  pdfUrl?: string;
+  pdfFileName?: string;
+  pdfFileSize?: string;
   sampleContent?: {
     chapters: {
       id: number;

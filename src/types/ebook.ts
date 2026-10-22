@@ -48,6 +48,9 @@ export interface EBook {
   coverGradient: string;
   coverAccent: string;
   coverBadge?: string;
+  pdfUrl?: string;
+  pdfFileName?: string;
+  pdfFileSize?: string;
   sampleContent?: {
     chapters: Chapter[];
   };

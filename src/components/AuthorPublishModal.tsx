@@ -19,6 +19,7 @@ import {
   TrendingUp,
   ChevronRight,
   BookOpen,
+  FileUp,
 } from 'lucide-react';
 import { EBook, BookCategory } from '../types/ebook.ts';
 
@@ -92,6 +93,14 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   const [selectedTheme, setSelectedTheme] = useState(HARDCOVER_THEMES[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // PDF File Upload State
+  const [pdfFile, setPdfFile] = useState<{
+    name: string;
+    size: string;
+    dataUrl: string;
+  } | null>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
+
   // Submission State
   const [submittedBook, setSubmittedBook] = useState<EBook | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -132,6 +141,54 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
     }
   };
 
+  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      alert('Sila pilih fail dokumen PDF yang sah (.pdf).');
+      return;
+    }
+
+    if (file.size > 50 * 1024 * 1024) {
+      alert('Saiz fail PDF melebihi had maksimum 50MB.');
+      return;
+    }
+
+    const sizeFormatted =
+      file.size > 1024 * 1024
+        ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+        : `${Math.round(file.size / 1024)} KB`;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setPdfFile({
+          name: file.name,
+          size: sizeFormatted,
+          dataUrl: reader.result,
+        });
+
+        // Auto-fill title if empty
+        if (!title.trim()) {
+          const autoTitle = file.name
+            .replace(/\.pdf$/i, '')
+            .replace(/[-_]/g, ' ')
+            .trim();
+          setTitle(autoTitle);
+        }
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleClearPdf = () => {
+    setPdfFile(null);
+    if (pdfInputRef.current) {
+      pdfInputRef.current.value = '';
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !synopsis.trim()) return;
@@ -159,15 +216,18 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       reviewsCount: 1,
       price: parsedPrice,
       isFree: parsedPrice === 0,
-      pages: 140,
-      readTime: '3 jam 30 min',
+      pages: pdfFile ? 160 : 140,
+      readTime: pdfFile ? '4 jam' : '3 jam 30 min',
       publisher: 'Penerbitan Bebas KaryaDigital',
       publicationYear: 2026,
       isbn: `978-967-KD${Math.floor(1000 + Math.random() * 9000)}-M`,
       coverImage: coverImagePreview || undefined,
       coverGradient: selectedTheme.gradient,
       coverAccent: selectedTheme.accent,
-      coverBadge: 'Karya Asli',
+      coverBadge: pdfFile ? 'E-Buku PDF' : 'Karya Asli',
+      pdfUrl: pdfFile?.dataUrl,
+      pdfFileName: pdfFile?.name,
+      pdfFileSize: pdfFile?.size,
       sampleContent: {
         chapters: [
           {
@@ -194,6 +254,10 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
     setSampleContent('');
     setCoverImagePreview(null);
     setCoverUrlInput('');
+    setPdfFile(null);
+    if (pdfInputRef.current) {
+      pdfInputRef.current.value = '';
+    }
     setSubmittedBook(null);
   };
 
@@ -920,6 +984,101 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                   placeholder="Ringkasan jalan cerita untuk menarik minat pembaca di halaman katalog..."
                   className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                 ></textarea>
+              </div>
+
+              {/* BAHAGIAN 3: MUAT NAIK FAIL E-BOOK PDF */}
+              <div className="p-3.5 bg-indigo-50/40 rounded-xl border border-indigo-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                    <FileUp className="w-4 h-4 text-indigo-600" />
+                    <span>Muat Naik Fail E-Buku PDF (Naskhah Lengkap)</span>
+                  </label>
+                  <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-full border border-indigo-200">
+                    Format .PDF Disokong
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-600">
+                  Muat naik fail PDF karya atau manuskrip anda secara terus dari komputer atau telefon. Fail dilindungi dengan tandatangan digital dan hanya boleh dibaca oleh pembeli berdaftar.
+                </p>
+
+                {/* Hidden input for PDF */}
+                <input
+                  ref={pdfInputRef}
+                  type="file"
+                  accept=".pdf,application/pdf"
+                  onChange={handlePdfChange}
+                  className="hidden"
+                  id="pdf-upload-input"
+                />
+
+                {!pdfFile ? (
+                  <div
+                    onClick={() => pdfInputRef.current?.click()}
+                    className="border-2 border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50/70 rounded-xl p-4 text-center cursor-pointer transition-all group"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-indigo-100 group-hover:bg-indigo-200 text-indigo-600 flex items-center justify-center mx-auto mb-2 transition-colors shadow-2xs">
+                      <FileUp className="w-5 h-5" />
+                    </div>
+                    <div className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
+                      Klik untuk Pilih Fail PDF dari Peranti Anda
+                    </div>
+                    <p className="text-[10px] text-slate-500 mt-1">
+                      Menyokong dokumen PDF sehingga 50MB (Novel, Komik, Majalah, E-Buku)
+                    </p>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        pdfInputRef.current?.click();
+                      }}
+                      className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-colors cursor-pointer"
+                    >
+                      <FileUp className="w-3.5 h-3.5" />
+                      <span>Pilih Fail PDF</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="p-3 bg-white rounded-xl border border-indigo-200 shadow-2xs flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-9 h-10 rounded-lg bg-rose-600 text-white flex flex-col items-center justify-center font-black text-[9px] shrink-0 shadow-2xs">
+                        <span>PDF</span>
+                      </div>
+                      <div className="min-w-0">
+                        <div className="text-xs font-bold text-slate-900 truncate" title={pdfFile.name}>
+                          {pdfFile.name}
+                        </div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
+                          <span className="font-semibold text-indigo-600">{pdfFile.size}</span>
+                          <span>•</span>
+                          <span className="text-emerald-600 font-bold flex items-center gap-0.5">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Fail PDF Sedia Diterbitkan
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => pdfInputRef.current?.click()}
+                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                      >
+                        Tukar Fail
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleClearPdf}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                        title="Padam fail PDF ini"
+                        aria-label="Padam PDF"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Teks Sampel / Bab 1 */}

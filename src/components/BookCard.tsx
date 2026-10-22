@@ -63,6 +63,13 @@ export const BookCard: React.FC<BookCardProps> = ({
           </div>
         )}
 
+        {/* PDF Format Tag */}
+        {book.pdfUrl && (
+          <div className="absolute top-2 left-2 bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-2xs z-10">
+            PDF
+          </div>
+        )}
+
         {/* Owned Status Badge */}
         {isOwned && (
           <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-2xs flex items-center gap-1 z-10">
