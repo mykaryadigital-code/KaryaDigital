@@ -486,21 +486,17 @@ export default function App() {
         />
       )}
 
-      {/* Sambung Membaca Section for users with owned books */}
-      {!searchQuery && activeCategory !== 'koleksi' && user.ownedBookIds.length > 0 && (
-        <ContinueReadingSection
-          ownedBooks={books.filter((b) => user.ownedBookIds.includes(b.id))}
-          onRead={handleOpenReader}
-          onViewShelf={() => {
-            setActiveCategory('koleksi');
-            handleScrollToCatalog();
-          }}
-          bookmarks={user.bookmarks}
-        />
-      )}
-
-      {/* Main Book Catalog Grid */}
+      {/* Main Book Catalog Grid or Rak Saya Shelf */}
       <main ref={catalogRef} className="flex-1">
+        {/* Sambung Membaca Section: Dialihkan sepenuhnya dari halaman Utama ke halaman "Rak Saya" */}
+        {activeCategory === 'koleksi' && user.ownedBookIds.length > 0 && (
+          <ContinueReadingSection
+            ownedBooks={books.filter((b) => user.ownedBookIds.includes(b.id))}
+            onRead={handleOpenReader}
+            bookmarks={user.bookmarks}
+            isInShelfPage={true}
+          />
+        )}
         <BookGrid
           books={books}
           activeCategory={activeCategory}

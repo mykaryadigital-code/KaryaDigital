@@ -145,7 +145,11 @@ export const BookGrid: React.FC<BookGridProps> = ({
   ];
 
   return (
-    <div className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-3 pb-8 space-y-4">
+    <div
+      className={`max-w-[1280px] mx-auto px-4 sm:px-6 pb-8 space-y-4 ${
+        activeCategory === 'koleksi' ? 'pt-2 sm:pt-3' : 'pt-5 sm:pt-6'
+      }`}
+    >
       {/* Catalog Header Row: Tajuk, Jumlah Padanan Buku, dan Butang Reset Penapis */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div className="flex items-center gap-2.5">

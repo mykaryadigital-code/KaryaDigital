@@ -10,8 +10,9 @@ import {
 interface ContinueReadingSectionProps {
   ownedBooks: EBook[];
   onRead: (book: EBook, initialPage?: number) => void;
-  onViewShelf: () => void;
+  onViewShelf?: () => void;
   bookmarks?: Record<string, BookmarkEntry[]>;
+  isInShelfPage?: boolean;
 }
 
 export const ContinueReadingSection: React.FC<ContinueReadingSectionProps> = ({
@@ -19,6 +20,7 @@ export const ContinueReadingSection: React.FC<ContinueReadingSectionProps> = ({
   onRead,
   onViewShelf,
   bookmarks = {},
+  isInShelfPage = false,
 }) => {
   if (ownedBooks.length === 0) return null;
 
@@ -48,16 +50,16 @@ export const ContinueReadingSection: React.FC<ContinueReadingSectionProps> = ({
   const progress = primaryBook.id === 'novel-maktok' ? 45 : calculatedProgress;
 
   return (
-    <section className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-3 pb-1">
+    <section className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-5 sm:pt-6 pb-1">
       {/* Label: Sambung membaca */}
-      <div className="flex items-center justify-between mb-1.5">
+      <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-1.5">
-          <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
-          <h2 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">
-            Sambung Membaca
+          <BookOpen className="w-4 h-4 text-indigo-600" />
+          <h2 className="text-xs sm:text-sm font-bold text-slate-900 tracking-tight">
+            {isInShelfPage ? 'Sambung Membaca Terakhir' : 'Sambung Membaca'}
           </h2>
         </div>
-        {ownedBooks.length > 1 && (
+        {!isInShelfPage && onViewShelf && ownedBooks.length > 1 && (
           <button
             onClick={onViewShelf}
             className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors cursor-pointer flex items-center gap-1"
@@ -69,7 +71,7 @@ export const ContinueReadingSection: React.FC<ContinueReadingSectionProps> = ({
       </div>
 
       {/* Lebar Penuh Kad Sambung Membaca Sejajar dengan Katalog */}
-      <div className="w-full bg-white border border-slate-200/90 rounded-2xl p-3 sm:px-5 sm:py-3 shadow-xs hover:shadow-sm transition-all">
+      <div className="w-full bg-white border border-slate-200/90 rounded-2xl p-3 sm:px-5 sm:py-3.5 shadow-xs hover:shadow-sm transition-all">
         {/* DESKTOP LAYOUT (>= 768px): Susun cover, tajuk, bar kemajuan dan butang dalam SATU BARIS */}
         <div className="hidden md:flex items-center justify-between gap-6 w-full">
           {/* 1. Cover Thumbnail (Nisbah 2:3) */}
