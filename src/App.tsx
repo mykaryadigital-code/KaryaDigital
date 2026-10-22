@@ -511,6 +511,7 @@ export default function App() {
           onAddToCart={handleAddToCart}
           onViewDetails={(book) => setSelectedDetailBook(book)}
           searchQuery={searchQuery}
+          onClearSearch={() => setSearchQuery('')}
         />
       </main>
 

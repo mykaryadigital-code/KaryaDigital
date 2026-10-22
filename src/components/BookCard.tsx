@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Info, BookOpen } from 'lucide-react';
 import { EBook } from '../types/ebook.ts';
 import { formatMYR } from '../utils/ebookLogic.ts';
 
@@ -32,7 +32,7 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   return (
     <div className="flex flex-col bg-white rounded-xl border border-slate-200/90 hover:border-indigo-300 shadow-2xs hover:shadow-md transition-all duration-200 overflow-hidden h-full group">
-      {/* Cover Image Container: Strict 2:3 aspect ratio without cropping */}
+      {/* Cover Image Container: Strict 2:3 aspect ratio */}
       <div
         onClick={handleCardClick}
         className="relative aspect-[2/3] w-full overflow-hidden bg-slate-900 cursor-pointer"
@@ -84,8 +84,8 @@ export const BookCard: React.FC<BookCardProps> = ({
             {book.title}
           </h3>
 
-          {/* Author Name */}
-          <p className="text-[11px] text-slate-500 font-normal truncate" title={book.author}>
+          {/* Author Name: Enlarged text with enhanced contrast */}
+          <p className="text-xs text-slate-700 font-medium truncate" title={book.author}>
             {book.author}
           </p>
         </div>
@@ -97,44 +97,63 @@ export const BookCard: React.FC<BookCardProps> = ({
             {book.isFree ? 'Percuma' : formatMYR(book.price)}
           </div>
 
-          {/* Action Buttons: [Sampel] (Grey) and [Beli] (Purple) with accessible touch targets */}
+          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-1.5">
-            {/* Sampel Button */}
-            <button
-              onClick={() => onRead(book)}
-              className="min-h-[36px] py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
-              aria-label={`Baca sampel ${book.title}`}
-            >
-              <span>{isOwned ? 'Buka' : 'Sampel'}</span>
-            </button>
-
-            {/* Beli / Baca Button */}
             {isOwned ? (
-              <button
-                onClick={() => onRead(book)}
-                className="min-h-[36px] py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
-              >
-                <span>Baca</span>
-              </button>
-            ) : book.isFree ? (
-              <button
-                onClick={() => onAddToCart(book)}
-                className="min-h-[36px] py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
-              >
-                <span>Dapatkan</span>
-              </button>
+              <>
+                {/* Buku Dimiliki - Butang 1: "Butiran" */}
+                <button
+                  onClick={handleCardClick}
+                  className="min-h-[36px] py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95 border border-slate-200"
+                  aria-label={`Lihat butiran ${book.title}`}
+                >
+                  <Info className="w-3 h-3 text-slate-500 mr-1 hidden xs:inline" />
+                  <span>Butiran</span>
+                </button>
+
+                {/* Buku Dimiliki - Butang 2: "Baca Sekarang" */}
+                <button
+                  onClick={() => onRead(book)}
+                  className="min-h-[36px] py-1.5 px-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[11px] sm:text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
+                  aria-label={`Baca sekarang ${book.title}`}
+                >
+                  <BookOpen className="w-3 h-3 mr-1 hidden xs:inline" />
+                  <span>Baca Sekarang</span>
+                </button>
+              </>
             ) : (
-              <button
-                onClick={() => onAddToCart(book)}
-                className={`min-h-[36px] py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95 ${
-                  isInCart
-                    ? 'bg-amber-100 text-amber-900 border border-amber-300'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                }`}
-                aria-label={`Beli ${book.title}`}
-              >
-                <span>{isInCart ? 'Dalam Bakul' : 'Beli'}</span>
-              </button>
+              <>
+                {/* Buku Belum Dimiliki - Butang 1: "Sampel" */}
+                <button
+                  onClick={() => onRead(book)}
+                  className="min-h-[36px] py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95 border border-slate-200"
+                  aria-label={`Baca sampel ${book.title}`}
+                >
+                  <span>Sampel</span>
+                </button>
+
+                {/* Buku Belum Dimiliki - Butang 2: "Beli" / "Dapatkan" */}
+                {book.isFree ? (
+                  <button
+                    onClick={() => onAddToCart(book)}
+                    className="min-h-[36px] py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
+                  >
+                    <span>Dapatkan</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => onAddToCart(book)}
+                    className={`min-h-[36px] py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95 ${
+                      isInCart
+                        ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    }`}
+                    aria-label={`Beli ${book.title}`}
+                  >
+                    <span>{isInCart ? 'Dalam Bakul' : 'Beli'}</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>

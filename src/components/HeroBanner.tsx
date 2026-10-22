@@ -44,7 +44,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       <div className="absolute inset-0 pointer-events-none opacity-20 overflow-hidden">
         {/* Subtle KL Skyline Silhouette SVG */}
         <svg
-          className="absolute bottom-0 w-full h-32 md:h-44 text-[#1E2958] fill-current"
+          className="absolute bottom-0 w-full h-28 md:h-36 text-[#1E2958] fill-current"
           viewBox="0 0 1200 180"
           preserveAspectRatio="none"
         >
@@ -61,7 +61,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         </svg>
 
         {/* Gold Batik Floral Motif */}
-        <div className="absolute top-0 right-0 w-80 h-80 opacity-15 text-amber-400">
+        <div className="absolute top-0 right-0 w-64 h-64 opacity-15 text-amber-400">
           <svg viewBox="0 0 100 100" fill="currentColor">
             <path d="M50 0 C60 25 75 40 100 50 C75 60 60 75 50 100 C40 75 25 60 0 50 C25 40 40 25 50 0 Z" />
             <circle cx="50" cy="50" r="15" fill="none" stroke="currentColor" strokeWidth="2" />
@@ -69,28 +69,29 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         </div>
       </div>
 
-      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-5 sm:py-9 md:py-12 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:gap-8 items-center">
+      {/* Reduced Height (~20-25% lower) for cleaner compactness */}
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-4 sm:py-6 md:py-7 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 md:gap-7 items-center">
           {/* Left Column: Typography & Action Buttons */}
-          <div className="md:col-span-7 lg:col-span-7 space-y-3 sm:space-y-4 text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-[11px] font-semibold">
+          <div className="md:col-span-7 lg:col-span-7 space-y-2.5 sm:space-y-3.5 text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-[11px] font-semibold">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>KaryaDigital Malaysia Rasmi</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-black tracking-tight text-white leading-tight">
+            <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
               Baca karya tempatan,{' '}
               <span className="text-amber-400 block sm:inline">di mana sahaja.</span>
             </h1>
 
-            <p className="text-xs sm:text-sm md:text-base text-slate-300 max-w-lg font-normal mx-auto md:mx-0">
+            <p className="text-xs sm:text-sm text-slate-300 max-w-lg font-normal mx-auto md:mx-0">
               E-buku dan komik pilihan Malaysia
             </p>
 
-            <div className="pt-1.5 flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3">
+            <div className="pt-1 flex flex-wrap items-center justify-center md:justify-start gap-2.5 sm:gap-3">
               <button
                 onClick={onExploreClick}
-                className="min-h-[40px] px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
+                className="min-h-[38px] px-4.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center gap-2 cursor-pointer"
               >
                 <span>Terokai Buku</span>
                 <ArrowRight className="w-4 h-4" />
@@ -99,7 +100,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
               {onCopyVoucher && (
                 <button
                   onClick={() => onCopyVoucher('KARYALOKAL')}
-                  className="min-h-[40px] px-3.5 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="min-h-[38px] px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer active:scale-95"
                   title="Gunakan kod baucar KARYALOKAL"
                 >
                   <span className="text-amber-400 font-bold">Baucar:</span>
@@ -109,9 +110,9 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             </div>
           </div>
 
-          {/* Right Column: 3 Standing 3D Book Mockups (Hidden on mobile per requirement 4: banner pendek tanpa kolaj cover) */}
+          {/* Right Column: 3 Standing 3D Book Mockups (Hidden on mobile per requirement) */}
           <div className="hidden sm:flex md:col-span-5 lg:col-span-5 items-center justify-center">
-            <div className="flex items-end justify-center gap-2 md:gap-3 py-2 perspective-1000">
+            <div className="flex items-end justify-center gap-2 md:gap-2.5 py-1 perspective-1000">
               {heroBooks.map((hb, idx) => {
                 const isCenter = idx === 1;
                 return (
@@ -123,13 +124,13 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                     }}
                     className={`relative cursor-pointer transition-all duration-300 transform group ${
                       isCenter
-                        ? 'z-20 -translate-y-2 md:-translate-y-3 scale-105'
+                        ? 'z-20 -translate-y-2 scale-105'
                         : idx === 0
                         ? 'z-10 -rotate-3 hover:rotate-0 hover:z-30'
                         : 'z-10 rotate-3 hover:rotate-0 hover:z-30'
                     }`}
                     style={{
-                      width: isCenter ? '140px' : '124px',
+                      width: isCenter ? '125px' : '110px',
                     }}
                   >
                     {/* 3D Book Container */}
@@ -142,7 +143,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                       />
                     </div>
                     {/* Shadow */}
-                    <div className="w-4/5 h-2.5 mx-auto mt-1 rounded-full bg-black/60 blur-xs" />
+                    <div className="w-4/5 h-2 mx-auto mt-1 rounded-full bg-black/60 blur-xs" />
                   </div>
                 );
               })}
