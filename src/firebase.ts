@@ -310,3 +310,56 @@ export async function getPublishedBooksFromFirestore(): Promise<any[]> {
     return [];
   }
 }
+
+// 6. Ulasan Naskhah (Book Reviews Collection)
+export interface BookReviewItem {
+  id: string;
+  bookId: string;
+  rating: number;
+  comment: string;
+  reviewerName: string;
+  createdAt: string;
+}
+
+export async function saveBookReviewToFirestore(
+  bookId: string,
+  review: { rating: number; comment: string; reviewerName: string }
+): Promise<void> {
+  const reviewId = `rev-${Date.now()}`;
+  const path = `books/${bookId}/reviews/${reviewId}`;
+  try {
+    const reviewRef = doc(db, 'books', bookId, 'reviews', reviewId);
+    await setDoc(reviewRef, {
+      ...review,
+      id: reviewId,
+      bookId,
+      createdAt: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.warn('[Firestore] Gagal menyimpan ulasan ke Firestore:', err);
+  }
+}
+
+export function subscribeToBookReviews(
+  bookId: string,
+  callback: (reviews: BookReviewItem[]) => void
+) {
+  try {
+    const reviewsCol = collection(db, 'books', bookId, 'reviews');
+    return onSnapshot(
+      reviewsCol,
+      (snapshot) => {
+        const reviews: BookReviewItem[] = [];
+        snapshot.forEach((d) => {
+          reviews.push(d.data() as BookReviewItem);
+        });
+        callback(reviews);
+      },
+      (err) => {
+        console.warn('[Firestore] Ralat melanggan ulasan buku:', err);
+      }
+    );
+  } catch (e) {
+    return () => {};
+  }
+}

@@ -20,8 +20,8 @@ import { BookDetailModal } from './components/BookDetailModal.tsx';
 import { AuthorPublishModal } from './components/AuthorPublishModal.tsx';
 import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS } from './data/ebooksData.ts';
-import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent } from './types/ebook.ts';
-import { evaluateSecurityAttempt } from './utils/ebookLogic.ts';
+import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent, BookmarkEntry } from './types/ebook.ts';
+import { evaluateSecurityAttempt, toggleBookmarkInList, removeBookmarkFromList } from './utils/ebookLogic.ts';
 import {
   auth,
   signInWithGoogle,
@@ -38,7 +38,10 @@ export default function App() {
   const [books, setBooks] = useState<EBook[]>(INITIAL_EBOOKS);
   const [activeCategory, setActiveCategory] = useState<'semua' | BookCategory | 'percuma' | 'koleksi'>('semua');
   const [searchQuery, setSearchQuery] = useState('');
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [cart, setCart] = useState<CartItem[]>(() => [
+    { book: INITIAL_EBOOKS[1], addedAt: Date.now() - 60000 },
+    { book: INITIAL_EBOOKS[2], addedAt: Date.now() - 30000 },
+  ]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isAuthorPortalOpen, setIsAuthorPortalOpen] = useState(false);
@@ -80,15 +83,58 @@ export default function App() {
     bookTitle: string;
   } | null>(null);
 
-  // User Profile State (Simulating registered Malaysian reader & syncing with Firebase)
-  const [user, setUser] = useState<UserProfile>({
-    name: 'Bang Karim',
-    email: 'bangkarim@karyadigital.my',
-    balance: 45.0,
-    tier: 'Pembaca VIP Malaysia',
-    ownedBookIds: ['novel-4'], // Naskhah percuma sudah ada dalam rak
-    bookmarks: {},
+  // User Profile State (Simulating registered Malaysian reader & syncing with Firebase / LocalStorage)
+  const [user, setUser] = useState<UserProfile>(() => {
+    let savedBookmarks: Record<string, BookmarkEntry[]> = {
+      'novel-maktok': [
+        {
+          id: 'novel-maktok-bm',
+          bookId: 'novel-maktok',
+          pageNumber: 2,
+          totalSteps: 2,
+          chapterIndex: 1,
+          chapterTitle: 'Bab 2: Rahsia Sambal Tempoyak Daun Kayu',
+          excerpt: 'Tujuh jenis daun herba hutan dicari sendiri oleh Mak Tok...',
+          savedAt: new Date(Date.now() - 1800000).toISOString(),
+        },
+      ],
+      'novel-4': [
+        {
+          id: 'novel-4-p1',
+          bookId: 'novel-4',
+          pageNumber: 1,
+          totalSteps: 3,
+          chapterIndex: 0,
+          chapterTitle: 'Bab 1: Asas Manuskrip',
+          excerpt: 'Langkah pertama seorang penulis bermula dengan keberanian menulis baris pertama...',
+          savedAt: new Date(Date.now() - 3600000).toISOString(),
+        },
+      ],
+    };
+    try {
+      const localBm = localStorage.getItem('karyadigital_user_bookmarks');
+      if (localBm) {
+        const parsed = JSON.parse(localBm);
+        if (parsed && typeof parsed === 'object') {
+          savedBookmarks = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Ralat membaca penanda buku dari localStorage:', e);
+    }
+
+    return {
+      name: 'Aina Zulkifli',
+      email: 'aina@karyadigital.my',
+      balance: 45.0,
+      tier: 'Pembaca VIP Malaysia',
+      ownedBookIds: ['novel-maktok', 'novel-4'], // Naskhah Mak Tok sudah dalam rak untuk Sambung Membaca
+      bookmarks: savedBookmarks,
+    };
   });
+
+  // Track initial page when resuming reading from bookmark
+  const [readerInitialPage, setReaderInitialPage] = useState<number | undefined>(undefined);
 
   const catalogRef = useRef<HTMLDivElement>(null);
 
@@ -116,14 +162,16 @@ export default function App() {
     const mergeBooks = (newBooks: EBook[]) => {
       if (!newBooks.length) return;
       setBooks((prev) => {
-        const incomingMap = new Map(newBooks.map((b) => [b.id, b]));
-        const mergedList: EBook[] = [...newBooks];
-        for (const b of prev) {
-          if (!incomingMap.has(b.id)) {
-            mergedList.push(b);
+        const showcaseIds = new Set(INITIAL_EBOOKS.slice(0, 10).map((b) => b.id));
+        const showcaseBooks = INITIAL_EBOOKS.slice(0, 10);
+        const otherPrev = prev.filter((b) => !showcaseIds.has(b.id));
+        const otherMap = new Map(otherPrev.map((b) => [b.id, b]));
+        for (const nb of newBooks) {
+          if (!showcaseIds.has(nb.id)) {
+            otherMap.set(nb.id, nb);
           }
         }
-        return mergedList;
+        return [...showcaseBooks, ...Array.from(otherMap.values())];
       });
     };
 
@@ -234,10 +282,49 @@ export default function App() {
     setCart((prev) => prev.filter((item) => item.book.id !== bookId));
   };
 
-  // Open In-Browser Reader
-  const handleOpenReader = (book: EBook) => {
+  // Open In-Browser Reader (supports resuming from bookmark)
+  const handleOpenReader = (book: EBook, initialPage?: number) => {
     setActiveReadingBook(book);
+    setReaderInitialPage(initialPage);
     setIsReaderOpen(true);
+  };
+
+  // Toggle bookmark for specific page and store in user profile state & localStorage
+  const handleToggleBookmark = (newBookmark: BookmarkEntry) => {
+    setUser((prev) => {
+      const updatedBookmarks = toggleBookmarkInList(prev.bookmarks, newBookmark);
+      try {
+        localStorage.setItem(
+          'karyadigital_user_bookmarks',
+          JSON.stringify(updatedBookmarks)
+        );
+      } catch (e) {
+        console.warn('Ralat menyimpan penanda buku ke localStorage:', e);
+      }
+      return {
+        ...prev,
+        bookmarks: updatedBookmarks,
+      };
+    });
+  };
+
+  // Remove specific bookmark by page number
+  const handleRemoveBookmark = (bookId: string, pageNumber: number) => {
+    setUser((prev) => {
+      const updatedBookmarks = removeBookmarkFromList(prev.bookmarks, bookId, pageNumber);
+      try {
+        localStorage.setItem(
+          'karyadigital_user_bookmarks',
+          JSON.stringify(updatedBookmarks)
+        );
+      } catch (e) {
+        console.warn('Ralat mengemas kini penanda buku:', e);
+      }
+      return {
+        ...prev,
+        bookmarks: updatedBookmarks,
+      };
+    });
   };
 
   // Listen to Firebase Auth state on mount
@@ -324,8 +411,13 @@ export default function App() {
 
   // Handle Self-Publishing by Authors (Menyimpan secara kekal ke Cloudflare R2, Firestore & LocalStorage)
   const handlePublishBook = async (newBook: EBook) => {
-    // 1. Kemas kini segera katalog dalam state
-    setBooks((prev) => [newBook, ...prev.filter((b) => b.id !== newBook.id)]);
+    // 1. Kemas kini segera katalog dalam state (mengekalkan 10 naskhah showcase utama)
+    setBooks((prev) => {
+      const showcaseIds = new Set(INITIAL_EBOOKS.slice(0, 10).map((b) => b.id));
+      const showcaseBooks = INITIAL_EBOOKS.slice(0, 10);
+      const remaining = prev.filter((b) => !showcaseIds.has(b.id) && b.id !== newBook.id);
+      return [...showcaseBooks, newBook, ...remaining];
+    });
 
     // 2. Simpan secara kekal ke LocalStorage
     try {
@@ -383,6 +475,10 @@ export default function App() {
       {!searchQuery && activeCategory !== 'koleksi' && (
         <HeroBanner
           onExploreClick={handleScrollToCatalog}
+          onSelectBook={(bookId) => {
+            const found = books.find((b) => b.id === bookId);
+            if (found) setSelectedDetailBook(found);
+          }}
           onCopyVoucher={(code) => {
             setVoucherCode(code);
             triggerSecurityWarning(`Kod baucar "${code}" berjaya disalin!`, 'info');
@@ -399,6 +495,7 @@ export default function App() {
             setActiveCategory('koleksi');
             handleScrollToCatalog();
           }}
+          bookmarks={user.bookmarks}
         />
       )}
 
@@ -421,11 +518,22 @@ export default function App() {
       <InBrowserReaderModal
         book={activeReadingBook}
         isOpen={isReaderOpen}
-        onClose={() => setIsReaderOpen(false)}
+        onClose={() => {
+          setIsReaderOpen(false);
+          setReaderInitialPage(undefined);
+        }}
         isOwned={activeReadingBook ? user.ownedBookIds.includes(activeReadingBook.id) : false}
         onAddToCart={handleAddToCart}
         onTriggerSecurityWarning={triggerSecurityWarning}
         buyerEmail={user.email}
+        initialPageNumber={readerInitialPage}
+        bookmarks={activeReadingBook ? user.bookmarks[activeReadingBook.id] || [] : []}
+        onToggleBookmark={handleToggleBookmark}
+        onRemoveBookmark={(pageNum) => {
+          if (activeReadingBook) {
+            handleRemoveBookmark(activeReadingBook.id, pageNum);
+          }
+        }}
       />
 
       {/* Cart Drawer Slide-over */}

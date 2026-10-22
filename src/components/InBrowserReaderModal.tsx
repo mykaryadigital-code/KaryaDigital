@@ -15,8 +15,12 @@ import {
   Lock,
   ShoppingCart,
   Sparkles,
+  Trash2,
+  ListOrdered,
+  BookmarkCheck,
+  ArrowRight,
 } from 'lucide-react';
-import { EBook, ReaderSettings } from '../types/ebook.ts';
+import { EBook, ReaderSettings, BookmarkEntry } from '../types/ebook.ts';
 import { calculateReadingProgress, formatMYR } from '../utils/ebookLogic.ts';
 
 interface InBrowserReaderModalProps {
@@ -27,6 +31,10 @@ interface InBrowserReaderModalProps {
   onAddToCart: (book: EBook) => void;
   onTriggerSecurityWarning: (message: string, type: 'warning' | 'shield' | 'info') => void;
   buyerEmail?: string;
+  initialPageNumber?: number;
+  bookmarks?: BookmarkEntry[];
+  onToggleBookmark?: (bookmark: BookmarkEntry) => void;
+  onRemoveBookmark?: (pageNumber: number) => void;
 }
 
 export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
@@ -37,6 +45,10 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   onAddToCart,
   onTriggerSecurityWarning,
   buyerEmail = 'mykaryadigital@gmail.com - ID: 88392',
+  initialPageNumber,
+  bookmarks = [],
+  onToggleBookmark,
+  onRemoveBookmark,
 }) => {
   // Reader Settings State (Hooks must run unconditionally)
   const [settings, setSettings] = useState<ReaderSettings>({
@@ -58,23 +70,30 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   // Comic Zoom Level
   const [comicZoom, setComicZoom] = useState(1);
 
-  // Bookmark active state
-  const [isBookmarked, setIsBookmarked] = useState(false);
-
   // Fullscreen state
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   // State for consolidated "Aa" settings menu
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
 
-  // Reset indices when book changes
+  // State for bookmarks dropdown popover
+  const [showBookmarksList, setShowBookmarksList] = useState(false);
+
+  // Set initial page from bookmark or parameter
   useEffect(() => {
-    if (!book) return;
-    setCurrentChapterIndex(0);
-    setCurrentComicPageIndex(0);
+    if (!book || !isOpen) return;
+    const targetPage = initialPageNumber && initialPageNumber >= 1 ? initialPageNumber - 1 : 0;
+    if (book.category === 'novel') {
+      const maxChap = Math.max(0, (book.sampleContent?.chapters?.length || 1) - 1);
+      setCurrentChapterIndex(Math.min(targetPage, maxChap));
+    } else {
+      const maxPanel = Math.max(0, (book.comicSample?.panels?.length || 1) - 1);
+      setCurrentComicPageIndex(Math.min(targetPage, maxPanel));
+    }
     setComicZoom(1);
-    setIsBookmarked(false);
-  }, [book?.id]);
+    setShowBookmarksList(false);
+    setShowSettingsMenu(false);
+  }, [book?.id, isOpen, initialPageNumber]);
 
   // Security Event Listeners (Sekat right click, copy, and shortcuts)
   useEffect(() => {
@@ -181,6 +200,47 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   const totalSteps = isNovel ? chapters.length : comicPanels.length;
   const currentStep = isNovel ? currentChapterIndex + 1 : currentComicPageIndex + 1;
   const progressPercent = calculateReadingProgress(currentStep, totalSteps);
+
+  const isCurrentPageBookmarked = Boolean(
+    bookmarks.some((b) => b.pageNumber === currentStep)
+  );
+
+  const handleToggleCurrentBookmark = () => {
+    if (!book) return;
+    const chapterTitle = isNovel
+      ? currentChapter?.title || `Bab ${currentStep}`
+      : currentComicPanel?.title || `Halaman ${currentStep}`;
+    const excerpt = isNovel
+      ? currentChapter?.paragraphs?.[0]?.slice(0, 110) || ''
+      : currentComicPanel?.sceneDescription?.slice(0, 110) || '';
+
+    const entry: BookmarkEntry = {
+      id: `${book.id}-p${currentStep}`,
+      bookId: book.id,
+      pageNumber: currentStep,
+      totalSteps,
+      chapterIndex: isNovel ? currentChapterIndex : undefined,
+      chapterTitle,
+      excerpt,
+      savedAt: new Date().toISOString(),
+    };
+
+    if (onToggleBookmark) {
+      onToggleBookmark(entry);
+    }
+
+    if (isCurrentPageBookmarked) {
+      onTriggerSecurityWarning(
+        `Penanda buku untuk Halaman ${currentStep} (${chapterTitle}) telah dipadam.`,
+        'info'
+      );
+    } else {
+      onTriggerSecurityWarning(
+        `📌 Halaman ${currentStep} (${chapterTitle}) berjaya ditanda dalam profil anda!`,
+        'info'
+      );
+    }
+  };
 
   // Theme Toggle Helper
   const themes = [
@@ -377,30 +437,164 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
               )}
             </div>
 
-            {/* Bookmark button */}
+            {/* Bookmark toggle button */}
             <button
-              onClick={() => {
-                setIsBookmarked(!isBookmarked);
-                onTriggerSecurityWarning(
-                  isBookmarked
-                    ? 'Penanda buku telah dibuang.'
-                    : 'Halaman ini telah ditandakan dalam koleksi anda!',
-                  'info'
-                );
-              }}
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
-                isBookmarked
-                  ? 'bg-amber-500 text-slate-950 font-bold'
-                  : 'bg-black/5 dark:bg-white/10 hover:bg-black/10'
+              onClick={handleToggleCurrentBookmark}
+              className={`px-2.5 py-1.5 rounded-xl transition-all flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                isCurrentPageBookmarked
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-xs ring-2 ring-amber-300 dark:ring-amber-500/50'
+                  : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 text-current'
               }`}
-              title="Tanda Halaman Ini (Bookmark)"
+              title={
+                isCurrentPageBookmarked
+                  ? `Padam Penanda Halaman ${currentStep}`
+                  : `Tanda Halaman ${currentStep} (Bookmark)`
+              }
+              aria-label="Togol Penanda Halaman"
             >
-              {isBookmarked ? (
-                <BookMarked className="w-4 h-4 fill-current" />
+              {isCurrentPageBookmarked ? (
+                <>
+                  <BookMarked className="w-4 h-4 fill-current text-slate-950 shrink-0" />
+                  <span className="text-xs font-bold whitespace-nowrap">
+                    Hlm {currentStep} Ditanda
+                  </span>
+                </>
               ) : (
-                <Bookmark className="w-4 h-4" />
+                <>
+                  <Bookmark className="w-4 h-4 shrink-0" />
+                  <span className="hidden sm:inline text-xs font-medium opacity-85 whitespace-nowrap">
+                    Tanda Hlm {currentStep}
+                  </span>
+                </>
               )}
             </button>
+
+            {/* Bookmarks List Popover Button */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  setShowBookmarksList(!showBookmarksList);
+                  setShowSettingsMenu(false);
+                }}
+                className={`p-1.5 rounded-xl transition-colors flex items-center gap-1 shrink-0 cursor-pointer ${
+                  showBookmarksList
+                    ? 'bg-amber-500 text-slate-950 font-bold'
+                    : 'bg-black/5 dark:bg-white/10 hover:bg-black/10 text-current'
+                }`}
+                title="Senarai Semua Penanda Halaman Tersimpan"
+                aria-label="Buka Senarai Penanda Halaman"
+              >
+                <ListOrdered className="w-4 h-4" />
+                {bookmarks.length > 0 && (
+                  <span className="text-[10px] font-bold bg-amber-500 text-slate-950 dark:bg-amber-400 rounded-full px-1.5 py-0.2">
+                    {bookmarks.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Bookmarks Dropdown Popover */}
+              {showBookmarksList && (
+                <div className="absolute right-0 top-full mt-2 w-72 sm:w-84 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 p-3.5 space-y-3 z-50 text-slate-800 dark:text-slate-200 animate-in fade-in duration-150">
+                  <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <div className="flex items-center gap-1.5">
+                      <BookmarkCheck className="w-4 h-4 text-amber-500" />
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                        Penanda Buku Naskhah ({bookmarks.length})
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => setShowBookmarksList(false)}
+                      className="text-xs text-slate-400 hover:text-slate-600 p-1"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  {bookmarks.length === 0 ? (
+                    <div className="text-center py-5 text-xs text-slate-400 dark:text-slate-500 space-y-1.5">
+                      <Bookmark className="w-6 h-6 mx-auto opacity-30 text-slate-400" />
+                      <p className="font-semibold text-slate-600 dark:text-slate-400">
+                        Tiada penanda buku disimpan lagi.
+                      </p>
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400">
+                        Tekan butang "Tanda Hlm {currentStep}" untuk menyimpan posisi bacaan anda!
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="max-h-60 overflow-y-auto space-y-2 pr-1">
+                      {bookmarks.map((bm) => {
+                        const isCurrent = bm.pageNumber === currentStep;
+                        return (
+                          <div
+                            key={bm.id || `${bm.bookId}-${bm.pageNumber}`}
+                            className={`p-2.5 rounded-xl border transition-colors flex items-start justify-between gap-2 ${
+                              isCurrent
+                                ? 'bg-amber-50 dark:bg-amber-950/30 border-amber-300 dark:border-amber-700/60 shadow-xs'
+                                : 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-indigo-300'
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1 space-y-0.5">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                  {isNovel ? `Bab ${bm.pageNumber}` : `Halaman ${bm.pageNumber}`}
+                                </span>
+                                {isCurrent && (
+                                  <span className="text-[9px] bg-amber-500 text-slate-950 font-extrabold px-1.5 py-0.2 rounded-md">
+                                    Sedang Dibaca
+                                  </span>
+                                )}
+                              </div>
+                              {bm.chapterTitle && (
+                                <p className="text-[11px] font-medium text-slate-700 dark:text-slate-300 truncate">
+                                  {bm.chapterTitle}
+                                </p>
+                              )}
+                              {bm.excerpt && (
+                                <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1 italic">
+                                  "{bm.excerpt}"
+                                </p>
+                              )}
+                              <p className="text-[9px] text-slate-400 pt-0.5">
+                                Disimpan: {new Date(bm.savedAt).toLocaleDateString('ms-MY', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+
+                            <div className="flex items-center gap-1 shrink-0 pt-0.5">
+                              <button
+                                onClick={() => {
+                                  if (isNovel) {
+                                    setCurrentChapterIndex(bm.pageNumber - 1);
+                                  } else {
+                                    setCurrentComicPageIndex(bm.pageNumber - 1);
+                                  }
+                                  setShowBookmarksList(false);
+                                }}
+                                className="px-2 py-1 text-[11px] font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-0.5 cursor-pointer shadow-2xs"
+                                title="Lompat terus ke halaman ini"
+                              >
+                                <span>Pergi</span>
+                                <ArrowRight className="w-3 h-3" />
+                              </button>
+
+                              {onRemoveBookmark && (
+                                <button
+                                  onClick={() => onRemoveBookmark(bm.pageNumber)}
+                                  className="p-1 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                                  title="Padam penanda ini"
+                                  aria-label="Padam Penanda"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* Fullscreen Toggle */}
             <button
@@ -421,7 +615,15 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
               Perlindungan Hak Cipta Aktif · Salinan teks dan klik kanan adalah disekat
             </span>
           </div>
-          <div className="font-mono font-bold">{progressPercent}% Dibaca</div>
+          <div className="flex items-center gap-2">
+            {isCurrentPageBookmarked && (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-400/40">
+                <BookmarkCheck className="w-3 h-3 text-amber-500" />
+                Halaman {currentStep} Ditanda
+              </span>
+            )}
+            <div className="font-mono font-bold">{progressPercent}% Dibaca</div>
+          </div>
         </div>
 
         {/* Progress Bar Line */}

@@ -19,7 +19,7 @@ interface AccountModalProps {
   user: UserProfile;
   allBooks: EBook[];
   onTopUpBalance: (amount: number) => void;
-  onReadBook: (book: EBook) => void;
+  onReadBook: (book: EBook, initialPage?: number) => void;
   onViewSecureAsset?: (bookId: string, bookTitle: string) => void;
   firebaseUser?: any;
   onSignInGoogle?: () => Promise<any>;
@@ -319,9 +319,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                             {book.title}
                           </h5>
                           <p className="text-[11px] text-slate-500 truncate">Oleh {book.author}</p>
-                          <span className="text-[10px] font-semibold text-indigo-600">
-                            {book.category === 'novel' ? 'Novel Teks' : 'Komik Grafik'}
-                          </span>
+                          <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="text-[10px] font-semibold text-indigo-600">
+                              {book.category === 'novel' ? 'Novel Teks' : 'Komik Grafik'}
+                            </span>
+                            {user.bookmarks[book.id]?.length > 0 && (
+                              <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 flex items-center gap-0.5">
+                                📌 Hlm {user.bookmarks[book.id][user.bookmarks[book.id].length - 1].pageNumber}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
@@ -337,12 +344,16 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                         )}
                         <button
                           onClick={() => {
-                            onReadBook(book);
+                            const bookBms = user.bookmarks[book.id] || [];
+                            const resumePage = bookBms.length > 0 ? bookBms[bookBms.length - 1].pageNumber : 1;
+                            onReadBook(book, resumePage);
                             onClose();
                           }}
-                          className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors shrink-0"
+                          className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-colors shrink-0 cursor-pointer shadow-2xs"
                         >
-                          Buka & Baca
+                          {user.bookmarks[book.id]?.length > 0
+                            ? `Sambung (Hlm ${user.bookmarks[book.id][user.bookmarks[book.id].length - 1].pageNumber})`
+                            : 'Buka & Baca'}
                         </button>
                       </div>
                     </div>

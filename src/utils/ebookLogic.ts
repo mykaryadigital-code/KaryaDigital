@@ -1,4 +1,4 @@
-import type { EBook, CartItem, BookCategory } from '../types/ebook.ts';
+import type { EBook, CartItem, BookCategory, BookmarkEntry } from '../types/ebook.ts';
 
 export interface CartTotals {
   itemCount: number;
@@ -171,4 +171,96 @@ export function calculateReadingProgress(currentStep: number, totalSteps: number
   if (totalSteps <= 0) return 0;
   const progress = Math.round((currentStep / totalSteps) * 100);
   return Math.min(100, Math.max(0, progress));
+}
+
+/**
+ * Menyemak sama ada sesuatu halaman tertentu telah ditandakan (Bookmarked).
+ */
+export function isPageBookmarked(
+  bookmarks: Record<string, BookmarkEntry[]> | undefined,
+  bookId: string,
+  pageNumber: number
+): boolean {
+  if (!bookmarks || !bookmarks[bookId]) return false;
+  return bookmarks[bookId].some((b) => b.pageNumber === pageNumber);
+}
+
+/**
+ * Menogol (Toggle) penanda buku bagi sesuatu halaman.
+ * Jika sudah ada, padam penanda tersebut. Jika tiada, tambahkan ke dalam senarai.
+ */
+export function toggleBookmarkInList(
+  bookmarks: Record<string, BookmarkEntry[]> | undefined,
+  newBookmark: BookmarkEntry
+): Record<string, BookmarkEntry[]> {
+  const currentBookmarks = bookmarks ? { ...bookmarks } : {};
+  const bookList = currentBookmarks[newBookmark.bookId] ? [...currentBookmarks[newBookmark.bookId]] : [];
+
+  const existingIndex = bookList.findIndex((b) => b.pageNumber === newBookmark.pageNumber);
+  if (existingIndex >= 0) {
+    // Padam jika sudah wujud
+    bookList.splice(existingIndex, 1);
+  } else {
+    // Tambah penanda baharu
+    bookList.push(newBookmark);
+    // Susun mengikut nombor halaman meningkat
+    bookList.sort((a, b) => a.pageNumber - b.pageNumber);
+  }
+
+  currentBookmarks[newBookmark.bookId] = bookList;
+  return currentBookmarks;
+}
+
+/**
+ * Memadam penanda buku spesifik berdasarkan nombor halaman.
+ */
+export function removeBookmarkFromList(
+  bookmarks: Record<string, BookmarkEntry[]> | undefined,
+  bookId: string,
+  pageNumber: number
+): Record<string, BookmarkEntry[]> {
+  if (!bookmarks || !bookmarks[bookId]) return bookmarks || {};
+  const updated = { ...bookmarks };
+  updated[bookId] = updated[bookId].filter((b) => b.pageNumber !== pageNumber);
+  return updated;
+}
+
+/**
+ * Mengambil penanda buku terkini (terakhir disimpan) bagi sesuatu e-buku.
+ */
+export function getLastBookmark(
+  bookmarks: Record<string, BookmarkEntry[]> | undefined,
+  bookId: string
+): BookmarkEntry | null {
+  if (!bookmarks || !bookmarks[bookId] || bookmarks[bookId].length === 0) return null;
+  const list = bookmarks[bookId];
+  return list.reduce((latest, current) => {
+    return new Date(current.savedAt).getTime() > new Date(latest.savedAt).getTime() ? current : latest;
+  }, list[0]);
+}
+
+/**
+ * Mencari naskhah yang paling terkini dibaca daripada senarai naskhah yang dimiliki.
+ */
+export function getMostRecentBookmarkedBook(
+  bookmarks: Record<string, BookmarkEntry[]> | undefined,
+  availableBookIds: string[]
+): { bookId: string; bookmark: BookmarkEntry } | null {
+  if (!bookmarks || availableBookIds.length === 0) return null;
+
+  let mostRecent: { bookId: string; bookmark: BookmarkEntry } | null = null;
+  let latestTime = -1;
+
+  for (const bookId of availableBookIds) {
+    const lastBookmark = getLastBookmark(bookmarks, bookId);
+    if (lastBookmark) {
+      const time = new Date(lastBookmark.savedAt).getTime();
+      if (time > latestTime) {
+        latestTime = time;
+        mostRecent = { bookId, bookmark: lastBookmark };
+      }
+    }
+  }
+
+  return mostRecent;
 }

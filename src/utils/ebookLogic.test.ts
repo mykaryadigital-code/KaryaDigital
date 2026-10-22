@@ -6,8 +6,13 @@ import {
   filterEbooks,
   evaluateSecurityAttempt,
   calculateReadingProgress,
+  isPageBookmarked,
+  toggleBookmarkInList,
+  removeBookmarkFromList,
+  getLastBookmark,
+  getMostRecentBookmarkedBook,
 } from './ebookLogic.ts';
-import type { EBook, CartItem } from '../types/ebook.ts';
+import type { EBook, CartItem, BookmarkEntry } from '../types/ebook.ts';
 
 const mockBooks: EBook[] = [
   {
@@ -153,4 +158,76 @@ test('calculateReadingProgress computes reading percentage accurately', () => {
   assert.equal(calculateReadingProgress(3, 4), 75);
   assert.equal(calculateReadingProgress(4, 4), 100);
   assert.equal(calculateReadingProgress(0, 10), 0);
+});
+
+test('bookmark operations manage page bookmarks and resume positions', () => {
+  const bookmarkP1: BookmarkEntry = {
+    id: 'novel-1-p1',
+    bookId: 'novel-1',
+    pageNumber: 1,
+    totalSteps: 3,
+    chapterTitle: 'Bab 1: Dentuman Hujan',
+    excerpt: 'Hujan lebat yang membasahi...',
+    savedAt: '2026-10-21T10:00:00.000Z',
+  };
+
+  const bookmarkP2: BookmarkEntry = {
+    id: 'novel-1-p2',
+    bookId: 'novel-1',
+    pageNumber: 2,
+    totalSteps: 3,
+    chapterTitle: 'Bab 2: Kunci Enkripsi',
+    excerpt: 'Bilik pelayan itu sedingin...',
+    savedAt: '2026-10-21T11:00:00.000Z',
+  };
+
+  // 1. Initial toggle adds bookmark
+  let bookmarks: Record<string, BookmarkEntry[]> = {};
+  bookmarks = toggleBookmarkInList(bookmarks, bookmarkP1);
+  assert.equal(bookmarks['novel-1'].length, 1);
+  assert.equal(isPageBookmarked(bookmarks, 'novel-1', 1), true);
+  assert.equal(isPageBookmarked(bookmarks, 'novel-1', 2), false);
+
+  // 2. Add second page bookmark
+  bookmarks = toggleBookmarkInList(bookmarks, bookmarkP2);
+  assert.equal(bookmarks['novel-1'].length, 2);
+  assert.equal(isPageBookmarked(bookmarks, 'novel-1', 2), true);
+
+  // 3. getLastBookmark returns the latest saved page (Page 2)
+  const last = getLastBookmark(bookmarks, 'novel-1');
+  assert.ok(last);
+  assert.equal(last?.pageNumber, 2);
+  assert.equal(last?.chapterTitle, 'Bab 2: Kunci Enkripsi');
+
+  // 4. Toggle page 1 again removes it
+  bookmarks = toggleBookmarkInList(bookmarks, bookmarkP1);
+  assert.equal(bookmarks['novel-1'].length, 1);
+  assert.equal(isPageBookmarked(bookmarks, 'novel-1', 1), false);
+  assert.equal(isPageBookmarked(bookmarks, 'novel-1', 2), true);
+
+  // 5. removeBookmarkFromList removes specific page
+  bookmarks = removeBookmarkFromList(bookmarks, 'novel-1', 2);
+  assert.equal(bookmarks['novel-1'].length, 0);
+  assert.equal(isPageBookmarked(bookmarks, 'novel-1', 2), false);
+  assert.equal(getLastBookmark(bookmarks, 'novel-1'), null);
+
+  // 6. getMostRecentBookmarkedBook picks book with latest bookmark
+  const multiBookmarks: Record<string, BookmarkEntry[]> = {
+    'novel-1': [bookmarkP1],
+    'komik-1': [
+      {
+        id: 'komik-1-p4',
+        bookId: 'komik-1',
+        pageNumber: 4,
+        totalSteps: 6,
+        chapterTitle: 'Halaman 4: Gelagat Kelas',
+        savedAt: '2026-10-21T12:00:00.000Z',
+      },
+    ],
+  };
+
+  const mostRecent = getMostRecentBookmarkedBook(multiBookmarks, ['novel-1', 'komik-1']);
+  assert.ok(mostRecent);
+  assert.equal(mostRecent?.bookId, 'komik-1');
+  assert.equal(mostRecent?.bookmark.pageNumber, 4);
 });

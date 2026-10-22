@@ -68,6 +68,17 @@ export interface ReaderSettings {
   lineSpacing: 'normal' | 'relaxed' | 'loose';
 }
 
+export interface BookmarkEntry {
+  id: string;
+  bookId: string;
+  pageNumber: number; // 1-based page / chapter number
+  totalSteps: number;
+  chapterIndex?: number;
+  chapterTitle?: string;
+  excerpt?: string;
+  savedAt: string; // ISO string
+}
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -76,7 +87,7 @@ export interface UserProfile {
   isSubscribed?: boolean;
   subscriptionExpiresAt?: string;
   ownedBookIds: string[];
-  bookmarks: Record<string, { chapterId?: number; pageNumber?: number; savedAt: string; note?: string }>;
+  bookmarks: Record<string, BookmarkEntry[]>;
 }
 
 export interface SecurityToastEvent {
