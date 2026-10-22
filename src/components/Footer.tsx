@@ -8,7 +8,7 @@ interface FooterProps {
 export const Footer: React.FC<FooterProps> = ({ onOpenAuthorPortal }) => {
   return (
     <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800">
-      <div className="max-w-[1200px] mx-auto px-4 sm:px-6 py-8 space-y-6">
+      <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-8 space-y-6">
         {/* Top Summary Bar */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6 pb-6 border-b border-slate-800/80">
           {/* Brand */}

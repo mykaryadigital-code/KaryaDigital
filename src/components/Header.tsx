@@ -43,7 +43,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200/90 shadow-2xs">
-      <div className="max-w-[1240px] mx-auto px-3 sm:px-6">
+      <div className="max-w-[1280px] mx-auto px-3 sm:px-6">
         {/* Top Bar Row: h-12 on mobile for sleek compact footprint, h-16 on tablet/desktop */}
         <div className="flex items-center justify-between h-12 sm:h-16 gap-2 sm:gap-3">
           {/* Left: Mobile/Tablet Hamburger + Brand Logo */}

@@ -51,7 +51,7 @@ export const ContinueReadingSection: React.FC<ContinueReadingSectionProps> = ({
   const progress = primaryBook.id === 'novel-maktok' ? 45 : calculatedProgress;
 
   return (
-    <section className="max-w-[1240px] mx-auto px-4 sm:px-6 pt-5 pb-2">
+    <section className="max-w-[1280px] mx-auto px-4 sm:px-6 pt-5 pb-2">
       {/* Label: Sambung membaca */}
       <div className="flex items-center justify-between mb-2">
         <h2 className="text-xs sm:text-sm font-bold text-slate-800 tracking-tight">

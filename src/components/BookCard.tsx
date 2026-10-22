@@ -32,10 +32,10 @@ export const BookCard: React.FC<BookCardProps> = ({
 
   return (
     <div className="flex flex-col bg-white rounded-xl border border-slate-200/90 hover:border-indigo-300 shadow-2xs hover:shadow-md transition-all duration-200 overflow-hidden h-full group">
-      {/* Cover Image Container */}
+      {/* Cover Image Container: Strict 2:3 aspect ratio without cropping */}
       <div
         onClick={handleCardClick}
-        className="relative aspect-[3/4] w-full overflow-hidden bg-slate-900 cursor-pointer"
+        className="relative aspect-[2/3] w-full overflow-hidden bg-slate-900 cursor-pointer"
       >
         {hasRealCover ? (
           <img
@@ -74,35 +74,35 @@ export const BookCard: React.FC<BookCardProps> = ({
 
       {/* Book Card Body */}
       <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
-        <div>
-          {/* Book Title */}
+        <div className="space-y-1">
+          {/* Book Title: Limited to 2 lines with consistent min-height */}
           <h3
             onClick={handleCardClick}
-            className="font-bold text-slate-900 text-xs sm:text-sm leading-tight line-clamp-1 hover:text-indigo-600 transition-colors cursor-pointer"
+            className="font-bold text-slate-900 text-xs sm:text-sm leading-snug line-clamp-2 min-h-[2.5rem] hover:text-indigo-600 transition-colors cursor-pointer"
             title={book.title}
           >
             {book.title}
           </h3>
 
           {/* Author Name */}
-          <p className="text-[11px] text-slate-500 font-normal truncate mt-0.5" title={book.author}>
+          <p className="text-[11px] text-slate-500 font-normal truncate" title={book.author}>
             {book.author}
           </p>
         </div>
 
-        {/* Bottom Section: Purple Price & Action Buttons */}
-        <div className="mt-auto pt-1 space-y-2">
-          {/* Price: Highlighted in purple matching showcase mockup */}
-          <div className="text-sm font-bold text-indigo-600">
+        {/* Bottom Section: Aligned price and Sampel/Beli buttons */}
+        <div className="mt-auto pt-2 border-t border-slate-100 space-y-2">
+          {/* Price: Highlighted in purple */}
+          <div className="text-sm sm:text-base font-extrabold text-indigo-600">
             {book.isFree ? 'Percuma' : formatMYR(book.price)}
           </div>
 
-          {/* Action Buttons: [Sampel] (Grey) and [Beli] (Purple) */}
+          {/* Action Buttons: [Sampel] (Grey) and [Beli] (Purple) with accessible touch targets */}
           <div className="grid grid-cols-2 gap-1.5">
             {/* Sampel Button */}
             <button
               onClick={() => onRead(book)}
-              className="py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer text-center"
+              className="min-h-[36px] py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
               aria-label={`Baca sampel ${book.title}`}
             >
               <span>{isOwned ? 'Buka' : 'Sampel'}</span>
@@ -112,21 +112,21 @@ export const BookCard: React.FC<BookCardProps> = ({
             {isOwned ? (
               <button
                 onClick={() => onRead(book)}
-                className="py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer text-center"
+                className="min-h-[36px] py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
               >
                 <span>Baca</span>
               </button>
             ) : book.isFree ? (
               <button
                 onClick={() => onAddToCart(book)}
-                className="py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer text-center"
+                className="min-h-[36px] py-1.5 px-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
               >
                 <span>Dapatkan</span>
               </button>
             ) : (
               <button
                 onClick={() => onAddToCart(book)}
-                className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer text-center ${
+                className={`min-h-[36px] py-1.5 px-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95 ${
                   isInCart
                     ? 'bg-amber-100 text-amber-900 border border-amber-300'
                     : 'bg-indigo-600 hover:bg-indigo-700 text-white'
