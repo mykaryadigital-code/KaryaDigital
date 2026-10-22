@@ -74,11 +74,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
         </div>
       </div>
 
-      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 py-8 sm:py-12 md:py-14 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+      <div className="max-w-[1240px] mx-auto px-4 sm:px-6 py-5 sm:py-10 md:py-12 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-8 items-center">
           {/* Left Column: Typography & Button */}
-          <div className="md:col-span-6 lg:col-span-7 space-y-4 text-center md:text-left">
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 text-[11px] font-semibold mb-1">
+          <div className="md:col-span-6 lg:col-span-7 space-y-3 sm:space-y-4 text-center md:text-left">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full bg-indigo-900/60 border border-indigo-500/30 text-indigo-300 text-[10px] sm:text-[11px] font-semibold mb-0.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               <span>KaryaDigital Malaysia Rasmi</span>
             </div>
