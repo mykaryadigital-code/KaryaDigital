@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   X,
   PenTool,
@@ -14,14 +14,25 @@ import {
   Eye,
   Trash2,
   Upload,
+  LayoutDashboard,
+  Coins,
+  TrendingUp,
+  ChevronRight,
+  BookOpen,
 } from 'lucide-react';
 import { EBook, BookCategory } from '../types/ebook.ts';
+
+export type AuthorPortalTab = 'dashboard' | 'borang' | 'panduan' | 'royalti' | 'guide' | 'royalty' | 'register';
 
 interface AuthorPublishModalProps {
   isOpen: boolean;
   onClose: () => void;
   onPublishBook: (newBook: EBook) => void;
   currentUserName: string;
+  isAuthor?: boolean;
+  initialTab?: AuthorPortalTab;
+  onBecomeAuthor?: () => void;
+  authorBooks?: EBook[];
 }
 
 const HARDCOVER_THEMES = [
@@ -37,8 +48,29 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   onClose,
   onPublishBook,
   currentUserName,
+  isAuthor = false,
+  initialTab,
+  onBecomeAuthor,
+  authorBooks = [],
 }) => {
-  const [activeTab, setActiveTab] = useState<'borang' | 'panduan'>('borang');
+  type TabKey = 'dashboard' | 'borang' | 'panduan' | 'royalti';
+
+  const resolveTab = (tab?: AuthorPortalTab): TabKey => {
+    if (tab === 'guide') return 'panduan';
+    if (tab === 'royalty') return 'royalti';
+    if (tab === 'register') return 'borang';
+    if (tab === 'dashboard') return isAuthor ? 'dashboard' : 'borang';
+    if (tab === 'borang' || tab === 'panduan' || tab === 'royalti') return tab;
+    return isAuthor ? 'dashboard' : 'borang';
+  };
+
+  const [activeTab, setActiveTab] = useState<TabKey>(() => resolveTab(initialTab));
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(resolveTab(initialTab));
+    }
+  }, [isOpen, initialTab, isAuthor]);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -150,6 +182,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
 
     setTimeout(() => {
       onPublishBook(newBook);
+      onBecomeAuthor?.();
       setSubmittedBook(newBook);
       setIsSubmitting(false);
     }, 600);
@@ -184,44 +217,72 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
 
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-xs">
-              <PenTool className="w-5 h-5 text-amber-300" />
+              {isAuthor ? <LayoutDashboard className="w-5 h-5 text-amber-300" /> : <PenTool className="w-5 h-5 text-amber-300" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-lg sm:text-xl font-extrabold text-white">
-                  Portal Penulis & Terbit Karya
+                  {isAuthor ? 'Dashboard Penulis & Penerbitan' : 'Portal Penulis & Terbit Karya'}
                 </h3>
                 <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md bg-amber-400/20 text-amber-300 border border-amber-400/30">
                   70% Royalti
                 </span>
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Terbitkan novel teks atau komik anda terus kepada pembaca di seluruh Malaysia.
+                {isAuthor
+                  ? 'Urus karya diterbitkan, pantau anggaran royalti dan hantar naskhah baharu.'
+                  : 'Terbitkan novel teks atau komik anda terus kepada pembaca di seluruh Malaysia.'}
               </p>
             </div>
           </div>
 
           {/* Tab Navigation */}
-          <div className="flex gap-4 mt-5 border-b border-slate-800 text-xs font-bold">
+          <div className="flex gap-2 sm:gap-4 mt-5 border-b border-slate-800 text-xs font-bold overflow-x-auto no-scrollbar">
+            {isAuthor && (
+              <button
+                onClick={() => setActiveTab('dashboard')}
+                className={`pb-2.5 transition-colors border-b-2 -mb-[2px] cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                  activeTab === 'dashboard'
+                    ? 'border-indigo-500 text-white'
+                    : 'border-transparent text-slate-400 hover:text-slate-200'
+                }`}
+              >
+                <LayoutDashboard className="w-3.5 h-3.5" />
+                <span>Dashboard Penulis</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('borang')}
-              className={`pb-2.5 transition-colors border-b-2 -mb-[2px] cursor-pointer ${
+              className={`pb-2.5 transition-colors border-b-2 -mb-[2px] cursor-pointer shrink-0 flex items-center gap-1.5 ${
                 activeTab === 'borang'
                   ? 'border-indigo-500 text-white'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              Hantar Naskhah Baharu
+              <PenTool className="w-3.5 h-3.5" />
+              <span>{isAuthor ? 'Terbit Naskhah Baharu' : 'Daftar & Terbit Karya'}</span>
             </button>
             <button
               onClick={() => setActiveTab('panduan')}
-              className={`pb-2.5 transition-colors border-b-2 -mb-[2px] cursor-pointer ${
+              className={`pb-2.5 transition-colors border-b-2 -mb-[2px] cursor-pointer shrink-0 flex items-center gap-1.5 ${
                 activeTab === 'panduan'
                   ? 'border-indigo-500 text-white'
                   : 'border-transparent text-slate-400 hover:text-slate-200'
               }`}
             >
-              Panduan Cover & Soalan Lazim Penulis
+              <FileText className="w-3.5 h-3.5" />
+              <span>Panduan Penerbitan</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('royalti')}
+              className={`pb-2.5 transition-colors border-b-2 -mb-[2px] cursor-pointer shrink-0 flex items-center gap-1.5 ${
+                activeTab === 'royalti'
+                  ? 'border-indigo-500 text-white'
+                  : 'border-transparent text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>Maklumat Royalti (70%)</span>
             </button>
           </div>
         </div>
@@ -296,7 +357,18 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-3 pt-2">
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                {isAuthor && (
+                  <button
+                    onClick={() => {
+                      handleReset();
+                      setActiveTab('dashboard');
+                    }}
+                    className="px-5 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+                  >
+                    Buka Dashboard Penulis
+                  </button>
+                )}
                 <button
                   onClick={() => {
                     handleReset();
@@ -314,9 +386,221 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                 </button>
               </div>
             </div>
+          ) : activeTab === 'dashboard' && isAuthor ? (
+            /* Dashboard Penulis */
+            <div className="space-y-6 text-xs animate-in fade-in duration-200">
+              {/* Author Header Profile */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-900/10 via-purple-900/10 to-slate-900/5 border border-indigo-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-700 text-white flex items-center justify-center font-black text-lg shadow-sm">
+                    {currentUserName.charAt(0)}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-base font-black text-slate-900">{currentUserName}</h4>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" />
+                        Penulis Sah KaryaDigital
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Akaun Penulis Aktif • No. ID: KD-AUTH-2026 • Royalti 70% Bersih FPX/DuitNow
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setActiveTab('borang')}
+                  className="w-full sm:w-auto px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <PenTool className="w-3.5 h-3.5" />
+                  <span>+ Terbit Naskhah Baharu</span>
+                </button>
+              </div>
+
+              {/* Metric Cards */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                    <BookOpen className="w-3.5 h-3.5 text-indigo-600" />
+                    Karya Diterbitkan
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-slate-900">
+                    {authorBooks && authorBooks.length > 0 ? authorBooks.length : 1}
+                  </div>
+                  <div className="text-[10px] text-emerald-600 font-medium">100% Aktif di Katalog</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                    <Coins className="w-3.5 h-3.5 text-amber-500" />
+                    Anggaran Royalti (70%)
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-emerald-600">
+                    RM 483.50
+                  </div>
+                  <div className="text-[10px] text-slate-500">Auto-payout 5hb depan</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                    <TrendingUp className="w-3.5 h-3.5 text-indigo-600" />
+                    Pembaca Berdaftar
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-slate-900">
+                    142
+                  </div>
+                  <div className="text-[10px] text-indigo-600 font-medium">Kadar bacaan 89%</div>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                  <div className="text-[11px] font-semibold text-slate-500 flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                    Perlindungan DRM
+                  </div>
+                  <div className="text-sm font-bold text-slate-900 pt-1">
+                    Cloudflare R2
+                  </div>
+                  <div className="text-[10px] text-emerald-600 font-medium">Enkripsi disahkan</div>
+                </div>
+              </div>
+
+              {/* Senarai Naskhah Penulis */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-extrabold text-slate-900 text-sm">
+                    Naskhah Anda di Katalog KaryaDigital
+                  </h5>
+                  <span className="text-[11px] text-slate-500">
+                    Status: Sedia Dibeli & Dibaca
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {(authorBooks && authorBooks.length > 0
+                    ? authorBooks
+                    : [
+                        {
+                          id: 'karya-demo-1',
+                          title: 'Kembara Rimba Larangan',
+                          author: currentUserName,
+                          category: 'novel' as const,
+                          genre: 'Pengembaraan',
+                          price: 18.0,
+                          rating: 4.9,
+                          reviewsCount: 38,
+                          publisher: 'Penerbitan Bebas KaryaDigital',
+                          pages: 180,
+                          readTime: '4 jam',
+                          publicationYear: 2026,
+                          isbn: '978-967-KD8921-M',
+                          synopsis: 'Kisah pengembaraan pemuda menyusuri belantara purba.',
+                          coverGradient: 'from-emerald-950 via-teal-950 to-slate-950',
+                          coverAccent: '#34d399',
+                        },
+                      ]
+                  ).map((bk) => (
+                    <div
+                      key={bk.id}
+                      className="p-3 sm:p-4 rounded-xl bg-white border border-slate-200 shadow-2xs hover:border-indigo-300 transition-colors flex items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-16 rounded-lg bg-slate-900 overflow-hidden shrink-0 shadow-2xs relative border border-slate-200">
+                          {bk.coverImage ? (
+                            <img src={bk.coverImage} alt={bk.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-indigo-950 to-slate-900 p-1 flex flex-col justify-between text-white text-[7px] text-center">
+                              <span className="text-amber-400 font-bold uppercase">{bk.category}</span>
+                              <span className="line-clamp-2 font-bold leading-tight">{bk.title}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h6 className="font-bold text-slate-900 text-xs sm:text-sm truncate">{bk.title}</h6>
+                          <div className="flex flex-wrap items-center gap-2 mt-0.5 text-[11px] text-slate-500">
+                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-medium">{bk.genre}</span>
+                            <span>•</span>
+                            <span className="font-bold text-indigo-600">RM {bk.price.toFixed(2)}</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 font-semibold">Royalti: RM {(bk.price * 0.7).toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Telah Terbit
+                        </span>
+                        <button
+                          onClick={() => {
+                            onClose();
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 font-semibold text-xs transition cursor-pointer"
+                        >
+                          Lihat Katalog
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Panduan & Royalti Quick Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('panduan')}
+                  className="p-3.5 rounded-xl bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-200 text-left transition-colors cursor-pointer space-y-1"
+                >
+                  <div className="flex items-center justify-between text-indigo-900 font-bold text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <FileText className="w-4 h-4 text-indigo-600" />
+                      Panduan Penerbitan & Spesifikasi Cover
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
+                  <p className="text-[11px] text-indigo-700/80">
+                    Format nisbah 2:3, resolusi minimum, hak cipta Akta 1987 dan perlindungan DRM.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('royalti')}
+                  className="p-3.5 rounded-xl bg-amber-50/70 hover:bg-amber-50 border border-amber-200 text-left transition-colors cursor-pointer space-y-1"
+                >
+                  <div className="flex items-center justify-between text-amber-950 font-bold text-xs">
+                    <span className="flex items-center gap-1.5">
+                      <DollarSign className="w-4 h-4 text-amber-600" />
+                      Struktur Royalti 70% & Jadual Payout
+                    </span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </div>
+                  <p className="text-[11px] text-amber-800/80">
+                    Ketahui formula royalti bersih 70%, bayaran automatik FPX/DuitNow setiap bulan.
+                  </p>
+                </button>
+              </div>
+            </div>
           ) : activeTab === 'borang' ? (
             /* Submission Form */
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Onboarding Banner for Non-Authors (Jadi Penulis Flow) */}
+              {!isAuthor && (
+                <div className="p-3.5 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-xl flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-2xs mt-0.5">
+                    <PenTool className="w-4 h-4 text-amber-300" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <div className="text-xs font-bold text-indigo-950">
+                      Aliran Pendaftaran Penulis (Jadi Penulis)
+                    </div>
+                    <p className="text-[11px] text-indigo-700 leading-relaxed">
+                      Lengkapkan butiran karya sulung dan akaun bank pembayaran anda di bawah. Setelah diterbitkan, akaun anda akan dinaik taraf secara automatik ke peranan <strong>Penulis Sah</strong> dengan akses penuh ke Dashboard Penulis dan royalti 70%.
+                    </p>
+                  </div>
+                </div>
+              )}
               {/* BAHAGIAN 1: COVER BUKU (MUKA DEPAN) DENGAN PRATONTON LANGSUNG */}
               <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
@@ -725,9 +1009,112 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                 </button>
               </div>
             </form>
+          ) : activeTab === 'royalti' ? (
+            /* Maklumat Royalti (70%) Tab */
+            <div className="space-y-6 text-xs animate-in fade-in duration-200">
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-indigo-600/10 to-slate-900/5 border border-amber-200 space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                    <DollarSign className="w-5 h-5 text-slate-950" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-slate-900 text-sm sm:text-base">
+                      Maklumat & Struktur Royalti 70% Penulis
+                    </h4>
+                    <p className="text-[11px] text-slate-600">
+                      KaryaDigital menjamin pulangan royalti bersih digital tertinggi di Malaysia tanpa yuran terselindung.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3 Tonggak Royalti */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="text-indigo-600 font-extrabold text-xs flex items-center gap-1.5">
+                    <Coins className="w-4 h-4" />
+                    <span>70% Royalti Bersih</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    Bagi setiap jualan naskhah berharga RM 20.00, anda menerima <strong>RM 14.00 bersih</strong>. Tiada potongan kos kertas, percetakan atau pengedaran kedai fizikal.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="text-emerald-600 font-extrabold text-xs flex items-center gap-1.5">
+                    <TrendingUp className="w-4 h-4" />
+                    <span>Payout Bulanan Automatik</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    Royalti dipindahkan setiap <strong>5 haribulan</strong> terus ke akaun bank tempatan (Maybank, CIMB, Bank Islam, dsb.) melalui rangkaian selamat DuitNow / FPX.
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                  <div className="text-amber-600 font-extrabold text-xs flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Hak Cipta Terpelihara 100%</span>
+                  </div>
+                  <p className="text-slate-600 text-[11px] leading-relaxed">
+                    Karya kekal milik anda di bawah <strong>Akta Hak Cipta 1987 Malaysia</strong>. Tiada klausa monopoli atau ikatan eksklusif yang menyekat anda.
+                  </p>
+                </div>
+              </div>
+
+              {/* Jadual Perbandingan Terperinci */}
+              <div className="border border-slate-200 rounded-xl overflow-hidden shadow-2xs">
+                <div className="bg-slate-900 text-white font-bold px-4 py-2 text-xs flex items-center justify-between">
+                  <span>Perbandingan Model Royalti: KaryaDigital vs Penerbit Tradisional</span>
+                  <span className="text-[10px] text-amber-300 font-normal">Kadar Pasaran 2026</span>
+                </div>
+                <div className="divide-y divide-slate-200 text-[11px]">
+                  <div className="grid grid-cols-3 p-3 bg-slate-100/80 font-bold text-slate-800">
+                    <div>Ciri & Manfaat</div>
+                    <div className="text-indigo-700 font-black">KaryaDigital (Digital Direct)</div>
+                    <div className="text-slate-500">Penerbit Cetak Tradisional</div>
+                  </div>
+                  <div className="grid grid-cols-3 p-3 items-center">
+                    <span className="font-semibold text-slate-700">Kadar Royalti Bersih</span>
+                    <span className="font-bold text-emerald-600">70% Daripada Setiap Naskhah</span>
+                    <span className="text-slate-500">8% - 15% Sahaja</span>
+                  </div>
+                  <div className="grid grid-cols-3 p-3 items-center">
+                    <span className="font-semibold text-slate-700">Yuran Pendaftaran / Listing</span>
+                    <span className="font-bold text-emerald-600">RM 0 (Percuma Sepenuhnya)</span>
+                    <span className="text-slate-500">Kos Cetakan / Modal Sendiri</span>
+                  </div>
+                  <div className="grid grid-cols-3 p-3 items-center">
+                    <span className="font-semibold text-slate-700">Tempoh Pembayaran</span>
+                    <span className="font-bold text-slate-900">Setiap Bulan (5hb)</span>
+                    <span className="text-slate-500">6 Bulan atau 1 Tahun Sekali</span>
+                  </div>
+                  <div className="grid grid-cols-3 p-3 items-center">
+                    <span className="font-semibold text-slate-700">Masa ke Pasaran</span>
+                    <span className="font-bold text-slate-900">Serta-merta (Minit ke Jam)</span>
+                    <span className="text-slate-500">6 hingga 18 Bulan</span>
+                  </div>
+                  <div className="grid grid-cols-3 p-3 items-center">
+                    <span className="font-semibold text-slate-700">Perlindungan Manuskrip</span>
+                    <span className="font-bold text-slate-900">Cloudflare R2 + DRM Enkripsi</span>
+                    <span className="text-slate-500">Risiko Cetak Rompak Fizikal</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('borang')}
+                  className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+                >
+                  <PenTool className="w-3.5 h-3.5" />
+                  <span>{isAuthor ? 'Terbitkan Naskhah Baharu Sekarang →' : 'Daftar Sebagai Penulis & Terbitkan Karya →'}</span>
+                </button>
+              </div>
+            </div>
           ) : (
-            /* Information & FAQ Tab */
-            <div className="space-y-5 text-xs">
+            /* Panduan Penerbitan & Spesifikasi Cover Tab */
+            <div className="space-y-5 text-xs animate-in fade-in duration-200">
               {/* Panduan Khusus Cover Buku */}
               <div className="p-4 bg-indigo-50/70 border border-indigo-200 rounded-xl space-y-2.5">
                 <div className="flex items-center gap-2">
@@ -861,10 +1248,11 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
 
               <div className="pt-2">
                 <button
+                  type="button"
                   onClick={() => setActiveTab('borang')}
                   className="w-full py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer"
                 >
-                  Mula Terbitkan Karya Anda Sekarang →
+                  {isAuthor ? 'Terbitkan Naskhah Baharu Sekarang →' : 'Mula Terbitkan Karya Anda Sekarang →'}
                 </button>
               </div>
             </div>

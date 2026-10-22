@@ -123,6 +123,19 @@ export default function App() {
       console.warn('Ralat membaca penanda buku dari localStorage:', e);
     }
 
+    let savedRole: 'reader' | 'author' = 'reader';
+    let savedIsAuthor = false;
+    try {
+      const roleStr = localStorage.getItem('karyadigital_user_role');
+      const isAuthStr = localStorage.getItem('karyadigital_is_author');
+      if (roleStr === 'author' || isAuthStr === 'true') {
+        savedRole = 'author';
+        savedIsAuthor = true;
+      }
+    } catch (e) {
+      console.warn('Ralat membaca peranan pengguna:', e);
+    }
+
     return {
       name: 'Aina Zulkifli',
       email: 'aina@karyadigital.my',
@@ -130,13 +143,70 @@ export default function App() {
       tier: 'Pembaca VIP Malaysia',
       ownedBookIds: ['novel-maktok', 'novel-4'], // Naskhah Mak Tok sudah dalam rak untuk Sambung Membaca
       bookmarks: savedBookmarks,
+      role: savedRole,
+      isAuthor: savedIsAuthor,
     };
   });
+
+  const [authorPortalTab, setAuthorPortalTab] = useState<'dashboard' | 'borang' | 'panduan' | 'royalti'>('borang');
 
   // Track initial page when resuming reading from bookmark
   const [readerInitialPage, setReaderInitialPage] = useState<number | undefined>(undefined);
 
   const catalogRef = useRef<HTMLDivElement>(null);
+
+  // Author Portal Opener with target tab and role awareness
+  const handleOpenAuthorPortal = (tab?: 'register' | 'guide' | 'royalty' | 'dashboard') => {
+    const isUserAuthor = Boolean(user.isAuthor || user.role === 'author');
+    let targetTab: 'dashboard' | 'borang' | 'panduan' | 'royalti' = 'borang';
+    if (tab === 'guide') targetTab = 'panduan';
+    else if (tab === 'royalty') targetTab = 'royalti';
+    else if (tab === 'register') targetTab = 'borang';
+    else if (tab === 'dashboard') targetTab = isUserAuthor ? 'dashboard' : 'borang';
+    else targetTab = isUserAuthor ? 'dashboard' : 'borang';
+
+    setAuthorPortalTab(targetTab);
+    setIsAuthorPortalOpen(true);
+  };
+
+  // Promote user to Author on publishing or registration
+  const handleBecomeAuthor = () => {
+    setUser((prev) => {
+      const updated: UserProfile = { ...prev, isAuthor: true, role: 'author' };
+      try {
+        localStorage.setItem('karyadigital_user_role', 'author');
+        localStorage.setItem('karyadigital_is_author', 'true');
+      } catch (e) {
+        console.warn('Ralat menyimpan peranan penulis:', e);
+      }
+      return updated;
+    });
+  };
+
+  // Toggle user author role for testing reader vs author UI
+  const handleToggleAuthorRole = () => {
+    setUser((prev) => {
+      const nextIsAuthor = !(prev.isAuthor || prev.role === 'author');
+      const updated: UserProfile = {
+        ...prev,
+        isAuthor: nextIsAuthor,
+        role: nextIsAuthor ? 'author' : 'reader',
+      };
+      try {
+        localStorage.setItem('karyadigital_user_role', nextIsAuthor ? 'author' : 'reader');
+        localStorage.setItem('karyadigital_is_author', String(nextIsAuthor));
+      } catch (e) {
+        console.warn('Ralat simpan peranan:', e);
+      }
+      triggerSecurityWarning(
+        nextIsAuthor
+          ? 'Peranan ditukar kepada Penulis Sah (Dashboard Penulis diaktifkan).'
+          : 'Peranan ditukar kepada Pembaca Biasa.',
+        'info'
+      );
+      return updated;
+    });
+  };
 
   // Security Toast Trigger Helper
   const triggerSecurityWarning = (
@@ -450,6 +520,9 @@ export default function App() {
       console.warn('[Firestore] Gagal menyimpan ke pangkalan data Firestore:', err);
     }
 
+    // 5. Kemas kini peranan pengguna secara kekal ke Penulis Sah
+    handleBecomeAuthor();
+
     triggerSecurityWarning(
       `Karya "${newBook.title}" berjaya dimuat naik ke Cloudflare R2 dan disimpan secara kekal!`,
       'info'
@@ -468,7 +541,8 @@ export default function App() {
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
         user={user}
-        onOpenAuthorPortal={() => setIsAuthorPortalOpen(true)}
+        isAuthor={Boolean(user.isAuthor || user.role === 'author')}
+        onOpenAuthorPortal={handleOpenAuthorPortal}
       />
 
       {/* Hero Banner Section (shown when not searching and viewing main katalog) */}
@@ -562,7 +636,9 @@ export default function App() {
         firebaseUser={auth.currentUser}
         onSignInGoogle={signInWithGoogle}
         onSignOut={signOutUser}
-        onOpenAuthorPortal={() => setIsAuthorPortalOpen(true)}
+        onOpenAuthorPortal={handleOpenAuthorPortal}
+        isAuthor={Boolean(user.isAuthor || user.role === 'author')}
+        onToggleAuthorRole={handleToggleAuthorRole}
       />
 
       {/* BCL (Bayarcash Commerce Layer) Payment Portal Modal */}
@@ -626,16 +702,27 @@ export default function App() {
         onAddToCart={(b) => handleAddToCart(b)}
       />
 
-      {/* Portal Penulis & Terbit Karya Modal */}
+      {/* Portal Penulis & Dashboard Penulis Modal */}
       <AuthorPublishModal
         isOpen={isAuthorPortalOpen}
         onClose={() => setIsAuthorPortalOpen(false)}
         onPublishBook={handlePublishBook}
         currentUserName={user.name}
+        isAuthor={Boolean(user.isAuthor || user.role === 'author')}
+        initialTab={authorPortalTab}
+        onBecomeAuthor={handleBecomeAuthor}
+        authorBooks={books.filter(
+          (b) =>
+            b.author.toLowerCase() === user.name.toLowerCase() ||
+            b.id.startsWith('karya-user-')
+        )}
       />
 
       {/* Footer */}
-      <Footer onOpenAuthorPortal={() => setIsAuthorPortalOpen(true)} />
+      <Footer
+        isAuthor={Boolean(user.isAuthor || user.role === 'author')}
+        onOpenAuthorPortal={handleOpenAuthorPortal}
+      />
 
       {/* Mobile Bottom Navigation Bar (Utama, Cari, Rak Saya, Akaun) */}
       <MobileBottomNav

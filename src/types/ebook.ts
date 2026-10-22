@@ -79,6 +79,8 @@ export interface BookmarkEntry {
   savedAt: string; // ISO string
 }
 
+export type UserRole = 'reader' | 'author' | 'admin';
+
 export interface UserProfile {
   name: string;
   email: string;
@@ -88,6 +90,9 @@ export interface UserProfile {
   subscriptionExpiresAt?: string;
   ownedBookIds: string[];
   bookmarks: Record<string, BookmarkEntry[]>;
+  role?: UserRole;
+  isAuthor?: boolean;
+  authorBio?: string;
 }
 
 export interface SecurityToastEvent {

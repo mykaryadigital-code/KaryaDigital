@@ -6,6 +6,7 @@ import {
   X,
   Library,
   PenTool,
+  LayoutDashboard,
   Menu,
 } from 'lucide-react';
 import { BookCategory, UserProfile } from '../types/ebook.ts';
@@ -19,8 +20,9 @@ interface HeaderProps {
   activeCategory: 'semua' | BookCategory | 'percuma' | 'koleksi';
   onSelectCategory: (cat: 'semua' | BookCategory | 'percuma' | 'koleksi') => void;
   user: UserProfile;
+  isAuthor?: boolean;
   onFocusSearch?: () => void;
-  onOpenAuthorPortal?: () => void;
+  onOpenAuthorPortal?: (tab?: 'register' | 'guide' | 'royalty' | 'dashboard') => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -32,6 +34,7 @@ export const Header: React.FC<HeaderProps> = ({
   activeCategory,
   onSelectCategory,
   user,
+  isAuthor = false,
   onOpenAuthorPortal,
 }) => {
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
@@ -121,14 +124,19 @@ export const Header: React.FC<HeaderProps> = ({
               <span>Rak Saya</span>
             </button>
 
-            {/* Terbit Karya Desktop Link */}
+            {/* Terbit Karya / Dashboard Penulis Desktop Link */}
             {onOpenAuthorPortal && (
               <button
-                onClick={onOpenAuthorPortal}
+                onClick={() => onOpenAuthorPortal(isAuthor ? 'dashboard' : 'register')}
                 className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:text-indigo-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                aria-label={isAuthor ? 'Dashboard Penulis' : 'Terbit Karya'}
               >
-                <PenTool className="w-3.5 h-3.5 text-slate-500" />
-                <span>Terbit Karya</span>
+                {isAuthor ? (
+                  <LayoutDashboard className="w-3.5 h-3.5 text-indigo-600" />
+                ) : (
+                  <PenTool className="w-3.5 h-3.5 text-slate-500" />
+                )}
+                <span>{isAuthor ? 'Dashboard Penulis' : 'Terbit Karya'}</span>
               </button>
             )}
 
@@ -201,7 +209,7 @@ export const Header: React.FC<HeaderProps> = ({
                 onSelectCategory('koleksi');
                 setMobileDrawerOpen(false);
               }}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left"
+              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left cursor-pointer"
             >
               <Library className="w-4 h-4 text-indigo-600" />
               <span>Rak Saya ({user.ownedBookIds.length})</span>
@@ -209,13 +217,17 @@ export const Header: React.FC<HeaderProps> = ({
             {onOpenAuthorPortal && (
               <button
                 onClick={() => {
-                  onOpenAuthorPortal();
+                  onOpenAuthorPortal(isAuthor ? 'dashboard' : 'register');
                   setMobileDrawerOpen(false);
                 }}
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left"
+                className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 text-left cursor-pointer"
               >
-                <PenTool className="w-4 h-4 text-indigo-600" />
-                <span>Terbit Karya (Portal Penulis)</span>
+                {isAuthor ? (
+                  <LayoutDashboard className="w-4 h-4 text-indigo-600" />
+                ) : (
+                  <PenTool className="w-4 h-4 text-indigo-600" />
+                )}
+                <span>{isAuthor ? 'Dashboard Penulis' : 'Jadi Penulis'}</span>
               </button>
             )}
           </div>

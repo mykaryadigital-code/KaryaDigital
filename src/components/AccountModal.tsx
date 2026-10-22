@@ -24,7 +24,9 @@ interface AccountModalProps {
   firebaseUser?: any;
   onSignInGoogle?: () => Promise<any>;
   onSignOut?: () => Promise<void>;
-  onOpenAuthorPortal?: () => void;
+  onOpenAuthorPortal?: (tab?: 'register' | 'guide' | 'royalty' | 'dashboard') => void;
+  isAuthor?: boolean;
+  onToggleAuthorRole?: () => void;
 }
 
 export const AccountModal: React.FC<AccountModalProps> = ({
@@ -39,6 +41,8 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onSignInGoogle,
   onSignOut,
   onOpenAuthorPortal,
+  isAuthor = false,
+  onToggleAuthorRole,
 }) => {
   const [activeTab, setActiveTab] = useState<'profil' | 'rak' | 'baki'>('profil');
   const [topUpSuccess, setTopUpSuccess] = useState(false);
@@ -149,7 +153,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 </div>
               </div>
 
-              {/* Portal Penulis & Terbit Karya */}
+              {/* Portal Penulis & Dashboard Penulis */}
               <div className="p-4 rounded-2xl bg-indigo-50/80 border border-indigo-200/90 space-y-2.5">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -158,34 +162,48 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                     </div>
                     <div>
                       <div className="text-xs font-bold text-slate-900">
-                        Portal Penulis & Terbit Karya
+                        {isAuthor ? 'Dashboard Penulis KaryaDigital' : 'Program Penulis (Jadi Penulis)'}
                       </div>
                       <div className="text-[11px] text-indigo-700 font-semibold">
-                        Royalti 70% Terus ke Akaun Bank
+                        {isAuthor ? 'Peranan: Penulis Sah (70% Royalti Aktif)' : 'Daftar & Terbit Karya (70% Royalti)'}
                       </div>
                     </div>
                   </div>
-                  <span className="text-[10px] bg-indigo-200 text-indigo-900 font-extrabold px-2 py-0.5 rounded-full">
-                    Terbuka
+                  <span className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full ${isAuthor ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-indigo-200 text-indigo-900'}`}>
+                    {isAuthor ? 'Penulis Sah' : 'Terbuka'}
                   </span>
                 </div>
 
                 <p className="text-xs text-slate-600 leading-relaxed">
-                  Ingin menulis atau memasukkan karya anda ke KaryaDigital? Anda boleh mendaftar dan menerbitkan manuskrip e-buku atau komik anda terus dalam platform.
+                  {isAuthor
+                    ? 'Anda berdaftar sebagai penulis KaryaDigital. Pantau statistik jualan, royalti terkumpul 70%, dan muat naik karya baharu dalam format e-buku atau komik.'
+                    : 'Ingin menulis atau menerbitkan karya anda ke pasaran Malaysia? Terbitkan karya sulung anda untuk menerima 70% royalti terus ke akaun bank.'}
                 </p>
 
-                {onOpenAuthorPortal && (
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onOpenAuthorPortal();
-                    }}
-                    className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span>Buka Portal Penulis & Hantar Karya</span>
-                    <span>→</span>
-                  </button>
-                )}
+                <div className="flex flex-col sm:flex-row gap-2 pt-1">
+                  {onOpenAuthorPortal && (
+                    <button
+                      onClick={() => {
+                        onClose();
+                        onOpenAuthorPortal(isAuthor ? 'dashboard' : 'register');
+                      }}
+                      className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition shadow-xs cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <span>{isAuthor ? 'Buka Dashboard Penulis' : 'Daftar Penulis (Jadi Penulis)'}</span>
+                      <span>→</span>
+                    </button>
+                  )}
+                  {onToggleAuthorRole && (
+                    <button
+                      type="button"
+                      onClick={onToggleAuthorRole}
+                      className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold text-xs rounded-xl transition cursor-pointer shrink-0"
+                      title="Tukar peranan pengguna untuk menguji paparan pembaca atau penulis"
+                    >
+                      Tukar Status: {isAuthor ? 'Jadikan Pembaca' : 'Jadikan Penulis'}
+                    </button>
+                  )}
+                </div>
               </div>
 
               {/* Firebase Cloud Sync & Authentication Section */}

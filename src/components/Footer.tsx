@@ -1,11 +1,14 @@
-import React from 'react';
-import { BookOpen, ShieldCheck } from 'lucide-react';
+import React, { useState } from 'react';
+import { BookOpen, ShieldCheck, ChevronDown } from 'lucide-react';
 
 interface FooterProps {
-  onOpenAuthorPortal?: () => void;
+  isAuthor?: boolean;
+  onOpenAuthorPortal?: (tab?: 'register' | 'guide' | 'royalty' | 'dashboard') => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ onOpenAuthorPortal }) => {
+export const Footer: React.FC<FooterProps> = ({ isAuthor = false, onOpenAuthorPortal }) => {
+  const [authorAccordionOpen, setAuthorAccordionOpen] = useState(false);
+
   return (
     <footer className="bg-slate-900 text-slate-400 text-xs border-t border-slate-800">
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 py-8 space-y-6">
@@ -38,38 +41,94 @@ export const Footer: React.FC<FooterProps> = ({ onOpenAuthorPortal }) => {
             </ul>
           </div>
 
-          {/* Untuk Penulis (Self-Publishing Hub) */}
+          {/* Untuk Penulis: Desktop/Tablet view + Mobile Collapsible Accordion (closed by default) */}
           <div className="space-y-1.5">
-            <h4 className="text-[11px] font-bold uppercase tracking-wider text-white">
-              Pendaftaran Penulis
+            {/* Desktop / Tablet Header */}
+            <h4 className="hidden sm:block text-[11px] font-bold uppercase tracking-wider text-white">
+              Untuk Penulis
             </h4>
-            <ul className="space-y-1 text-[11px]">
+
+            {/* Mobile Accordion Header Button (Closed by default) */}
+            <button
+              type="button"
+              onClick={() => setAuthorAccordionOpen(!authorAccordionOpen)}
+              className="sm:hidden w-full flex items-center justify-between py-2 text-[11px] font-bold uppercase tracking-wider text-white border-y border-slate-800/80 hover:text-amber-400 transition-colors cursor-pointer"
+              aria-expanded={authorAccordionOpen}
+              aria-controls="footer-author-links-mobile"
+            >
+              <span className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                Untuk Penulis
+              </span>
+              <ChevronDown
+                className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                  authorAccordionOpen ? 'rotate-180 text-amber-400' : ''
+                }`}
+              />
+            </button>
+
+            {/* Desktop / Tablet List */}
+            <ul className="hidden sm:block space-y-1 text-[11px]">
               <li>
                 <button
-                  onClick={onOpenAuthorPortal}
+                  onClick={() => onOpenAuthorPortal?.(isAuthor ? 'dashboard' : 'register')}
                   className="hover:text-amber-400 text-slate-300 font-semibold transition-colors cursor-pointer flex items-center gap-1 text-left"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
-                  Portal Penulis (Self-Publishing)
+                  {isAuthor ? 'Dashboard Penulis' : 'Jadi Penulis'}
                 </button>
               </li>
               <li>
                 <button
-                  onClick={onOpenAuthorPortal}
+                  onClick={() => onOpenAuthorPortal?.('guide')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Daftar Manuskrip e-Buku & Komik (70% Royalti)
+                  Panduan Penerbitan
                 </button>
               </li>
               <li>
                 <button
-                  onClick={onOpenAuthorPortal}
+                  onClick={() => onOpenAuthorPortal?.('royalty')}
                   className="hover:text-white transition-colors cursor-pointer text-left"
                 >
-                  Panduan Hak Cipta Akta 1987
+                  Maklumat Royalti
                 </button>
               </li>
             </ul>
+
+            {/* Mobile Accordion Content (Visible only when authorAccordionOpen is true) */}
+            {authorAccordionOpen && (
+              <ul
+                id="footer-author-links-mobile"
+                className="sm:hidden space-y-2 pt-1 pb-2 pl-3 text-[12px] border-l-2 border-amber-400/30 animate-in fade-in duration-150"
+              >
+                <li>
+                  <button
+                    onClick={() => onOpenAuthorPortal?.(isAuthor ? 'dashboard' : 'register')}
+                    className="hover:text-amber-400 text-amber-300 font-semibold transition-colors cursor-pointer flex items-center gap-1.5 text-left py-1"
+                  >
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                    {isAuthor ? 'Dashboard Penulis' : 'Jadi Penulis'}
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onOpenAuthorPortal?.('guide')}
+                    className="hover:text-white text-slate-300 transition-colors cursor-pointer text-left py-1 block"
+                  >
+                    Panduan Penerbitan
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => onOpenAuthorPortal?.('royalty')}
+                    className="hover:text-white text-slate-300 transition-colors cursor-pointer text-left py-1 block"
+                  >
+                    Maklumat Royalti
+                  </button>
+                </li>
+              </ul>
+            )}
           </div>
 
           {/* Keselamatan DRM & Pembayaran */}

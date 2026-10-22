@@ -80,8 +80,7 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             </div>
 
             <h1 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black tracking-tight text-white leading-tight">
-              Baca karya tempatan,{' '}
-              <span className="text-amber-400 block sm:inline">di mana sahaja.</span>
+              Baca karya tempatan, <span className="text-amber-400 block sm:inline">di mana sahaja.</span>
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-300 max-w-lg font-normal mx-auto md:mx-0">
