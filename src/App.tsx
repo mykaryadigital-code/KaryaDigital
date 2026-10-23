@@ -43,10 +43,20 @@ export default function App() {
   const [activeCategory, setActiveCategory] = useState<'semua' | BookCategory | 'percuma' | 'koleksi'>('semua');
   const [selectedGenre, setSelectedGenre] = useState<string>('semua');
   const [searchQuery, setSearchQuery] = useState('');
-  const [cart, setCart] = useState<CartItem[]>(() => [
-    { book: INITIAL_EBOOKS[1], addedAt: Date.now() - 60000 },
-    { book: INITIAL_EBOOKS[2], addedAt: Date.now() - 30000 },
-  ]);
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('karyadigital_user_cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Ralat membaca bakul dari localStorage:', e);
+    }
+    return [];
+  });
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isAuthorPortalOpen, setIsAuthorPortalOpen] = useState(false);
@@ -348,6 +358,15 @@ export default function App() {
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
+
+  // Simpan bakul belian pengguna ke localStorage apabila berlaku pertambahan atau pengurangan
+  useEffect(() => {
+    try {
+      localStorage.setItem('karyadigital_user_cart', JSON.stringify(cart));
+    } catch (e) {
+      console.warn('Ralat menyimpan bakul belian ke localStorage:', e);
+    }
+  }, [cart]);
 
   // Add Book to Cart
   const handleAddToCart = (book: EBook) => {
