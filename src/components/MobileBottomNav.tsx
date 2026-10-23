@@ -9,6 +9,7 @@ interface MobileBottomNavProps {
   onOpenSearch: () => void;
   onOpenAccount: () => void;
   isSearchActive: boolean;
+  isLoggedIn?: boolean;
 }
 
 export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
@@ -18,6 +19,7 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
   onOpenSearch,
   onOpenAccount,
   isSearchActive,
+  isLoggedIn = false,
 }) => {
   const isHomeActive = activeCategory !== 'koleksi' && !isSearchActive;
   const isShelfActive = activeCategory === 'koleksi';
@@ -83,11 +85,16 @@ export const MobileBottomNav: React.FC<MobileBottomNavProps> = ({
         {/* 4. Akaun */}
         <button
           onClick={onOpenAccount}
-          className="flex flex-col items-center justify-center py-1 rounded-xl text-slate-500 hover:text-slate-900 font-medium transition-colors"
+          className="flex flex-col items-center justify-center py-1 rounded-xl text-slate-500 hover:text-slate-900 font-medium transition-colors relative"
           aria-label="Profil dan Akaun"
         >
-          <User className="w-5 h-5 stroke-2" />
-          <span className="text-[10px] mt-0.5">Akaun</span>
+          <div className="relative">
+            <User className="w-5 h-5 stroke-2" />
+            {isLoggedIn && (
+              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white"></span>
+            )}
+          </div>
+          <span className="text-[10px] mt-0.5">{isLoggedIn ? 'Akaun' : 'Log Masuk'}</span>
         </button>
       </div>
     </nav>

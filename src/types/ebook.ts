@@ -96,6 +96,9 @@ export interface UserProfile {
   role?: UserRole;
   isAuthor?: boolean;
   authorBio?: string;
+  isLoggedIn?: boolean;
+  photoURL?: string;
+  uid?: string;
 }
 
 export interface SecurityToastEvent {

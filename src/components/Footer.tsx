@@ -3,10 +3,23 @@ import { BookOpen, ShieldCheck, ChevronDown } from 'lucide-react';
 
 interface FooterProps {
   isAuthor?: boolean;
+  isLoggedIn?: boolean;
+  isAdmin?: boolean;
   onOpenAuthorPortal?: (tab?: 'register' | 'guide' | 'royalty' | 'dashboard') => void;
+  onOpenReaderHelp?: (tab?: 'panduan' | 'faq' | 'privasi') => void;
+  onOpenAuthModal?: () => void;
+  onOpenAdminDashboard?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = ({ isAuthor = false, onOpenAuthorPortal }) => {
+export const Footer: React.FC<FooterProps> = ({
+  isAuthor = false,
+  isLoggedIn = false,
+  isAdmin = false,
+  onOpenAuthorPortal,
+  onOpenReaderHelp,
+  onOpenAuthModal,
+  onOpenAdminDashboard,
+}) => {
   const [authorAccordionOpen, setAuthorAccordionOpen] = useState(false);
 
   return (
@@ -29,15 +42,61 @@ export const Footer: React.FC<FooterProps> = ({ isAuthor = false, onOpenAuthorPo
             </p>
           </div>
 
-          {/* Pautan Bantuan & Pembaca */}
+          {/* Pautan Bantuan & Pembaca (Interaktif) */}
           <div className="space-y-1.5">
             <h4 className="text-[11px] font-bold uppercase tracking-wider text-white">
               Bantuan Pembaca
             </h4>
-            <ul className="space-y-1 text-[11px]">
-              <li><span className="hover:text-white transition-colors cursor-pointer">Panduan Membaca dalam Pelayar</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Soalan Lazim (FAQ) & Bayaran</span></li>
-              <li><span className="hover:text-white transition-colors cursor-pointer">Polisi Privasi & Terma Penggunaan</span></li>
+            <ul className="space-y-1.5 text-[11px]">
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenReaderHelp?.('panduan')}
+                  className="hover:text-amber-400 text-slate-300 transition-colors cursor-pointer text-left py-0.5 block hover:underline"
+                >
+                  Panduan Membaca dalam Pelayar
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenReaderHelp?.('faq')}
+                  className="hover:text-amber-400 text-slate-300 transition-colors cursor-pointer text-left py-0.5 block hover:underline"
+                >
+                  Soalan Lazim (FAQ) & Bayaran
+                </button>
+              </li>
+              <li>
+                <button
+                  type="button"
+                  onClick={() => onOpenReaderHelp?.('privasi')}
+                  className="hover:text-amber-400 text-slate-300 transition-colors cursor-pointer text-left py-0.5 block hover:underline"
+                >
+                  Polisi Privasi & Terma Penggunaan
+                </button>
+              </li>
+              {onOpenAuthModal && (
+                <li>
+                  <button
+                    type="button"
+                    onClick={onOpenAuthModal}
+                    className="hover:text-amber-400 text-amber-300 font-semibold transition-colors cursor-pointer text-left py-0.5 block hover:underline"
+                  >
+                    {isLoggedIn ? 'Akaun Pembaca (Disegerak)' : '🔑 Log Masuk / Daftar Akaun'}
+                  </button>
+                </li>
+              )}
+              {isAdmin && onOpenAdminDashboard && (
+                <li className="pt-1">
+                  <button
+                    type="button"
+                    onClick={onOpenAdminDashboard}
+                    className="text-amber-400 hover:text-amber-300 font-bold transition-colors cursor-pointer text-left py-0.5 block flex items-center gap-1 hover:underline"
+                  >
+                    <span>👑 Pusat Kawalan Super Admin</span>
+                  </button>
+                </li>
+              )}
             </ul>
           </div>
 

@@ -18,6 +18,9 @@ import { ContinueReadingSection } from './components/ContinueReadingSection.tsx'
 import { MobileBottomNav } from './components/MobileBottomNav.tsx';
 import { BookDetailModal } from './components/BookDetailModal.tsx';
 import { AuthorPublishModal } from './components/AuthorPublishModal.tsx';
+import { ReaderHelpModal, ReaderHelpTab } from './components/ReaderHelpModal.tsx';
+import { AuthModal } from './components/AuthModal.tsx';
+import { AdminDashboardModal } from './components/AdminDashboardModal.tsx';
 import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent, BookmarkEntry } from './types/ebook.ts';
@@ -27,6 +30,7 @@ import {
   signInWithGoogle,
   signOutUser,
   onUserAuthStateChange,
+  getUserProfileFromFirestore,
   subscribeToPurchasedBooks,
   savePurchasedBookToFirestore,
   recordOrderInFirestore,
@@ -146,8 +150,23 @@ export default function App() {
       bookmarks: savedBookmarks,
       role: savedRole,
       isAuthor: savedIsAuthor,
+      isLoggedIn: Boolean(auth.currentUser),
     };
   });
+
+  // Auth Modal State (Log Masuk / Daftar Akaun)
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+  const [authModalMessage, setAuthModalMessage] = useState<string | undefined>(undefined);
+
+  // Super Admin Dashboard State
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+
+  const handleOpenAuthModal = (mode: 'login' | 'register' = 'login', msg?: string) => {
+    setAuthModalMode(mode);
+    setAuthModalMessage(msg);
+    setIsAuthModalOpen(true);
+  };
 
   const [authorPortalTab, setAuthorPortalTab] = useState<'dashboard' | 'borang' | 'panduan' | 'royalti'>('borang');
 
@@ -168,6 +187,19 @@ export default function App() {
 
     setAuthorPortalTab(targetTab);
     setIsAuthorPortalOpen(true);
+  };
+
+  // Reader Help Modal State (Panduan Membaca, FAQ & Bayaran, Polisi Privasi & Terma)
+  const [readerHelpState, setReaderHelpState] = useState<{
+    isOpen: boolean;
+    tab: ReaderHelpTab;
+  }>({
+    isOpen: false,
+    tab: 'panduan',
+  });
+
+  const handleOpenReaderHelp = (tab: ReaderHelpTab = 'panduan') => {
+    setReaderHelpState({ isOpen: true, tab });
   };
 
   // Promote user to Author on publishing or registration
@@ -400,17 +432,52 @@ export default function App() {
 
   // Listen to Firebase Auth state on mount
   useEffect(() => {
-    const unsubscribeAuth = onUserAuthStateChange((fbUser) => {
+    const unsubscribeAuth = onUserAuthStateChange(async (fbUser) => {
       if (fbUser) {
+        const isSuperAdmin = fbUser.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
+        const profile = await getUserProfileFromFirestore(fbUser.uid);
+        setUser((prev) => {
+          const userRole = isSuperAdmin ? 'admin' : (profile?.role || prev.role || 'reader');
+          const isAuthor = isSuperAdmin ? true : Boolean(profile?.isAuthor ?? prev.isAuthor);
+          return {
+            ...prev,
+            uid: fbUser.uid,
+            name: fbUser.displayName || profile?.displayName || prev.name,
+            email: fbUser.email || prev.email,
+            photoURL: fbUser.photoURL || profile?.photoURL || undefined,
+            isLoggedIn: true,
+            role: userRole,
+            isAuthor,
+            tier: isSuperAdmin ? 'Super Admin Platform' : (profile?.tier || prev.tier),
+          };
+        });
+      } else {
         setUser((prev) => ({
           ...prev,
-          name: fbUser.displayName || prev.name,
-          email: fbUser.email || prev.email,
+          uid: undefined,
+          photoURL: undefined,
+          isLoggedIn: false,
         }));
       }
     });
     return () => unsubscribeAuth();
   }, []);
+
+  // Handle Sign Out
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      setUser((prev) => ({
+        ...prev,
+        uid: undefined,
+        photoURL: undefined,
+        isLoggedIn: false,
+      }));
+      triggerSecurityWarning('Anda telah berjaya log keluar dari akaun.', 'info');
+    } catch (err: any) {
+      console.warn('Gagal log keluar:', err);
+    }
+  };
 
   // Real-time Firestore sync for purchased books
   useEffect(() => {
@@ -539,11 +606,13 @@ export default function App() {
         cartCount={cart.length}
         onOpenCart={() => setIsCartOpen(true)}
         onOpenAccount={() => setIsAccountOpen(true)}
+        onOpenAuthModal={() => handleOpenAuthModal('login')}
         activeCategory={activeCategory}
         onSelectCategory={setActiveCategory}
         user={user}
         isAuthor={Boolean(user.isAuthor || user.role === 'author')}
         onOpenAuthorPortal={handleOpenAuthorPortal}
+        onOpenAdminDashboard={() => setIsAdminDashboardOpen(true)}
       />
 
       {/* Hero Banner Section (shown when not searching and viewing main katalog) */}
@@ -621,6 +690,8 @@ export default function App() {
         onTriggerBclPayment={(billData) => setBclBill(billData)}
         currentUserEmail={user.email}
         currentUserName={user.name}
+        isLoggedIn={Boolean(user.isLoggedIn)}
+        onOpenAuthModal={() => handleOpenAuthModal('login', 'Log masuk untuk simpan naskhah ke akaun anda.')}
       />
 
       {/* Account Profile Modal */}
@@ -636,10 +707,13 @@ export default function App() {
         }
         firebaseUser={auth.currentUser}
         onSignInGoogle={signInWithGoogle}
-        onSignOut={signOutUser}
+        onSignOut={handleSignOut}
+        onOpenAuthModal={() => handleOpenAuthModal('login')}
         onOpenAuthorPortal={handleOpenAuthorPortal}
         isAuthor={Boolean(user.isAuthor || user.role === 'author')}
         onToggleAuthorRole={handleToggleAuthorRole}
+        onOpenReaderHelp={handleOpenReaderHelp}
+        onOpenAdminDashboard={() => setIsAdminDashboardOpen(true)}
       />
 
       {/* BCL (Bayarcash Commerce Layer) Payment Portal Modal */}
@@ -719,10 +793,46 @@ export default function App() {
         )}
       />
 
+      {/* Reader Help Modal (Panduan Membaca dalam Pelayar, FAQ & Bayaran, Polisi Privasi & Terma) */}
+      <ReaderHelpModal
+        isOpen={readerHelpState.isOpen}
+        initialTab={readerHelpState.tab}
+        onClose={() => setReaderHelpState((prev) => ({ ...prev, isOpen: false }))}
+        onExploreClick={() => {
+          setReaderHelpState((prev) => ({ ...prev, isOpen: false }));
+          handleScrollToCatalog();
+        }}
+      />
+
       {/* Footer */}
       <Footer
         isAuthor={Boolean(user.isAuthor || user.role === 'author')}
+        isLoggedIn={Boolean(user.isLoggedIn)}
+        isAdmin={Boolean(user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com' || user.role === 'admin')}
         onOpenAuthorPortal={handleOpenAuthorPortal}
+        onOpenReaderHelp={handleOpenReaderHelp}
+        onOpenAuthModal={() => handleOpenAuthModal('login')}
+        onOpenAdminDashboard={() => setIsAdminDashboardOpen(true)}
+      />
+
+      {/* Auth Modal (Log Masuk / Daftar Akaun) */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialMode={authModalMode}
+        redirectMessage={authModalMessage}
+        onSuccess={() => {
+          triggerSecurityWarning('Log masuk berjaya disahkan!', 'info');
+        }}
+      />
+
+      {/* Super Admin Dashboard Modal */}
+      <AdminDashboardModal
+        isOpen={isAdminDashboardOpen}
+        onClose={() => setIsAdminDashboardOpen(false)}
+        books={books}
+        currentUser={user}
+        onPreviewBook={handleOpenReader}
       />
 
       {/* Mobile Bottom Navigation Bar (Utama, Cari, Rak Saya, Akaun) */}
@@ -741,6 +851,7 @@ export default function App() {
         }}
         onOpenAccount={() => setIsAccountOpen(true)}
         isSearchActive={!!searchQuery}
+        isLoggedIn={Boolean(user.isLoggedIn)}
       />
     </div>
   );

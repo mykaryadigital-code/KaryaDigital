@@ -43,7 +43,7 @@ service cloud.firestore {
                     && incoming().email.size() <= 150;
       allow update: if isOwner(userId)
                     && incoming().uid == existing().uid
-                    && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'email']);
+                    && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'photoURL', 'email', 'updatedAt', 'role', 'isAuthor', 'tier', 'bookmarks', 'ownedBookIds']);
       allow delete: if false;
 
       // User's Purchased Books Subcollection

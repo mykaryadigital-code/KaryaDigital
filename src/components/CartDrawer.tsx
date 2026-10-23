@@ -27,6 +27,8 @@ interface CartDrawerProps {
   onTriggerBclPayment: (billData: any) => void;
   currentUserEmail?: string;
   currentUserName?: string;
+  isLoggedIn?: boolean;
+  onOpenAuthModal?: () => void;
 }
 
 export const CartDrawer: React.FC<CartDrawerProps> = ({
@@ -41,6 +43,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onTriggerBclPayment,
   currentUserEmail = 'bangkarim@karyadigital.my',
   currentUserName = 'Bang Karim',
+  isLoggedIn = false,
+  onOpenAuthModal,
 }) => {
   const [inputCode, setInputCode] = useState(voucherCode);
   const [voucherError, setVoucherError] = useState('');
@@ -412,7 +416,36 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
 
         {/* Cart Footer Summary & Checkout Button */}
         {!checkoutComplete && cartItems.length > 0 && (
-          <div className="p-6 border-t border-slate-200 bg-slate-50 space-y-4">
+          <div className="p-6 border-t border-slate-200 bg-slate-50 space-y-3.5">
+            {/* User Login Context Banner */}
+            {isLoggedIn ? (
+              <div className="flex items-center justify-between text-[11px] text-slate-600 bg-white border border-slate-200 p-2 rounded-xl">
+                <span className="truncate max-w-[200px]">
+                  Akaun: <strong className="text-slate-900">{currentUserEmail}</strong>
+                </span>
+                <span className="text-emerald-700 font-bold shrink-0">✓ Segerak Awan</span>
+              </div>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200/80 flex items-center justify-between gap-2 text-xs">
+                <div className="text-[11px] text-amber-900 leading-tight">
+                  <span className="font-bold block">💡 Petua Pembaca:</span>
+                  Log masuk untuk simpan buku ke rak awan anda.
+                </div>
+                {onOpenAuthModal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenAuthModal();
+                    }}
+                    className="px-2.5 py-1 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[11px] rounded-lg transition shrink-0 cursor-pointer shadow-2xs"
+                  >
+                    Log Masuk
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="space-y-1.5 text-xs text-slate-600">
               <div className="flex justify-between">
                 <span>Jumlah Kasar:</span>

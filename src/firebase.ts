@@ -5,11 +5,16 @@ import {
   signInWithPopup,
   signOut,
   onAuthStateChanged,
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+  updateProfile,
+  sendPasswordResetEmail,
   User,
 } from 'firebase/auth';
 import {
   getFirestore,
   doc,
+  getDoc,
   getDocFromServer,
   collection,
   query,
@@ -107,13 +112,59 @@ testConnection().catch(() => {});
 export async function signInWithGoogle(): Promise<User> {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    // Simpan maklumat pengguna dalam Firestore /users/{uid}
     if (result.user) {
       await syncUserProfile(result.user);
     }
     return result.user;
   } catch (error) {
     console.error('[Firebase Auth Error]: Gagal log masuk Google:', error);
+    throw error;
+  }
+}
+
+export async function signInWithEmail(email: string, pass: string): Promise<User> {
+  try {
+    const cred = await signInWithEmailAndPassword(auth, email.trim(), pass);
+    if (cred.user) {
+      await syncUserProfile(cred.user);
+    }
+    return cred.user;
+  } catch (error) {
+    console.error('[Firebase Auth Error]: Gagal log masuk E-mel:', error);
+    throw error;
+  }
+}
+
+export async function signUpWithEmail(
+  email: string,
+  pass: string,
+  displayName: string,
+  isAuthor: boolean = false
+): Promise<User> {
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email.trim(), pass);
+    if (cred.user) {
+      await updateProfile(cred.user, {
+        displayName: displayName.trim(),
+      });
+      await syncUserProfile(cred.user, {
+        displayName: displayName.trim(),
+        role: email.trim().toLowerCase() === 'mykaryadigital@gmail.com' ? 'admin' : (isAuthor ? 'author' : 'reader'),
+        isAuthor,
+      });
+    }
+    return cred.user;
+  } catch (error) {
+    console.error('[Firebase Auth Error]: Gagal mendaftar akaun:', error);
+    throw error;
+  }
+}
+
+export async function resetPassword(email: string): Promise<void> {
+  try {
+    await sendPasswordResetEmail(auth, email.trim());
+  } catch (error) {
+    console.error('[Firebase Auth Error]: Gagal menghantar pautan tetapan semula kata laluan:', error);
     throw error;
   }
 }
@@ -136,22 +187,43 @@ export function onUserAuthStateChange(callback: (user: User | null) => void) {
   });
 }
 
-export async function syncUserProfile(user: User): Promise<void> {
+export async function getUserProfileFromFirestore(uid: string): Promise<any | null> {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const snap = await getDoc(userRef);
+    if (snap.exists()) {
+      return snap.data();
+    }
+    return null;
+  } catch (err) {
+    console.warn('[Firebase] Gagal mengambil profil pengguna:', err);
+    return null;
+  }
+}
+
+export async function syncUserProfile(
+  user: User,
+  extra: { displayName?: string; role?: 'reader' | 'author' | 'admin'; isAuthor?: boolean } = {}
+): Promise<void> {
   const userRef = doc(db, 'users', user.uid);
+  const isSuperAdmin = user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
+  const assignedRole = isSuperAdmin ? 'admin' : (extra.role || (extra.isAuthor ? 'author' : 'reader'));
+
   try {
     await setDoc(
       userRef,
       {
         uid: user.uid,
         email: user.email || '',
-        displayName: user.displayName || 'Pembaca Tempatan',
+        displayName: extra.displayName || user.displayName || 'Pembaca KaryaDigital',
         photoURL: user.photoURL || '',
+        role: assignedRole,
+        isAuthor: Boolean(extra.isAuthor || assignedRole === 'author'),
         updatedAt: new Date().toISOString(),
       },
       { merge: true }
     );
   } catch (err) {
-    // If permission or offline, log warning
     console.warn('[Firebase] Gagal mengemas kini profil pengguna:', err);
   }
 }
