@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, Pause, Play, Sparkles, Heart, Compass } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { BookCategory } from '../types/ebook.ts';
 
 interface HeroSlide {
@@ -13,7 +13,6 @@ interface HeroSlide {
   genre: string;
   glowColor: string;
   accentBorder: string;
-  icon: React.ElementType;
 }
 
 const HERO_SLIDES: HeroSlide[] = [
@@ -28,7 +27,6 @@ const HERO_SLIDES: HeroSlide[] = [
     genre: 'semua',
     glowColor: 'bg-indigo-600/20',
     accentBorder: 'border-indigo-500/30 hover:border-indigo-400/60',
-    icon: Sparkles,
   },
   {
     id: 'janda-bukan-akhir',
@@ -41,7 +39,6 @@ const HERO_SLIDES: HeroSlide[] = [
     genre: 'romantik',
     glowColor: 'bg-rose-500/20',
     accentBorder: 'border-rose-500/30 hover:border-rose-400/60',
-    icon: Heart,
   },
   {
     id: 'panduan-praktikal',
@@ -54,7 +51,6 @@ const HERO_SLIDES: HeroSlide[] = [
     genre: 'agama',
     glowColor: 'bg-emerald-500/20',
     accentBorder: 'border-emerald-500/30 hover:border-emerald-400/60',
-    icon: Compass,
   },
 ];
 
@@ -74,7 +70,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
-  const [userInteracted, setUserInteracted] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const touchStartYRef = useRef<number | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -97,7 +92,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
 
   const goToSlide = (index: number) => {
     setCurrentIndex(index);
-    setUserInteracted(true);
   };
 
   // Autoplay timer dengan sokongan jeda bila kursor di atas banner
@@ -150,7 +144,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
       } else {
         goToPrev();
       }
-      setUserInteracted(true);
     }
 
     touchStartXRef.current = null;
@@ -242,7 +235,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               goToPrev();
-              setUserInteracted(true);
             }}
             aria-label="Slaid sebelumnya"
             className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/75 backdrop-blur-md border border-white/15 text-white/90 hover:text-white transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
@@ -256,7 +248,6 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             onClick={(e) => {
               e.stopPropagation();
               goToNext();
-              setUserInteracted(true);
             }}
             aria-label="Slaid seterusnya"
             className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center bg-black/40 hover:bg-black/75 backdrop-blur-md border border-white/15 text-white/90 hover:text-white transition-all opacity-80 sm:opacity-0 group-hover:opacity-100 focus:opacity-100 hover:scale-105 active:scale-95 shadow-lg cursor-pointer"
@@ -264,27 +255,11 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
             <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 translate-x-0.5" />
           </button>
 
-          {/* Slide Indicator Bar & Badges at Bottom Center */}
+          {/* Minimalist Slide Indicator Dots at Bottom Center */}
           <div
             onClick={(e) => e.stopPropagation()}
-            className="absolute bottom-2 sm:bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 sm:gap-2 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/15"
+            className="absolute bottom-2.5 sm:bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/10 shadow-lg"
           >
-            {/* Play/Pause state toggle for accessibility */}
-            <button
-              type="button"
-              onClick={() => setIsPaused((prev) => !prev)}
-              aria-label={isPaused ? 'Sambung putaran slaid automatik' : 'Jeda putaran slaid automatik'}
-              className="p-0.5 text-white/70 hover:text-white transition-colors cursor-pointer mr-0.5"
-              title={isPaused ? 'Main' : 'Jeda'}
-            >
-              {isPaused ? (
-                <Play className="w-3 h-3 fill-current" />
-              ) : (
-                <Pause className="w-3 h-3 fill-current" />
-              )}
-            </button>
-
-            {/* Slide Dots / Progress indicators */}
             {HERO_SLIDES.map((slide, idx) => {
               const isActive = idx === currentIndex;
               return (
@@ -292,39 +267,18 @@ export const HeroBanner: React.FC<HeroBannerProps> = ({
                   key={slide.id}
                   type="button"
                   onClick={() => goToSlide(idx)}
-                  aria-label={`Pergi ke slaid ${idx + 1}: ${slide.badgeLabel}`}
+                  aria-label={`Pergi ke slaid ${idx + 1}`}
                   aria-current={isActive ? 'true' : 'false'}
-                  className={`group relative h-1.5 sm:h-2 rounded-full transition-all duration-300 cursor-pointer overflow-hidden ${
+                  className={`h-1.5 sm:h-2 rounded-full transition-all duration-300 cursor-pointer ${
                     isActive
-                      ? 'w-6 sm:w-8 bg-white shadow-sm'
-                      : 'w-1.5 sm:w-2 bg-white/30 hover:bg-white/60'
+                      ? 'w-6 sm:w-7 bg-white shadow-sm'
+                      : 'w-1.5 sm:w-2 bg-white/35 hover:bg-white/70'
                   }`}
                 >
-                  {/* Subtle timer fill for active slide */}
-                  {isActive && !isPaused && (
-                    <span
-                      key={`${currentIndex}-${userInteracted}`}
-                      className="absolute inset-0 bg-amber-400 rounded-full animate-progress"
-                      style={{
-                        animation: `heroProgress ${AUTOPLAY_INTERVAL}ms linear`,
-                      }}
-                    />
-                  )}
-                  <span className="sr-only">{slide.badgeLabel}</span>
+                  <span className="sr-only">Slaid {idx + 1}</span>
                 </button>
               );
             })}
-
-            {/* Slide Counter */}
-            <span className="text-[10px] sm:text-xs font-mono font-medium text-white/70 ml-1">
-              {currentIndex + 1}/{HERO_SLIDES.length}
-            </span>
-          </div>
-
-          {/* Quiet slide theme tag in top right */}
-          <div className="absolute top-2 right-2 sm:top-3 sm:right-4 z-20 pointer-events-none hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-md border border-white/10 text-[11px] font-medium text-white/90">
-            {React.createElement(currentSlide.icon, { className: 'w-3 h-3 text-amber-400' })}
-            <span>{currentSlide.badgeLabel}</span>
           </div>
         </div>
       </div>
