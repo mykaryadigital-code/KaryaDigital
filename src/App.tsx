@@ -37,6 +37,7 @@ import {
 export default function App() {
   const [books, setBooks] = useState<EBook[]>(INITIAL_EBOOKS);
   const [activeCategory, setActiveCategory] = useState<'semua' | BookCategory | 'percuma' | 'koleksi'>('semua');
+  const [selectedGenre, setSelectedGenre] = useState<string>('semua');
   const [searchQuery, setSearchQuery] = useState('');
   const [cart, setCart] = useState<CartItem[]>(() => [
     { book: INITIAL_EBOOKS[1], addedAt: Date.now() - 60000 },
@@ -549,6 +550,8 @@ export default function App() {
       {!searchQuery && activeCategory !== 'koleksi' && (
         <HeroBanner
           onExploreClick={handleScrollToCatalog}
+          onSelectCategory={setActiveCategory}
+          onSelectGenre={setSelectedGenre}
           onSelectBook={(bookId) => {
             const found = books.find((b) => b.id === bookId);
             if (found) setSelectedDetailBook(found);
@@ -571,6 +574,8 @@ export default function App() {
           books={books}
           activeCategory={activeCategory}
           onCategoryChange={setActiveCategory}
+          selectedGenre={selectedGenre}
+          onGenreChange={setSelectedGenre}
           ownedBookIds={user.ownedBookIds}
           cartBookIds={cart.map((c) => c.book.id)}
           onRead={handleOpenReader}

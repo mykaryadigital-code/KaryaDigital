@@ -14,6 +14,8 @@ interface BookGridProps {
   onViewDetails?: (book: EBook) => void;
   searchQuery: string;
   onClearSearch?: () => void;
+  selectedGenre?: string;
+  onGenreChange?: (genre: string) => void;
 }
 
 // Gabungan Genre Yang Bertindih kepada Kategori Padat & Jelas
@@ -41,8 +43,18 @@ export const BookGrid: React.FC<BookGridProps> = ({
   onViewDetails,
   searchQuery,
   onClearSearch,
+  selectedGenre: propSelectedGenre,
+  onGenreChange,
 }) => {
-  const [selectedGenre, setSelectedGenre] = useState<string>('semua');
+  const [internalGenre, setInternalGenre] = useState<string>('semua');
+  const selectedGenre = propSelectedGenre !== undefined ? propSelectedGenre : internalGenre;
+  const setSelectedGenre = (genre: string) => {
+    if (onGenreChange) {
+      onGenreChange(genre);
+    } else {
+      setInternalGenre(genre);
+    }
+  };
   const [priceFilter, setPriceFilter] = useState<'semua' | 'percuma' | 'berbayar'>('semua');
   const [sortBy, setSortBy] = useState<'default' | 'rating' | 'price-asc' | 'price-desc' | 'newest'>('default');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
