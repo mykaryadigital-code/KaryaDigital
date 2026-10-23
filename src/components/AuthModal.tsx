@@ -143,7 +143,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+      if (err.code === 'auth/operation-not-allowed') {
+        setErrorMessage(
+          'Penyedia E-mel & Kata Laluan belum diaktifkan di Firebase Console. Sila klik butang "Daftar Pantas dengan Google" di atas untuk log masuk serta-merta menggunakan akaun Google anda!'
+        );
+      } else if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
         setErrorMessage('E-mel atau kata laluan tidak tepat. Jika anda belum mendaftar, sila klik tab "Daftar Akaun" di atas.');
       } else if (err.code === 'auth/email-already-in-use') {
         setErrorMessage('E-mel ini telah pun didaftarkan. Sila pilih tab Log Masuk dan masukkan kata laluan.');
@@ -243,6 +247,20 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
                 <span className="leading-relaxed">{errorMessage}</span>
               </div>
+              {errorMessage.includes('Daftar Pantas dengan Google') && (
+                <div className="pt-2 border-t border-rose-200/80 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-rose-700 font-semibold">
+                    🚀 Kaedah aktif:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[11px] rounded-xl transition cursor-pointer shrink-0 shadow-xs flex items-center gap-1.5"
+                  >
+                    <span>Log Masuk Google Sekarang →</span>
+                  </button>
+                </div>
+              )}
               {errorMessage.includes('Authorized domains') && (
                 <div className="pt-1 border-t border-rose-200/80 flex items-center justify-between gap-2">
                   <span className="text-[11px] text-rose-700 font-semibold">
@@ -257,7 +275,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   </button>
                 </div>
               )}
-              {errorMessage.includes('Daftar Akaun') && !errorMessage.includes('Authorized domains') && mode === 'login' && (
+              {errorMessage.includes('Daftar Akaun') && !errorMessage.includes('Authorized domains') && !errorMessage.includes('Daftar Pantas dengan Google') && mode === 'login' && (
                 <div className="pt-1 border-t border-rose-200/80 text-right">
                   <button
                     type="button"
