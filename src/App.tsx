@@ -98,34 +98,9 @@ export default function App() {
     bookTitle: string;
   } | null>(null);
 
-  // User Profile State (Simulating registered Malaysian reader & syncing with Firebase / LocalStorage)
+  // User Profile State (Bersih untuk pengunjung & disegerak dengan Firebase / LocalStorage)
   const [user, setUser] = useState<UserProfile>(() => {
-    let savedBookmarks: Record<string, BookmarkEntry[]> = {
-      'novel-maktok': [
-        {
-          id: 'novel-maktok-bm',
-          bookId: 'novel-maktok',
-          pageNumber: 2,
-          totalSteps: 2,
-          chapterIndex: 1,
-          chapterTitle: 'Bab 2: Rahsia Sambal Tempoyak Daun Kayu',
-          excerpt: 'Tujuh jenis daun herba hutan dicari sendiri oleh Mak Tok...',
-          savedAt: new Date(Date.now() - 1800000).toISOString(),
-        },
-      ],
-      'novel-4': [
-        {
-          id: 'novel-4-p1',
-          bookId: 'novel-4',
-          pageNumber: 1,
-          totalSteps: 3,
-          chapterIndex: 0,
-          chapterTitle: 'Bab 1: Asas Manuskrip',
-          excerpt: 'Langkah pertama seorang penulis bermula dengan keberanian menulis baris pertama...',
-          savedAt: new Date(Date.now() - 3600000).toISOString(),
-        },
-      ],
-    };
+    let savedBookmarks: Record<string, BookmarkEntry[]> = {};
     try {
       const localBm = localStorage.getItem('karyadigital_user_bookmarks');
       if (localBm) {
@@ -151,12 +126,25 @@ export default function App() {
       console.warn('Ralat membaca peranan pengguna:', e);
     }
 
+    let savedOwnedBookIds: string[] = [];
+    try {
+      const localOwned = localStorage.getItem('karyadigital_owned_books');
+      if (localOwned) {
+        const parsed = JSON.parse(localOwned);
+        if (Array.isArray(parsed)) {
+          savedOwnedBookIds = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Ralat membaca buku milik dari localStorage:', e);
+    }
+
     return {
-      name: 'Aina Zulkifli',
-      email: 'aina@karyadigital.my',
-      balance: 45.0,
-      tier: 'Pembaca VIP Malaysia',
-      ownedBookIds: ['novel-maktok', 'novel-4'], // Naskhah Mak Tok sudah dalam rak untuk Sambung Membaca
+      name: 'Pembaca KaryaDigital',
+      email: '',
+      balance: 0.0,
+      tier: 'Pembaca Malaysia',
+      ownedBookIds: savedOwnedBookIds,
       bookmarks: savedBookmarks,
       role: savedRole,
       isAuthor: savedIsAuthor,
@@ -461,22 +449,28 @@ export default function App() {
           return {
             ...prev,
             uid: fbUser.uid,
-            name: fbUser.displayName || profile?.displayName || prev.name,
+            name: fbUser.displayName || profile?.displayName || (fbUser.email ? fbUser.email.split('@')[0] : prev.name),
             email: fbUser.email || prev.email,
             photoURL: fbUser.photoURL || profile?.photoURL || undefined,
             isLoggedIn: true,
             role: userRole,
             isAuthor,
-            tier: isSuperAdmin ? 'Super Admin Platform' : (profile?.tier || prev.tier),
+            balance: profile?.balance ?? 0.0,
+            tier: isSuperAdmin ? 'Super Admin Platform' : (profile?.tier || 'Pembaca Malaysia'),
           };
         });
       } else {
-        setUser((prev) => ({
-          ...prev,
-          uid: undefined,
-          photoURL: undefined,
+        setUser({
+          name: 'Pembaca KaryaDigital',
+          email: '',
+          balance: 0.0,
+          tier: 'Pembaca Malaysia',
+          ownedBookIds: [],
+          bookmarks: {},
+          role: 'reader',
+          isAuthor: false,
           isLoggedIn: false,
-        }));
+        });
       }
     });
     return () => unsubscribeAuth();
@@ -486,12 +480,21 @@ export default function App() {
   const handleSignOut = async () => {
     try {
       await signOutUser();
-      setUser((prev) => ({
-        ...prev,
-        uid: undefined,
-        photoURL: undefined,
+      try {
+        localStorage.removeItem('karyadigital_owned_books');
+        localStorage.removeItem('karyadigital_user_bookmarks');
+      } catch (e) {}
+      setUser({
+        name: 'Pembaca KaryaDigital',
+        email: '',
+        balance: 0.0,
+        tier: 'Pembaca Malaysia',
+        ownedBookIds: [],
+        bookmarks: {},
+        role: 'reader',
+        isAuthor: false,
         isLoggedIn: false,
-      }));
+      });
       triggerSecurityWarning('Anda telah berjaya log keluar dari akaun.', 'info');
     } catch (err: any) {
       console.warn('Gagal log keluar:', err);
@@ -503,15 +506,25 @@ export default function App() {
     const currentUid = auth.currentUser?.uid;
     if (currentUid) {
       const unsubscribeBooks = subscribeToPurchasedBooks(currentUid, (firestoreBooks) => {
-        if (firestoreBooks && firestoreBooks.length > 0) {
-          const bookIds = firestoreBooks.map((b) => b.bookId);
-          setUser((prev) => ({
-            ...prev,
-            ownedBookIds: Array.from(new Set([...prev.ownedBookIds, ...bookIds])),
-          }));
-        }
+        const bookIds = Array.isArray(firestoreBooks) ? firestoreBooks.map((b) => b.bookId) : [];
+        setUser((prev) => ({
+          ...prev,
+          ownedBookIds: bookIds,
+        }));
       });
       return () => unsubscribeBooks();
+    } else {
+      try {
+        const localOwned = localStorage.getItem('karyadigital_owned_books');
+        if (localOwned) {
+          const parsed = JSON.parse(localOwned);
+          if (Array.isArray(parsed)) {
+            setUser((prev) => ({ ...prev, ownedBookIds: parsed }));
+            return;
+          }
+        }
+      } catch (e) {}
+      setUser((prev) => ({ ...prev, ownedBookIds: [] }));
     }
   }, [auth.currentUser?.uid]);
 
