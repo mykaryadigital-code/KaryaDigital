@@ -69,7 +69,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }, 700);
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/popup-closed-by-user') {
+      if (err.code === 'auth/unauthorized-domain') {
+        const hostname = typeof window !== 'undefined' ? window.location.hostname : 'mykarya.digital';
+        setErrorMessage(
+          `Domain (${hostname}) belum didaftarkan dalam senarai "Authorized domains" Firebase Authentication Console untuk Google Sign-In. Sila gunakan pilihan E-mel & Kata Laluan di bawah, atau daftar akaun baharu.`
+        );
+      } else if (err.code === 'auth/popup-closed-by-user') {
         setErrorMessage('Tetingkap log masuk Google ditutup sebelum selesai.');
       } else if (err.code === 'auth/cancelled-popup-request') {
         setErrorMessage('Permintaan dibatalkan.');
@@ -138,12 +143,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
     } catch (err: any) {
       console.error(err);
-      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password') {
-        setErrorMessage('E-mel atau kata laluan tidak tepat. Sila semak semula.');
-      } else if (err.code === 'auth/user-not-found') {
-        setErrorMessage('Akaun tidak dijumpai. Adakah anda ingin mendaftar akaun baharu?');
+      if (err.code === 'auth/invalid-credential' || err.code === 'auth/wrong-password' || err.code === 'auth/user-not-found') {
+        setErrorMessage('E-mel atau kata laluan tidak tepat. Jika anda belum mendaftar, sila klik tab "Daftar Akaun" di atas.');
       } else if (err.code === 'auth/email-already-in-use') {
-        setErrorMessage('E-mel ini telah pun didaftarkan. Sila pilih tab Log Masuk.');
+        setErrorMessage('E-mel ini telah pun didaftarkan. Sila pilih tab Log Masuk dan masukkan kata laluan.');
       } else if (err.code === 'auth/weak-password') {
         setErrorMessage('Kata laluan terlalu mudah. Gunakan sekurang-kurangnya 6 aksara kukuh.');
       } else {
@@ -235,9 +238,36 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         <div className="p-5 sm:p-6 space-y-4">
           {/* Error & Success Feedback alerts */}
           {errorMessage && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-start gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
-              <span>{errorMessage}</span>
+            <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs space-y-2">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-rose-600" />
+                <span className="leading-relaxed">{errorMessage}</span>
+              </div>
+              {errorMessage.includes('Authorized domains') && (
+                <div className="pt-1 border-t border-rose-200/80 flex items-center justify-between gap-2">
+                  <span className="text-[11px] text-rose-700 font-semibold">
+                    💡 Gunakan borang E-mel di bawah:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => switchMode('register')}
+                    className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white font-bold text-[11px] rounded-lg transition cursor-pointer shrink-0"
+                  >
+                    Daftar Akaun Baharu →
+                  </button>
+                </div>
+              )}
+              {errorMessage.includes('Daftar Akaun') && !errorMessage.includes('Authorized domains') && mode === 'login' && (
+                <div className="pt-1 border-t border-rose-200/80 text-right">
+                  <button
+                    type="button"
+                    onClick={() => switchMode('register')}
+                    className="text-[11px] font-bold text-rose-700 hover:text-rose-900 underline cursor-pointer"
+                  >
+                    Tukar ke Tab Daftar Akaun →
+                  </button>
+                </div>
+              )}
             </div>
           )}
           {successMessage && (
@@ -415,16 +445,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               )}
             </button>
           </form>
-
-          {/* Super Admin Info Hint */}
-          {mode === 'login' && (
-            <div className="pt-1 text-center">
-              <p className="text-[11px] text-slate-400">
-                👑 Pentadbir Platform: Log masuk menggunakan e-mel rasmi{' '}
-                <span className="font-mono text-indigo-600 font-bold">mykaryadigital@gmail.com</span> untuk akses Super Admin.
-              </p>
-            </div>
-          )}
 
           {/* Back to Login link when in Forgot mode */}
           {mode === 'forgot' && (
