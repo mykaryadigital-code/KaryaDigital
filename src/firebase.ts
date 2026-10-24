@@ -21,6 +21,7 @@ import {
   getDocs,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
 } from 'firebase/firestore';
 import firebaseConfig from '../firebase-applet-config.json';
@@ -380,6 +381,16 @@ export async function getPublishedBooksFromFirestore(): Promise<any[]> {
   } catch (error) {
     console.warn('[Firestore] Gagal membaca published_books:', error);
     return [];
+  }
+}
+
+export async function deleteBookFromFirestore(bookId: string): Promise<void> {
+  try {
+    const bookDocRef = doc(db, 'published_books', bookId);
+    await deleteDoc(bookDocRef);
+    console.log(`[Firestore] Naskhah ${bookId} berjaya dipadam dari published_books`);
+  } catch (error) {
+    console.warn('[Firestore] Gagal memadam dari published_books:', error);
   }
 }
 

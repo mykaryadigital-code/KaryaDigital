@@ -20,6 +20,7 @@ import {
   ChevronRight,
   BookOpen,
   FileUp,
+  Edit3,
 } from 'lucide-react';
 import { EBook, BookCategory } from '../types/ebook.ts';
 
@@ -34,6 +35,8 @@ interface AuthorPublishModalProps {
   initialTab?: AuthorPortalTab;
   onBecomeAuthor?: () => void;
   authorBooks?: EBook[];
+  onEditBook?: (book: EBook) => void;
+  onDeleteBook?: (bookId: string) => void;
 }
 
 const HARDCOVER_THEMES = [
@@ -53,6 +56,8 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   initialTab,
   onBecomeAuthor,
   authorBooks = [],
+  onEditBook,
+  onDeleteBook,
 }) => {
   type TabKey = 'dashboard' | 'borang' | 'panduan' | 'royalti';
 
@@ -591,15 +596,43 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="hidden sm:inline-flex text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          Telah Terbit
-                        </span>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        {onEditBook && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onEditBook(bk as EBook);
+                            }}
+                            className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1 active:scale-95"
+                            title="Edit & Kemas Kini Maklumat Naskhah"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Edit</span>
+                          </button>
+                        )}
+                        {onDeleteBook && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Adakah anda pasti ingin memadam naskhah "${bk.title}"?\n\nKarya ini akan ditarik balik daripada katalog jualan KaryaDigital.`
+                                )
+                              ) {
+                                onDeleteBook(bk.id);
+                              }
+                            }}
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
+                            title="Tarik Balik / Padam Naskhah"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             onClose();
                           }}
-                          className="px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 font-semibold text-xs transition cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-slate-700 font-semibold text-xs transition cursor-pointer"
                         >
                           Lihat Katalog
                         </button>

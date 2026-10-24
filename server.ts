@@ -23,6 +23,7 @@ import {
 import {
   getAllPublishedBooks,
   savePublishedBookToStorage,
+  deletePublishedBookFromStorage,
 } from './src/server/bookStorage.ts';
 
 dotenv.config();
@@ -496,6 +497,44 @@ app.get('/api/books/published', (_req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Get Published Books Error]:', error);
     return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * PUT /api/books/:id
+ * Mengemas kini butiran naskhah yang telah diterbitkan
+ */
+app.put('/api/books/:id', async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const bookData = { ...req.body, id };
+    const result = await savePublishedBookToStorage(bookData);
+    return res.json({
+      success: true,
+      message: `Naskhah "${result.book.title}" berjaya dikemas kini!`,
+      book: result.book,
+    });
+  } catch (error: any) {
+    console.error('[Update Book Error]:', error);
+    return res.status(500).json({ success: false, error: 'Gagal mengemas kini naskhah: ' + error.message });
+  }
+});
+
+/**
+ * DELETE /api/books/:id
+ * Memadam naskhah daripada pangkalan data pelayan dan menarik balik penerbitan
+ */
+app.delete('/api/books/:id', (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const deleted = deletePublishedBookFromStorage(id);
+    return res.json({
+      success: deleted,
+      message: deleted ? `Naskhah ${id} berjaya dipadam dari sistem.` : `Naskhah ${id} tidak ditemui.`,
+    });
+  } catch (error: any) {
+    console.error('[Delete Book Error]:', error);
+    return res.status(500).json({ success: false, error: 'Gagal memadam naskhah: ' + error.message });
   }
 });
 

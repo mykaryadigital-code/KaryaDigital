@@ -125,3 +125,19 @@ export async function savePublishedBookToStorage(book: PublishedBookPayload): Pr
     isR2Direct: r2Result.isR2Direct,
   };
 }
+
+/**
+ * Memadam naskhah daripada storan pelayan
+ */
+export function deletePublishedBookFromStorage(bookId: string): boolean {
+  try {
+    const currentBooks = getAllPublishedBooks();
+    const filtered = currentBooks.filter((b) => b.id !== bookId);
+    fs.writeFileSync(BOOKS_FILE, JSON.stringify(filtered, null, 2), 'utf-8');
+    console.log(`[BookStorage] Naskhah "${bookId}" berjaya dipadam dari simpanan pelayan.`);
+    return true;
+  } catch (err) {
+    console.error('[BookStorage] Gagal memadam dari published_books.json:', err);
+    return false;
+  }
+}

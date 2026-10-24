@@ -21,6 +21,7 @@ import { AuthorPublishModal } from './components/AuthorPublishModal.tsx';
 import { ReaderHelpModal, ReaderHelpTab } from './components/ReaderHelpModal.tsx';
 import { AuthModal } from './components/AuthModal.tsx';
 import { AdminDashboardModal } from './components/AdminDashboardModal.tsx';
+import { EditBookModal } from './components/EditBookModal.tsx';
 import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent, BookmarkEntry } from './types/ebook.ts';
@@ -36,6 +37,7 @@ import {
   recordOrderInFirestore,
   saveBookToFirestore,
   getPublishedBooksFromFirestore,
+  deleteBookFromFirestore,
 } from './firebase.ts';
 
 export default function App() {
@@ -65,6 +67,8 @@ export default function App() {
   const [isReaderOpen, setIsReaderOpen] = useState(false);
   const [voucherCode, setVoucherCode] = useState<string>('KARYALOKAL');
   const [securityToasts, setSecurityToasts] = useState<SecurityToastEvent[]>([]);
+  const [editingBook, setEditingBook] = useState<EBook | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // BCL (Bayarcash Commerce Layer) Bill Data State
   const [bclBill, setBclBill] = useState<{
@@ -629,6 +633,75 @@ export default function App() {
     );
   };
 
+  // Open Edit Book Modal
+  const handleOpenEditBook = (book: EBook) => {
+    setEditingBook(book);
+    setIsEditModalOpen(true);
+  };
+
+  // Save Edited Book (Kemas kini dalam state, LocalStorage, Cloudflare R2 & Firestore)
+  const handleSaveEditedBook = (updatedBook: EBook) => {
+    setBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+
+    // Simpan ke LocalStorage
+    try {
+      const saved = localStorage.getItem('karyadigital_published_books');
+      if (saved) {
+        const list: EBook[] = JSON.parse(saved);
+        const idx = list.findIndex((b) => b.id === updatedBook.id);
+        if (idx >= 0) {
+          list[idx] = updatedBook;
+        } else {
+          list.unshift(updatedBook);
+        }
+        localStorage.setItem('karyadigital_published_books', JSON.stringify(list));
+      }
+    } catch (e) {
+      console.warn('Ralat mengemas kini localStorage:', e);
+    }
+
+    // Simpan ke Firestore
+    saveBookToFirestore(updatedBook).catch(console.warn);
+
+    // Simpan ke Pelayan / R2
+    fetch(`/api/books/${updatedBook.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedBook),
+    }).catch(console.warn);
+
+    triggerSecurityWarning(`Naskhah "${updatedBook.title}" berjaya dikemas kini!`, 'info');
+  };
+
+  // Padam / Tarik Balik Naskhah (State, LocalStorage, Firestore & Pelayan)
+  const handleDeleteBook = (bookId: string) => {
+    const targetBook = books.find((b) => b.id === bookId);
+    setBooks((prev) => prev.filter((b) => b.id !== bookId));
+
+    // Padam dari LocalStorage
+    try {
+      const saved = localStorage.getItem('karyadigital_published_books');
+      if (saved) {
+        const list: EBook[] = JSON.parse(saved);
+        const filtered = list.filter((b) => b.id !== bookId);
+        localStorage.setItem('karyadigital_published_books', JSON.stringify(filtered));
+      }
+    } catch (e) {
+      console.warn('Ralat memadam dari localStorage:', e);
+    }
+
+    // Padam dari Firestore
+    deleteBookFromFirestore(bookId).catch(console.warn);
+
+    // Padam dari Pelayan
+    fetch(`/api/books/${bookId}`, { method: 'DELETE' }).catch(console.warn);
+
+    triggerSecurityWarning(
+      `Naskhah "${targetBook?.title || bookId}" telah berjaya dipadam daripada katalog jualan.`,
+      'info'
+    );
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 text-slate-800 protected-content pb-16 md:pb-0 overflow-x-hidden w-full max-w-full">
       {/* Header & Navigation */}
@@ -823,6 +896,8 @@ export default function App() {
             b.author.toLowerCase() === user.name.toLowerCase() ||
             b.id.startsWith('karya-user-')
         )}
+        onEditBook={handleOpenEditBook}
+        onDeleteBook={handleDeleteBook}
       />
 
       {/* Reader Help Modal (Panduan Membaca dalam Pelayar, FAQ & Bayaran, Polisi Privasi & Terma) */}
@@ -865,7 +940,23 @@ export default function App() {
         books={books}
         currentUser={user}
         onPreviewBook={handleOpenReader}
+        onEditBook={handleOpenEditBook}
+        onDeleteBook={handleDeleteBook}
       />
+
+      {/* Edit Book Modal (Kemas Kini Butiran & Tarik Balik Naskhah) */}
+      {isEditModalOpen && (
+        <EditBookModal
+          isOpen={isEditModalOpen}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditingBook(null);
+          }}
+          book={editingBook}
+          onSave={handleSaveEditedBook}
+          onDelete={handleDeleteBook}
+        />
+      )}
 
       {/* Mobile Bottom Navigation Bar (Utama, Cari, Rak Saya, Akaun) */}
       <MobileBottomNav

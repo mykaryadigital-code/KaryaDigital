@@ -23,6 +23,8 @@ import {
   ChevronRight,
   Coins,
   Check,
+  Edit3,
+  Trash2,
 } from 'lucide-react';
 import { EBook, UserProfile } from '../types/ebook.ts';
 import { formatMYR } from '../utils/ebookLogic.ts';
@@ -34,6 +36,8 @@ interface AdminDashboardModalProps {
   currentUser: UserProfile;
   onPreviewBook?: (book: EBook) => void;
   onToggleBookFeatured?: (bookId: string) => void;
+  onEditBook?: (book: EBook) => void;
+  onDeleteBook?: (bookId: string) => void;
 }
 
 interface OrderRecord {
@@ -68,6 +72,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   books,
   currentUser,
   onPreviewBook,
+  onEditBook,
+  onDeleteBook,
 }) => {
   const [activeTab, setActiveTab] = useState<'ringkasan' | 'katalog' | 'transaksi' | 'penulis' | 'tetapan'>('ringkasan');
   const [searchKatalog, setSearchKatalog] = useState('');
@@ -629,15 +635,48 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             </span>
                           </td>
                           <td className="py-3 px-4 text-right">
-                            {onPreviewBook && (
-                              <button
-                                type="button"
-                                onClick={() => onPreviewBook(book)}
-                                className="px-3 py-1 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition cursor-pointer"
-                              >
-                                Baca / Semak
-                              </button>
-                            )}
+                            <div className="flex items-center justify-end gap-1.5">
+                              {onPreviewBook && (
+                                <button
+                                  type="button"
+                                  onClick={() => onPreviewBook(book)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                                  title="Baca / Semak Kandungan Naskhah"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">Semak</span>
+                                </button>
+                              )}
+                              {onEditBook && (
+                                <button
+                                  type="button"
+                                  onClick={() => onEditBook(book)}
+                                  className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1 active:scale-95"
+                                  title="Edit & Kemas Kini Maklumat Naskhah"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                                  <span>Edit</span>
+                                </button>
+                              )}
+                              {onDeleteBook && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (
+                                      window.confirm(
+                                        `Adakah anda pasti ingin memadam naskhah "${book.title}"?\n\nNaskhah ini akan dikeluarkan daripada katalog jualan platform KaryaDigital.`
+                                      )
+                                    ) {
+                                      onDeleteBook(book.id);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
+                                  title="Padam Naskhah daripada Katalog"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                </button>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       ))}
