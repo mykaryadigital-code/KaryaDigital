@@ -903,6 +903,7 @@ export default function App() {
           handleOpenReader(b);
         }}
         onAddToCart={(b) => handleAddToCart(b)}
+        currentUserName={user.isLoggedIn && user.name && user.name !== 'Pembaca KaryaDigital' ? user.name : ''}
       />
 
       {/* Portal Penulis & Dashboard Penulis Modal */}

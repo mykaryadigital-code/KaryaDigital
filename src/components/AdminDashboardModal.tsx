@@ -153,8 +153,8 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [payouts, setPayouts] = useState<AuthorPayoutRequest[]>([
     {
       id: 'po-1',
-      authorName: 'Bang Karim',
-      authorEmail: 'bangkarim@karyadigital.my',
+      authorName: 'Karim Rahman',
+      authorEmail: 'karim.rahman@karyadigital.my',
       bankName: 'Maybank',
       accountNumber: '1640-5231-9011',
       amount: 875.0,

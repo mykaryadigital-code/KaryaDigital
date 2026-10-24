@@ -39,21 +39,21 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   isInCart,
   onRead,
   onAddToCart,
-  currentUserName = 'Bang Karim',
+  currentUserName = '',
   onUpdateBookRating,
 }) => {
   // Star rating state
   const [selectedStars, setSelectedStars] = useState<number>(5);
   const [hoverStars, setHoverStars] = useState<number | null>(null);
   const [reviewComment, setReviewComment] = useState('');
-  const [reviewerName, setReviewerName] = useState(currentUserName);
+  const [reviewerName, setReviewerName] = useState(currentUserName || '');
   const [submittedSuccess, setSubmittedSuccess] = useState(false);
   const [reviewsList, setReviewsList] = useState<BookReviewItem[]>([]);
 
   // Load reviews from localStorage on open / book change
   useEffect(() => {
     if (!book) return;
-    setReviewerName(currentUserName);
+    setReviewerName(currentUserName || '');
 
     // 1. Load from local cache
     try {
@@ -349,7 +349,7 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                     type="text"
                     value={reviewerName}
                     onChange={(e) => setReviewerName(e.target.value)}
-                    placeholder="Nama anda (cth: Bang Karim)"
+                    placeholder="Nama anda (pilihan)"
                     className="w-full sm:w-1/3 px-3 py-1.5 text-xs rounded-lg border border-slate-200 focus:border-indigo-600 focus:outline-none bg-slate-50"
                   />
                   <input

@@ -82,7 +82,9 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
 
   // Form State
   const [title, setTitle] = useState('');
-  const [authorName, setAuthorName] = useState(currentUserName || 'Bang Karim');
+  const [authorName, setAuthorName] = useState(
+    currentUserName && currentUserName !== 'Pembaca KaryaDigital' ? currentUserName : ''
+  );
   const [category, setCategory] = useState<BookCategory>('novel');
   const [genre, setGenre] = useState('Misteri & Thriller');
   const [pricingType, setPricingType] = useState<'berbayar' | 'percuma'>('berbayar');
@@ -202,7 +204,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
             setTitle(parsed.title);
           }
         }
-        if (parsed.author && (!authorName || authorName === 'Bang Karim' || authorName === 'Penulis Tempatan')) {
+        if (parsed.author && (!authorName || authorName === 'Penulis Tempatan')) {
           setAuthorName(parsed.author);
         }
       } catch (err) {

@@ -41,8 +41,8 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
   onApplyVoucher,
   onTriggerToyyibPay,
   onTriggerBclPayment,
-  currentUserEmail = 'bangkarim@karyadigital.my',
-  currentUserName = 'Bang Karim',
+  currentUserEmail = '',
+  currentUserName = '',
   isLoggedIn = false,
   onOpenAuthModal,
 }) => {
