@@ -57,8 +57,55 @@ export interface PublishedBookPayload {
   };
 }
 
+const DELETED_BOOKS_FILE = path.join(DATA_DIR, 'deleted_books.json');
+
 /**
- * Membaca semua buku yang telah diterbitkan dari fail persistent pelayan
+ * Mendapatkan senarai ID naskhah yang telah dipadam secara kekal
+ */
+export function getDeletedBookIds(): string[] {
+  try {
+    if (!fs.existsSync(DELETED_BOOKS_FILE)) {
+      return [];
+    }
+    const raw = fs.readFileSync(DELETED_BOOKS_FILE, 'utf-8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (err) {
+    console.error('[BookStorage] Ralat membaca deleted_books.json:', err);
+    return [];
+  }
+}
+
+/**
+ * Merekod ID naskhah ke dalam senarai naskhah dipadam (tombstone)
+ */
+export function recordDeletedBookId(bookId: string): void {
+  try {
+    const list = getDeletedBookIds();
+    if (!list.includes(bookId)) {
+      list.push(bookId);
+      fs.writeFileSync(DELETED_BOOKS_FILE, JSON.stringify(list, null, 2), 'utf-8');
+      console.log(`[BookStorage] Tombstone direkodkan untuk naskhah: ${bookId}`);
+    }
+  } catch (err) {
+    console.error('[BookStorage] Gagal menulis ke deleted_books.json:', err);
+  }
+}
+
+/**
+ * Menyah-rekod naskhah daripada tombstone jika diterbitkan semula
+ */
+export function unmarkDeletedBookId(bookId: string): void {
+  try {
+    const list = getDeletedBookIds().filter((id) => id !== bookId);
+    fs.writeFileSync(DELETED_BOOKS_FILE, JSON.stringify(list, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('[BookStorage] Gagal mengemas kini deleted_books.json:', err);
+  }
+}
+
+/**
+ * Membaca semua buku yang telah diterbitkan dari fail persistent pelayan (menolak naskhah yang telah dipadam)
  */
 export function getAllPublishedBooks(): PublishedBookPayload[] {
   try {
@@ -68,7 +115,10 @@ export function getAllPublishedBooks(): PublishedBookPayload[] {
     }
     const raw = fs.readFileSync(BOOKS_FILE, 'utf-8');
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+
+    const deletedIds = new Set(getDeletedBookIds());
+    return parsed.filter((b) => !deletedIds.has(b.id));
   } catch (error) {
     console.error('[BookStorage] Ralat membaca fail published_books.json:', error);
     return [];
@@ -83,6 +133,9 @@ export async function savePublishedBookToStorage(book: PublishedBookPayload): Pr
   r2Key: string;
   isR2Direct: boolean;
 }> {
+  // Jika pernah dipadam, nyah-rekod daripada senarai tombstone
+  unmarkDeletedBookId(book.id);
+
   const r2Key = `ebooks/${book.id}.json`;
   const manuscriptContent = JSON.stringify(book, null, 2);
 
@@ -130,17 +183,44 @@ export async function savePublishedBookToStorage(book: PublishedBookPayload): Pr
 }
 
 /**
- * Memadam naskhah daripada storan pelayan
+ * Memadam naskhah daripada storan pelayan secara kekal dan menyimpan rekod tombstone
  */
 export function deletePublishedBookFromStorage(bookId: string): boolean {
   try {
-    const currentBooks = getAllPublishedBooks();
-    const filtered = currentBooks.filter((b) => b.id !== bookId);
+    recordDeletedBookId(bookId);
+    const raw = fs.existsSync(BOOKS_FILE) ? fs.readFileSync(BOOKS_FILE, 'utf-8') : '[]';
+    const allBooks: PublishedBookPayload[] = JSON.parse(raw);
+    const filtered = allBooks.filter((b) => b.id !== bookId);
     fs.writeFileSync(BOOKS_FILE, JSON.stringify(filtered, null, 2), 'utf-8');
-    console.log(`[BookStorage] Naskhah "${bookId}" berjaya dipadam dari simpanan pelayan.`);
+    console.log(`[BookStorage] Naskhah "${bookId}" berjaya dipadam dari simpanan pelayan dan direkod ke tombstone.`);
     return true;
   } catch (err) {
     console.error('[BookStorage] Gagal memadam dari published_books.json:', err);
     return false;
+  }
+}
+
+/**
+ * Memadam SEMUA naskhah muat naik daripada storan pelayan secara kekal
+ */
+export function purgeAllPublishedBooksFromStorage(): string[] {
+  try {
+    const raw = fs.existsSync(BOOKS_FILE) ? fs.readFileSync(BOOKS_FILE, 'utf-8') : '[]';
+    const allBooks: PublishedBookPayload[] = JSON.parse(raw);
+    const purgedIds = allBooks.map((b) => b.id);
+    for (const id of purgedIds) {
+      recordDeletedBookId(id);
+    }
+    // Pastikan ID default juga direkod
+    recordDeletedBookId('karya-janda-bukan-akhir');
+    recordDeletedBookId('karya-user-1792809354728');
+    recordDeletedBookId('karya-user-1792513665252');
+
+    fs.writeFileSync(BOOKS_FILE, JSON.stringify([], null, 2), 'utf-8');
+    console.log(`[BookStorage] Semua naskhah muat naik berjaya dipadam secara pukal.`);
+    return Array.from(new Set([...purgedIds, 'karya-janda-bukan-akhir', 'karya-user-1792809354728', 'karya-user-1792513665252']));
+  } catch (err) {
+    console.error('[BookStorage] Gagal mengosongkan published_books.json:', err);
+    return [];
   }
 }

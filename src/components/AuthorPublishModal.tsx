@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import { EBook, BookCategory, Chapter } from '../types/ebook.ts';
 import { parseEpubFile } from '../utils/epubParser.ts';
+import { isUserBookOwner } from '../utils/ebookLogic.ts';
 
 export type AuthorPortalTab = 'dashboard' | 'borang' | 'panduan' | 'royalti' | 'guide' | 'royalty' | 'register';
 
@@ -42,6 +43,7 @@ interface AuthorPublishModalProps {
   authorBooks?: EBook[];
   onEditBook?: (book: EBook) => void;
   onDeleteBook?: (bookId: string) => void;
+  onOpenAuthModal?: () => void;
 }
 
 const HARDCOVER_THEMES = [
@@ -65,6 +67,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   authorBooks = [],
   onEditBook,
   onDeleteBook,
+  onOpenAuthModal,
 }) => {
   type TabKey = 'dashboard' | 'borang' | 'panduan' | 'royalti';
 
@@ -129,6 +132,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   // Submission State
   const [submittedBook, setSubmittedBook] = useState<EBook | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [deletingBookId, setDeletingBookId] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -660,36 +664,58 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                         </div>
 
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {onEditBook && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                onEditBook(bk as EBook);
-                              }}
-                              className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1 active:scale-95"
-                              title="Edit & Kemas Kini Maklumat Naskhah"
-                            >
-                              <Edit3 className="w-3.5 h-3.5 text-amber-700" />
-                              <span>Edit</span>
-                            </button>
-                          )}
+                          {onEditBook &&
+                            isUserBookOwner(bk as EBook, {
+                              uid: currentUserUid,
+                              email: currentUserEmail,
+                              name: currentUserName,
+                              isLoggedIn: Boolean(currentUserEmail),
+                            }) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  onEditBook(bk as EBook);
+                                }}
+                                className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1 active:scale-95"
+                                title="Edit & Kemas Kini Maklumat Naskhah"
+                              >
+                                <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                                <span>Edit</span>
+                              </button>
+                            )}
+
                           {onDeleteBook && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (
-                                  window.confirm(
-                                    `Adakah anda pasti ingin memadam naskhah "${bk.title}"?\n\nKarya ini akan ditarik balik daripada katalog jualan KaryaDigital.`
-                                  )
-                                ) {
-                                  onDeleteBook(bk.id);
-                                }
-                              }}
-                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
-                              title="Tarik Balik / Padam Naskhah"
-                            >
-                              <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                            </button>
+                            deletingBookId === bk.id ? (
+                              <div className="flex items-center gap-1 animate-in fade-in">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    onDeleteBook(bk.id);
+                                    setDeletingBookId(null);
+                                  }}
+                                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition cursor-pointer active:scale-95 shadow-xs"
+                                  title="Sahkan Padam Naskhah"
+                                >
+                                  Padamkan!
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletingBookId(null)}
+                                  className="px-2 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer"
+                                >
+                                  Batal
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setDeletingBookId(bk.id)}
+                                className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
+                                title="Padam Naskhah"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                              </button>
+                            )
                           )}
                           <button
                             type="button"
@@ -710,19 +736,43 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                       <BookOpen className="w-6 h-6" />
                     </div>
                     <div>
-                      <h6 className="font-bold text-slate-800 text-sm">Tiada Naskhah Diterbitkan Lagi</h6>
+                      <h6 className="font-bold text-slate-800 text-sm">
+                        {!currentUserEmail
+                          ? 'Sila Log Masuk untuk Paparan Naskhah Anda'
+                          : 'Tiada Naskhah Diterbitkan Lagi'}
+                      </h6>
                       <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
-                        Anda belum menerbitkan sebarang naskhah di bawah akaun ini. Naskhah yang anda terbitkan akan dipaparkan di sini untuk tujuan suntingan dan royalti.
+                        {!currentUserEmail
+                          ? 'Log masuk ke akaun anda (contohnya Super Admin mykaryadigital@gmail.com atau Bang Karim) supaya senarai karya dan royalti anda dimuatkan serta-merta.'
+                          : `Anda belum menerbitkan sebarang naskhah di bawah akaun (${currentUserEmail}). Naskhah yang anda terbitkan akan dipaparkan di sini untuk tujuan suntingan dan royalti.`}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('borang')}
-                      className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer shadow-xs inline-flex items-center gap-1.5"
-                    >
-                      <Plus className="w-4 h-4" />
-                      <span>Terbit Naskhah Baharu Sekarang</span>
-                    </button>
+                    <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                      {!currentUserEmail && onOpenAuthModal && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onOpenAuthModal();
+                          }}
+                          className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer shadow-xs inline-flex items-center gap-1.5 active:scale-95"
+                        >
+                          <span>Log Masuk Akaun Sekarang</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setActiveTab('borang')}
+                        className={`px-4 py-2 rounded-xl font-bold text-xs transition cursor-pointer shadow-xs inline-flex items-center gap-1.5 active:scale-95 ${
+                          !currentUserEmail
+                            ? 'bg-white hover:bg-slate-100 text-slate-700 border border-slate-200'
+                            : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                        }`}
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Terbit Naskhah Baharu Sekarang</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>

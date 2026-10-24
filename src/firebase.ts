@@ -12,6 +12,7 @@ import {
   User,
 } from 'firebase/auth';
 import {
+  initializeFirestore,
   getFirestore,
   doc,
   getDoc,
@@ -29,8 +30,21 @@ import firebaseConfig from '../firebase-applet-config.json';
 // Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 
-// CRITICAL: Initialize Firestore with configured firestoreDatabaseId as required by AI Studio Firebase Skill
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// CRITICAL: Initialize Firestore with configured firestoreDatabaseId and experimentalForceLongPolling
+// to prevent streaming connection timeouts in browser sandbox/preview environments
+let firestoreInstance;
+try {
+  firestoreInstance = initializeFirestore(
+    app,
+    {
+      experimentalForceLongPolling: true,
+    },
+    firebaseConfig.firestoreDatabaseId
+  );
+} catch {
+  firestoreInstance = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+}
+export const db = firestoreInstance;
 export const auth = getAuth(app);
 
 // Provider
@@ -97,7 +111,7 @@ export async function testConnection(): Promise<boolean> {
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.error('Sila semak konfigurasi Firebase anda (Client offline).');
+      console.warn('[Firebase] Mod luar talian dikesan.');
     } else {
       // Document may not exist, but network reachability is verified
       console.log('[Firebase] Sambungan Firestore aktif.');

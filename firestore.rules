@@ -82,8 +82,9 @@ service cloud.firestore {
     // Published Books Collection (Katalog Karya Komuniti & Penulis Asli)
     match /published_books/{bookId} {
       allow read: if true;
-      allow create, update: if true;
-      allow delete: if false;
+      allow create: if true;
+      allow update: if true;
+      allow delete: if true;
     }
   }
 }

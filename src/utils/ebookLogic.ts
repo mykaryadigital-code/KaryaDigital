@@ -326,13 +326,12 @@ export function isUserBookOwner(
     return false;
   }
 
-  // 4. Jika naskhah belum mempunyai authorUid atau authorEmail (karya sedia ada):
-  // Sahkan nama pengarang sepadan dengan nama pengguna atau username emel
+  // 4. Jika naskhah belum mempunyai authorUid atau authorEmail (karya legacy/luar talian):
+  // Hanya benarkan jika tiada pertikaian identiti dan nama sepadan tepat (TIDAK benarkan substring sembarangan)
   const authorName = (book.author || '').trim().toLowerCase();
   const userName = (user.name || '').trim().toLowerCase();
   const emailPrefix = userEmail ? userEmail.split('@')[0] : '';
 
-  // Buang aksara nombor dan ruang untuk semakan nama asas (contoh: "bangkarim79" -> "bangkarim" sepadan "bang karim")
   const normAuthor = authorName.replace(/[^a-z]/g, '');
   const normUser = userName.replace(/[^a-z]/g, '');
   const normPrefix = emailPrefix.replace(/[^a-z]/g, '');
@@ -341,18 +340,13 @@ export function isUserBookOwner(
     !normUser ||
     normUser === 'pembacakaryadigital' ||
     normUser === 'pembaca' ||
-    normUser === 'tetamu';
+    normUser === 'tetamu' ||
+    normUser === 'pengguna';
 
-  if (!isGenericName && normAuthor) {
-    const isDirectMatch = normAuthor === normUser || normAuthor === normPrefix;
-    const isSubstringMatch =
-      normAuthor.length >= 4 &&
-      (normUser.includes(normAuthor) ||
-        normAuthor.includes(normUser) ||
-        normPrefix.includes(normAuthor) ||
-        normAuthor.includes(normPrefix));
-
-    if (isDirectMatch || isSubstringMatch) {
+  // Strict: Hanya jika pengarang belum ditetapkan emel/UID, dan nama pengguna atau awalan emel sepadan TEPAT
+  if (!isGenericName && normAuthor && normAuthor.length >= 4) {
+    const isExactMatch = normAuthor === normUser || normAuthor === normPrefix;
+    if (isExactMatch) {
       if (bookUid && userUid && bookUid !== userUid) return false;
       if (bookEmail && userEmail && bookEmail !== userEmail) return false;
       return true;

@@ -24,6 +24,8 @@ import {
   getAllPublishedBooks,
   savePublishedBookToStorage,
   deletePublishedBookFromStorage,
+  purgeAllPublishedBooksFromStorage,
+  getDeletedBookIds,
 } from './src/server/bookStorage.ts';
 
 dotenv.config();
@@ -535,6 +537,38 @@ app.delete('/api/books/:id', (req: Request, res: Response) => {
   } catch (error: any) {
     console.error('[Delete Book Error]:', error);
     return res.status(500).json({ success: false, error: 'Gagal memadam naskhah: ' + error.message });
+  }
+});
+
+/**
+ * GET /api/books/deleted
+ * Mengambil senarai ID naskhah yang telah dipadam secara kekal (tombstone)
+ */
+app.get('/api/books/deleted', (_req: Request, res: Response) => {
+  try {
+    const deletedIds = getDeletedBookIds();
+    return res.json({ success: true, count: deletedIds.length, deletedIds });
+  } catch (error: any) {
+    console.error('[Get Deleted Books Error]:', error);
+    return res.status(500).json({ success: false, deletedIds: [] });
+  }
+});
+
+/**
+ * POST /api/books/purge-all
+ * Memadam semua naskhah muat naik daripada sistem secara pukal
+ */
+app.post('/api/books/purge-all', (_req: Request, res: Response) => {
+  try {
+    const purgedIds = purgeAllPublishedBooksFromStorage();
+    return res.json({
+      success: true,
+      message: `Semua ${purgedIds.length} naskhah muat naik berjaya dipadam dari sistem.`,
+      purgedIds,
+    });
+  } catch (error: any) {
+    console.error('[Purge Books Error]:', error);
+    return res.status(500).json({ success: false, error: 'Gagal memadam semua naskhah: ' + error.message });
   }
 });
 

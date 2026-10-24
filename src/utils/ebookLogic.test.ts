@@ -319,3 +319,55 @@ test('isUserBookOwner correctly grants access to author bangkarim79@gmail.com an
   assert.equal(isUserBookOwner(animBook, adminUser), true);
 });
 
+test('isUserBookOwner strictly prevents unauthorized users from editing or hijacking uploaded books', () => {
+  const userBook: EBook = {
+    id: 'karya-user-9999',
+    title: 'Kembara Ahmad',
+    author: 'Ahmad Albab',
+    authorUid: 'uid-ahmad-real',
+    authorEmail: 'ahmad@example.com',
+    category: 'novel',
+    genre: 'Kembara',
+    synopsis: 'Kisah pengembaraan...',
+    price: 15,
+    pages: 150,
+    rating: 4.8,
+    reviewsCount: 10,
+    readTime: '3 jam',
+    publisher: 'Karya Prima',
+    publicationYear: 2026,
+    isbn: '978-967-1234-99-9',
+    coverGradient: 'from-amber-700 to-slate-900',
+    coverAccent: '#f59e0b',
+  };
+
+  // Stranger with similar substring in name (e.g. "Ahmad Dani")
+  const impostorUser = {
+    uid: 'uid-impostor-fake',
+    email: 'impostor@gmail.com',
+    name: 'Ahmad Dani',
+    isLoggedIn: true,
+  };
+
+  // Must be strictly blocked!
+  assert.equal(isUserBookOwner(userBook, impostorUser), false);
+
+  // Stranger with same name but different UID and Email
+  const anotherAhmad = {
+    uid: 'uid-ahmad-fake-2',
+    email: 'ahmad.other@gmail.com',
+    name: 'Ahmad Albab',
+    isLoggedIn: true,
+  };
+  assert.equal(isUserBookOwner(userBook, anotherAhmad), false);
+
+  // Legitimate author with matching UID
+  const realAuthorByUid = {
+    uid: 'uid-ahmad-real',
+    email: 'ahmad@example.com',
+    name: 'Ahmad Albab',
+    isLoggedIn: true,
+  };
+  assert.equal(isUserBookOwner(userBook, realAuthorByUid), true);
+});
+

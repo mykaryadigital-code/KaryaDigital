@@ -30,7 +30,7 @@ import {
   UserCheck,
 } from 'lucide-react';
 import { EBook, UserProfile } from '../types/ebook.ts';
-import { formatMYR } from '../utils/ebookLogic.ts';
+import { formatMYR, isUserBookOwner } from '../utils/ebookLogic.ts';
 
 interface AdminDashboardModalProps {
   isOpen: boolean;
@@ -41,6 +41,7 @@ interface AdminDashboardModalProps {
   onToggleBookFeatured?: (bookId: string) => void;
   onEditBook?: (book: EBook) => void;
   onDeleteBook?: (bookId: string) => void;
+  onPurgeAllBooks?: () => void;
 }
 
 interface OrderRecord {
@@ -77,11 +78,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   onPreviewBook,
   onEditBook,
   onDeleteBook,
+  onPurgeAllBooks,
 }) => {
   const [activeTab, setActiveTab] = useState<'ringkasan' | 'katalog' | 'transaksi' | 'penulis' | 'tetapan'>('ringkasan');
   const [searchKatalog, setSearchKatalog] = useState('');
   const [filterGenre, setFilterGenre] = useState('semua');
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmPurgeAll, setConfirmPurgeAll] = useState(false);
 
   // Helper untuk mengenal pasti Penulis Sebenar bagi mana-mana judul naskhah
   const resolveBookAuthor = (
@@ -753,7 +757,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   />
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
                   <select
                     value={filterGenre}
                     onChange={(e) => setFilterGenre(e.target.value)}
@@ -766,6 +770,40 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <option value="Sejarah & Budaya">Sejarah & Budaya</option>
                     <option value="Sains Fiksyen">Sains Fiksyen</option>
                   </select>
+
+                  {onPurgeAllBooks && (
+                    confirmPurgeAll ? (
+                      <div className="flex items-center gap-1.5 bg-rose-50 p-1 rounded-xl border border-rose-300 animate-in fade-in">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onPurgeAllBooks();
+                            setConfirmPurgeAll(false);
+                          }}
+                          className="px-3 py-1.5 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs transition cursor-pointer shadow-xs active:scale-95"
+                        >
+                          Pasti! Padam Semua Naskhah Muat Naik
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfirmPurgeAll(false)}
+                          className="px-2.5 py-1.5 rounded-lg bg-white border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-50 cursor-pointer"
+                        >
+                          Batal
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setConfirmPurgeAll(true)}
+                        className="px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 font-bold text-xs transition cursor-pointer flex items-center gap-1.5 active:scale-95"
+                        title="Padam semua naskhah yang dimuat naik daripada sistem"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                        <span>Padam Semua Naskhah Muat Naik</span>
+                      </button>
+                    )
+                  )}
                 </div>
               </div>
 
@@ -854,34 +892,50 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                   <span className="hidden sm:inline">Semak</span>
                                 </button>
                               )}
-                              {onEditBook && (
+                              {/* Demi memelihara privasi & hak cipta, Super Admin TIDAK boleh menyunting naskhah pengarang lain */}
+                              {onEditBook && isUserBookOwner(book, currentUser) && (
                                 <button
                                   type="button"
                                   onClick={() => onEditBook(book)}
                                   className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1 active:scale-95"
-                                  title="Edit & Kemas Kini Maklumat Naskhah"
+                                  title="Edit Maklumat Naskhah Sendiri"
                                 >
                                   <Edit3 className="w-3.5 h-3.5 text-amber-700" />
                                   <span>Edit</span>
                                 </button>
                               )}
                               {onDeleteBook && (
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    if (
-                                      window.confirm(
-                                        `Adakah anda pasti ingin memadam naskhah "${book.title}"?\n\nNaskhah ini akan dikeluarkan daripada katalog jualan platform KaryaDigital.`
-                                      )
-                                    ) {
-                                      onDeleteBook(book.id);
-                                    }
-                                  }}
-                                  className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
-                                  title="Padam Naskhah daripada Katalog"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5 text-rose-600" />
-                                </button>
+                                confirmDeleteId === book.id ? (
+                                  <div className="flex items-center gap-1 animate-in fade-in">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        onDeleteBook(book.id);
+                                        setConfirmDeleteId(null);
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs transition cursor-pointer active:scale-95 shadow-xs"
+                                      title="Sahkan Padam Naskhah"
+                                    >
+                                      Padamkan!
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => setConfirmDeleteId(null)}
+                                      className="px-2 py-1 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs transition cursor-pointer"
+                                    >
+                                      Batal
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setConfirmDeleteId(book.id)}
+                                    className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 transition cursor-pointer active:scale-95"
+                                    title="Tarik Balik / Padam Naskhah daripada Katalog"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                                  </button>
+                                )
                               )}
                             </div>
                           </td>

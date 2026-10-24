@@ -40,11 +40,29 @@ import {
   deleteBookFromFirestore,
 } from './firebase.ts';
 
+function getStoredDeletedBookIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem('karyadigital_deleted_book_ids');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return new Set(parsed);
+      }
+    }
+  } catch (e) {
+    // ignore
+  }
+  return new Set();
+}
+
 export default function App() {
-  const [books, setBooks] = useState<EBook[]>(() => [
-    ...OFFICIAL_PUBLISHED_BOOKS,
-    ...INITIAL_EBOOKS,
-  ]);
+  const [deletedBookIds, setDeletedBookIds] = useState<Set<string>>(() => getStoredDeletedBookIds());
+  const [books, setBooks] = useState<EBook[]>(() => {
+    const deleted = getStoredDeletedBookIds();
+    return [...OFFICIAL_PUBLISHED_BOOKS, ...INITIAL_EBOOKS].filter(
+      (b) => !deleted.has(b.id)
+    );
+  });
   const [activeCategory, setActiveCategory] = useState<'semua' | BookCategory | 'percuma' | 'koleksi'>('semua');
   const [selectedGenre, setSelectedGenre] = useState<string>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -270,21 +288,24 @@ export default function App() {
     const mergeBooks = (newBooks: EBook[]) => {
       if (!newBooks.length) return;
       setBooks((prev) => {
+        const deletedSet = getStoredDeletedBookIds();
         const showcaseIds = new Set(INITIAL_EBOOKS.map((b) => b.id));
-        const showcaseBooks = INITIAL_EBOOKS;
+        const showcaseBooks = INITIAL_EBOOKS.filter((b) => !deletedSet.has(b.id));
         const officialIds = new Set(OFFICIAL_PUBLISHED_BOOKS.map((b) => b.id));
 
         // Map to keep unique published books
         const publishedMap = new Map<string, EBook>();
 
-        // 0. Seed official published books (termasuk Janda Bukan Akhir tulisan Bang Karim)
+        // 0. Seed official published books (MENOLAK sebarang naskhah yang telah dipadam secara kekal)
         for (const opb of OFFICIAL_PUBLISHED_BOOKS) {
-          publishedMap.set(opb.id, opb);
+          if (!deletedSet.has(opb.id)) {
+            publishedMap.set(opb.id, opb);
+          }
         }
 
         // 1. Add any non-showcase books currently in prev
         for (const b of prev) {
-          if (!showcaseIds.has(b.id)) {
+          if (!showcaseIds.has(b.id) && !deletedSet.has(b.id)) {
             if (officialIds.has(b.id)) {
               const canonical = OFFICIAL_PUBLISHED_BOOKS.find((o) => o.id === b.id);
               publishedMap.set(b.id, { ...b, ...canonical });
@@ -294,9 +315,9 @@ export default function App() {
           }
         }
 
-        // 2. Add or update with newBooks (canonical data takes precedence over stale cache)
+        // 2. Add or update with newBooks (canonical data takes precedence over stale cache, skip deleted)
         for (const nb of newBooks) {
-          if (!showcaseIds.has(nb.id)) {
+          if (!showcaseIds.has(nb.id) && !deletedSet.has(nb.id)) {
             if (officialIds.has(nb.id)) {
               const canonical = OFFICIAL_PUBLISHED_BOOKS.find((o) => o.id === nb.id);
               publishedMap.set(nb.id, { ...nb, ...canonical });
@@ -326,16 +347,34 @@ export default function App() {
       });
     };
 
-    // Bersihkan sebarang cache usang daripada sesi terdahulu agar semua pengguna melihat paparan yang tepat
+    // Bersihkan sebarang cache usang daripada sesi terdahulu agar semua pengguna melihat paparan yang tepat & terkini
     try {
       const currentCacheVer = localStorage.getItem('karyadigital_sync_version');
-      if (currentCacheVer !== 'v3_bangkarim_portrait') {
+      if (currentCacheVer !== 'v4_permanent_deletion_sync') {
         localStorage.removeItem('karyadigital_published_books');
-        localStorage.setItem('karyadigital_sync_version', 'v3_bangkarim_portrait');
+        localStorage.setItem('karyadigital_sync_version', 'v4_permanent_deletion_sync');
       }
     } catch (e) {
       console.warn('Ralat kemaskini cache version:', e);
     }
+
+    // 0. Muat turun senarai naskhah yang telah dipadam secara kekal dari Pelayan (Tombstone)
+    fetch('/api/books/deleted')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.deletedIds) && data.deletedIds.length > 0) {
+          setDeletedBookIds((prev) => {
+            const updated = new Set([...prev, ...data.deletedIds]);
+            try {
+              localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
+            } catch (e) {}
+            return updated;
+          });
+          const serverDeletedSet = new Set(data.deletedIds);
+          setBooks((prev) => prev.filter((b) => !serverDeletedSet.has(b.id)));
+        }
+      })
+      .catch((err) => console.warn('Ralat muat turun deleted books API:', err));
 
     // A. Muat turun dari LocalStorage serta merta
     try {
@@ -675,12 +714,26 @@ export default function App() {
 
   // Handle Self-Publishing by Authors (Menyimpan secara kekal ke Cloudflare R2, Firestore & LocalStorage)
   const handlePublishBook = async (newBook: EBook) => {
+    // Ikat identiti pengarang secara kukuh supaya orang lain tidak boleh menyunting
+    const assignedUid = user.uid || (user.email ? `auth-${user.email}` : undefined);
+    const assignedEmail = user.email || (user.isLoggedIn ? user.email : undefined);
+
     const bookWithAuthorAndTimestamp: EBook = {
       ...newBook,
-      authorUid: newBook.authorUid || user.uid || undefined,
-      authorEmail: newBook.authorEmail || user.email || undefined,
+      authorUid: newBook.authorUid || assignedUid,
+      authorEmail: newBook.authorEmail || assignedEmail,
       createdAt: newBook.createdAt || Date.now(),
     };
+
+    // Nyah-rekod daripada senarai naskhah dipadam jika ID naskhah sama
+    setDeletedBookIds((prev) => {
+      const updated = new Set(prev);
+      updated.delete(bookWithAuthorAndTimestamp.id);
+      try {
+        localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
+      } catch (e) {}
+      return updated;
+    });
 
     // 1. Simpan rekod kepunyaan pada peranti ini
     try {
@@ -737,14 +790,13 @@ export default function App() {
     );
   };
 
-  // Open Edit Book Modal dengan Semakan Kebenaran Sah
+  // Open Edit Book Modal: HANYA PENGARANG ASAL DIBENARKAN (Super Admin tidak boleh menyunting naskhah orang lain demi privasi)
   const handleOpenEditBook = (book: EBook) => {
     const isOwner = isUserBookOwner(book, user);
-    const isSuperAdmin = user.role === 'admin' || user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
 
-    if (!isOwner && !isSuperAdmin) {
+    if (!isOwner) {
       triggerSecurityWarning(
-        `Akses dinafikan: Anda tidak mempunyai kebenaran untuk menyunting naskhah "${book.title}". Hanya pemilik karya asal yang dibenarkan.`,
+        `Akses dinafikan: Demi menjaga privasi & hak cipta, hanya pengarang asal dibenarkan menyunting naskhah "${book.title}". Pihak pentadbir platform tidak dibenarkan mengubah isi penulisan pengarang lain.`,
         'warning'
       );
       return;
@@ -753,8 +805,18 @@ export default function App() {
     setIsEditModalOpen(true);
   };
 
-  // Save Edited Book (Kemas kini dalam state, LocalStorage, Cloudflare R2 & Firestore)
+  // Save Edited Book: HANYA PENGARANG ASAL DIBENARKAN
   const handleSaveEditedBook = (updatedBook: EBook) => {
+    const isOwner = isUserBookOwner(editingBook || updatedBook, user);
+
+    if (!isOwner) {
+      triggerSecurityWarning(
+        `Akses dinafikan: Anda bukan pengarang sah bagi naskhah "${updatedBook.title}". Kandungan karya dilindungi di bawah privasi & hak cipta pengarang asal.`,
+        'warning'
+      );
+      return;
+    }
+
     const safeUpdatedBook: EBook = {
       ...updatedBook,
       authorUid: updatedBook.authorUid || editingBook?.authorUid || user.uid,
@@ -793,7 +855,7 @@ export default function App() {
     triggerSecurityWarning(`Naskhah "${safeUpdatedBook.title}" berjaya dikemas kini!`, 'info');
   };
 
-  // Padam / Tarik Balik Naskhah (State, LocalStorage, Firestore & Pelayan) dengan Semakan Kuasa
+  // Padam / Tarik Balik Naskhah secara Kekal (Menghalang sebarang resurrection pada refresh)
   const handleDeleteBook = (bookId: string) => {
     const targetBook = books.find((b) => b.id === bookId);
     if (!targetBook) return;
@@ -803,15 +865,26 @@ export default function App() {
 
     if (!isOwner && !isSuperAdmin) {
       triggerSecurityWarning(
-        `Akses dinafikan: Anda tidak mempunyai kebenaran untuk memadam naskhah "${targetBook.title}".`,
+        `Akses dinafikan: Anda tidak mempunyai kebenaran untuk memadam naskhah "${targetBook.title}". Hanya pengarang asal atau Super Admin dibenarkan.`,
         'warning'
       );
       return;
     }
 
+    // 1. Rekod tombstone secara kekal dalam state dan LocalStorage
+    setDeletedBookIds((prev) => {
+      const updated = new Set(prev);
+      updated.add(bookId);
+      try {
+        localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 2. Padam serta-merta daripada state paparan
     setBooks((prev) => prev.filter((b) => b.id !== bookId));
 
-    // Padam dari LocalStorage
+    // 3. Padam daripada cache LocalStorage
     try {
       const saved = localStorage.getItem('karyadigital_published_books');
       if (saved) {
@@ -823,21 +896,68 @@ export default function App() {
       console.warn('Ralat memadam dari localStorage:', e);
     }
 
-    // Padam dari senarai id saya jika ada
+    // 4. Padam daripada senarai id saya jika ada
     try {
       const myIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
       const filtered = myIds.filter((id) => id !== bookId);
       localStorage.setItem('karyadigital_my_author_book_ids', JSON.stringify(filtered));
     } catch (e) {}
 
-    // Padam dari Firestore
+    // 5. Padam daripada Firestore
     deleteBookFromFirestore(bookId).catch(console.warn);
 
-    // Padam dari Pelayan
+    // 6. Padam daripada Pelayan secara kekal & rekod tombstone
     fetch(`/api/books/${bookId}`, { method: 'DELETE' }).catch(console.warn);
 
     triggerSecurityWarning(
-      `Naskhah "${targetBook.title}" telah berjaya dipadam daripada katalog jualan.`,
+      `Naskhah "${targetBook.title}" telah berjaya dipadam secara kekal.`,
+      'info'
+    );
+  };
+
+  // Padam SEMUA Naskhah Muat Naik (Purge All) mengikut arahan pemilik/Super Admin
+  const handlePurgeAllUploadedBooks = async () => {
+    const allToPurge = Array.from(
+      new Set([
+        ...books
+          .filter((b) => b.id.startsWith('karya-') || Boolean(b.createdAt))
+          .map((b) => b.id),
+        'karya-janda-bukan-akhir',
+        'karya-user-1792809354728',
+        'karya-user-1792513665252',
+      ])
+    );
+
+    // 1. Rekod ke tombstone
+    setDeletedBookIds((prev) => {
+      const updated = new Set([...prev, ...allToPurge]);
+      try {
+        localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
+      } catch (e) {}
+      return updated;
+    });
+
+    // 2. Buang daripada state
+    setBooks((prev) => prev.filter((b) => !allToPurge.includes(b.id)));
+
+    // 3. Buang dari local storage
+    try {
+      localStorage.setItem('karyadigital_published_books', JSON.stringify([]));
+      localStorage.removeItem('karyadigital_my_author_book_ids');
+    } catch (e) {}
+
+    // 4. Panggil server API purge-all
+    try {
+      await fetch('/api/books/purge-all', { method: 'POST' });
+    } catch (e) {}
+
+    // 5. Padam setiap satu daripada Firestore
+    for (const id of allToPurge) {
+      deleteBookFromFirestore(id).catch(console.warn);
+    }
+
+    triggerSecurityWarning(
+      'Semua naskhah muat naik telah berjaya dipadam sepenuhnya daripada pangkalan data & katalog!',
       'info'
     );
   };
@@ -1040,8 +1160,8 @@ export default function App() {
             user.role === 'admin' ||
             user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
           if (isSuperAdmin) {
-            // Super Admin dapat melihat semua naskhah yang diterbitkan di platform (Anim, Janda Bukan Akhir, dsb)
-            return b.id.startsWith('karya-') || isUserBookOwner(b, user);
+            // Super Admin dapat melihat semua naskhah yang diterbitkan di platform untuk tujuan pengurusan & royalti
+            return b.id.startsWith('karya-') || Boolean(b.createdAt) || isUserBookOwner(b, user);
           }
           if (user.isLoggedIn) {
             return isUserBookOwner(b, user);
@@ -1055,6 +1175,7 @@ export default function App() {
         })}
         onEditBook={handleOpenEditBook}
         onDeleteBook={handleDeleteBook}
+        onOpenAuthModal={() => handleOpenAuthModal('login')}
       />
 
       {/* Reader Help Modal (Panduan Membaca dalam Pelayar, FAQ & Bayaran, Polisi Privasi & Terma) */}
@@ -1099,6 +1220,7 @@ export default function App() {
         onPreviewBook={handleOpenReader}
         onEditBook={handleOpenEditBook}
         onDeleteBook={handleDeleteBook}
+        onPurgeAllBooks={handlePurgeAllUploadedBooks}
       />
 
       {/* Edit Book Modal (Kemas Kini Butiran & Tarik Balik Naskhah) */}
