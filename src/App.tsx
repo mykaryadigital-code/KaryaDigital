@@ -46,7 +46,10 @@ function getStoredDeletedBookIds(): Set<string> {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return new Set(parsed);
+        // Jangan sekat naskhah aktif yang sah daripada katalog
+        const activeSafeIds = new Set(['karya-user-1792809354728', 'karya-user-1792513665252']);
+        const cleaned = parsed.filter((id) => !activeSafeIds.has(id));
+        return new Set(cleaned);
       }
     }
   } catch (e) {
@@ -285,6 +288,68 @@ export default function App() {
 
   // Muat turun naskhah yang diterbitkan daripada Cloudflare R2 / Stor Pelayan / Firestore / LocalStorage
   useEffect(() => {
+    // Fungsi penggabungan pintar naskhah: memelihara bab & format tanpa ditindih oleh data kosong
+    const mergeSingleBook = (existing: EBook, incoming: EBook): EBook => {
+      const parseTime = (val: number | string | undefined): number => {
+        if (!val) return 0;
+        if (typeof val === 'number') return val;
+        const parsed = new Date(val).getTime();
+        return isNaN(parsed) ? 0 : parsed;
+      };
+
+      const existingTime = parseTime(existing.updatedAt) || existing.createdAt || 0;
+      const incomingTime = parseTime(incoming.updatedAt) || incoming.createdAt || 0;
+      const useIncomingMeta = incomingTime >= existingTime;
+
+      // Status Percuma: Jika salah satu menetapkan isFree: true atau price: 0, kekalkan status percuma secara kekal
+      const isFree = Boolean(
+        incoming.isFree ||
+        incoming.price === 0 ||
+        existing.isFree ||
+        existing.price === 0
+      );
+      const price = isFree ? 0 : (useIncomingMeta ? incoming.price : existing.price);
+
+      // Pelihara bab & perenggan: jangan sesekali padam bab yang lebih lengkap dengan placeholder
+      const existingChapters = existing.sampleContent?.chapters || [];
+      const incomingChapters = incoming.sampleContent?.chapters || [];
+
+      const existingParaCount = existingChapters.reduce((sum, c) => sum + (c.paragraphs?.length || 0), 0);
+      const incomingParaCount = incomingChapters.reduce((sum, c) => sum + (c.paragraphs?.length || 0), 0);
+
+      const bestChapters =
+        incomingParaCount >= existingParaCount && incomingChapters.length > 0
+          ? incomingChapters
+          : existingChapters.length > 0
+          ? existingChapters
+          : incomingChapters;
+
+      return {
+        ...(useIncomingMeta ? existing : incoming),
+        ...(useIncomingMeta ? incoming : existing),
+        price,
+        isFree,
+        coverImage: incoming.coverImage || existing.coverImage,
+        coverGradient: incoming.coverGradient || existing.coverGradient,
+        coverAccent: incoming.coverAccent || existing.coverAccent,
+        coverBadge: incoming.coverBadge || existing.coverBadge,
+        pdfUrl: incoming.pdfUrl || existing.pdfUrl,
+        pdfFileName: incoming.pdfFileName || existing.pdfFileName,
+        pdfFileSize: incoming.pdfFileSize || existing.pdfFileSize,
+        epubUrl: incoming.epubUrl || existing.epubUrl,
+        epubFileName: incoming.epubFileName || existing.epubFileName,
+        epubFileSize: incoming.epubFileSize || existing.epubFileSize,
+        isSeries: incoming.isSeries ?? existing.isSeries,
+        seriesName: incoming.seriesName || existing.seriesName,
+        seriesOrder: incoming.seriesOrder || existing.seriesOrder,
+        seriesStatus: incoming.seriesStatus || existing.seriesStatus,
+        sampleContent: {
+          chapters: bestChapters,
+        },
+        updatedAt: Math.max(existingTime, incomingTime) || Date.now(),
+      };
+    };
+
     const mergeBooks = (newBooks: EBook[]) => {
       if (!newBooks.length) return;
       setBooks((prev) => {
@@ -296,7 +361,7 @@ export default function App() {
         // Map to keep unique published books
         const publishedMap = new Map<string, EBook>();
 
-        // 0. Seed official published books (MENOLAK sebarang naskhah yang telah dipadam secara kekal)
+        // 0. Seed official published books
         for (const opb of OFFICIAL_PUBLISHED_BOOKS) {
           if (!deletedSet.has(opb.id)) {
             publishedMap.set(opb.id, opb);
@@ -322,7 +387,17 @@ export default function App() {
               const canonical = OFFICIAL_PUBLISHED_BOOKS.find((o) => o.id === nb.id);
               publishedMap.set(nb.id, { ...nb, ...canonical });
             } else {
-              publishedMap.set(nb.id, nb);
+              const existing = publishedMap.get(nb.id);
+              if (existing) {
+                publishedMap.set(nb.id, mergeSingleBook(existing, nb));
+              } else {
+                const isFree = Boolean(nb.isFree || nb.price === 0);
+                publishedMap.set(nb.id, {
+                  ...nb,
+                  isFree,
+                  price: isFree ? 0 : nb.price,
+                });
+              }
             }
           }
         }
@@ -350,9 +425,17 @@ export default function App() {
     // Bersihkan sebarang cache usang daripada sesi terdahulu agar semua pengguna melihat paparan yang tepat & terkini
     try {
       const currentCacheVer = localStorage.getItem('karyadigital_sync_version');
-      if (currentCacheVer !== 'v4_permanent_deletion_sync') {
+      if (currentCacheVer !== 'v6_smart_free_sync') {
         localStorage.removeItem('karyadigital_published_books');
-        localStorage.setItem('karyadigital_sync_version', 'v4_permanent_deletion_sync');
+        // Bersihkan tombstone lapuk yang tersalah sekat karya aktif
+        const oldDeletedRaw = localStorage.getItem('karyadigital_deleted_book_ids');
+        if (oldDeletedRaw) {
+          const oldList: string[] = JSON.parse(oldDeletedRaw);
+          const activeSafeIds = new Set(['karya-user-1792809354728', 'karya-user-1792513665252']);
+          const cleaned = oldList.filter((id) => !activeSafeIds.has(id));
+          localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(cleaned));
+        }
+        localStorage.setItem('karyadigital_sync_version', 'v6_smart_free_sync');
       }
     } catch (e) {
       console.warn('Ralat kemaskini cache version:', e);
@@ -363,14 +446,16 @@ export default function App() {
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.deletedIds) && data.deletedIds.length > 0) {
+          const activeSafeIds = new Set(['karya-user-1792809354728', 'karya-user-1792513665252']);
+          const validDeleted = data.deletedIds.filter((id: string) => !activeSafeIds.has(id));
           setDeletedBookIds((prev) => {
-            const updated = new Set([...prev, ...data.deletedIds]);
+            const updated = new Set([...prev, ...validDeleted]);
             try {
               localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
             } catch (e) {}
             return updated;
           });
-          const serverDeletedSet = new Set(data.deletedIds);
+          const serverDeletedSet = new Set(validDeleted);
           setBooks((prev) => prev.filter((b) => !serverDeletedSet.has(b.id)));
         }
       })
@@ -403,16 +488,27 @@ export default function App() {
     getPublishedBooksFromFirestore()
       .then((firestoreBooks) => {
         if (Array.isArray(firestoreBooks) && firestoreBooks.length > 0) {
+          // Naskhah aktif dari Firestore dinyah-tombstone supaya tidak dipadam
+          const activeIds = firestoreBooks.map((b) => b.id);
+          setDeletedBookIds((prev) => {
+            const next = new Set(prev);
+            activeIds.forEach((id) => next.delete(id));
+            try {
+              localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(next)));
+            } catch (e) {}
+            return next;
+          });
           mergeBooks(firestoreBooks as EBook[]);
         }
       })
       .catch((err) => console.warn('Ralat Firestore:', err));
   }, []);
 
-  // Gabungan naskhah dibeli + naskhah karya sendiri yang sah (penulis automatik memiliki karyanya untuk dibaca & dipaparkan dalam akaun)
+  // Gabungan naskhah dibeli + naskhah karya sendiri yang sah + SEMUA naskhah percuma (bebas dibaca tanpa perlu bayar)
   const effectiveOwnedBookIds = useMemo(() => {
     const authoredIds = books.filter((b) => isUserBookOwner(b, user)).map((b) => b.id);
-    return Array.from(new Set([...user.ownedBookIds, ...authoredIds]));
+    const freeBookIds = books.filter((b) => b.isFree || b.price === 0).map((b) => b.id);
+    return Array.from(new Set([...user.ownedBookIds, ...authoredIds, ...freeBookIds]));
   }, [user, books]);
 
   // Global Security Protection Event Listeners (Sekat right-click dan copy)
@@ -817,11 +913,25 @@ export default function App() {
       return;
     }
 
+    const isFree = Boolean(updatedBook.isFree || Number(updatedBook.price) === 0);
     const safeUpdatedBook: EBook = {
       ...updatedBook,
+      isFree,
+      price: isFree ? 0 : Number(updatedBook.price) || 0,
       authorUid: updatedBook.authorUid || editingBook?.authorUid || user.uid,
       authorEmail: updatedBook.authorEmail || editingBook?.authorEmail || user.email,
+      updatedAt: Date.now(),
     };
+
+    // Pastikan naskhah yang dikemas kini dinyah-padam daripada sebarang tombstone
+    setDeletedBookIds((prev) => {
+      const updated = new Set(prev);
+      updated.delete(safeUpdatedBook.id);
+      try {
+        localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
+      } catch (e) {}
+      return updated;
+    });
 
     setBooks((prev) => prev.map((b) => (b.id === safeUpdatedBook.id ? safeUpdatedBook : b)));
 

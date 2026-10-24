@@ -1,1 +1,118 @@
-[]
+[
+  {
+    "authorEmail": "karyadigital@mykaryadigital.com",
+    "publicationYear": 2026,
+    "publishedAt": "2026-10-24T04:03:06.527Z",
+    "r2Key": "ebooks/karya-user-1792809354728.json",
+    "genre": "Romantik",
+    "coverImage": "https://res.cloudinary.com/g1dey3rs/image/upload/v1792810507/ANIM__Sunset_portrait_with_flowing_black_hair_zcg9hk.png",
+    "reviewsCount": 1,
+    "author": "KaryaDigital",
+    "coverGradient": "from-slate-900 via-indigo-950 to-slate-950",
+    "createdAt": 1792809354728,
+    "pages": 120,
+    "price": 0,
+    "title": "Anim - Aku Bukan Tomboy",
+    "publisher": "Penerbitan Bebas KaryaDigital",
+    "synopsis": "Kisah Anim yang sering disalahertikan sebagai kasar dan tomboy, sedangkan hatinya sarat dengan kelembutan seorang gadis yang mendambakan kasih sayang sejati.",
+    "rating": 5,
+    "isbn": "978-967-KD-ANIM99",
+    "coverBadge": "Karya Asli",
+    "sampleContent": {
+      "chapters": [
+        {
+          "id": 1,
+          "title": "Bab 1: Jangan Panggil Aku Abang",
+          "subtitle": "Koleksi Penulis • Percuma Penuh",
+          "paragraphs": [
+            "Anim membetulkan topi snapback kesayangannya sebelum melangkah turun dari motor scrambler.",
+            "'Woi Anim, jom main futsal!' laung Lan dari seberang jalan.",
+            "Anim hanya tersengih sambil menggeleng kepala. Kalau mereka tahu apa yang terpendam di dalam hatinya sekarang, pasti terbeliak mata semua orang.",
+            "Di sebalik jaket kulit tebal dan deruman ekzos motosikal 150cc miliknya, Anim menyimpan sejuta rasa yang tidak pernah terluah kepada sesiapa.",
+            "'Aku perempuanlah, bengong! Jangan sesekali panggil aku abang lagi,' bisiknya perlahan sambil menanggalkan sarung tangan kulit."
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Bab 2: Rahsia di Sebalik Topi Snapback",
+          "subtitle": "Kisah Sebenar Anim",
+          "paragraphs": [
+            "Rambut hitam ikal mayang miliknya terurai melepasi bahu sebaik sahaja klip rambut dibuka di dalam bilik tidurnya.",
+            "Di hadapan cermin meja solek, tiada lagi susuk 'Anim si budak kasar'. Yang ada hanyalah Nur Ainina Maisarah—gadis yang gemar menyulam dan membaca novel cinta waktu malam.",
+            "Di sudut almari bajunya, tersimpan sepasang kurung moden berwarna merah jambu pastel yang tidak pernah berani disarungnya ke luar rumah.",
+            "'Bila agaknya ada orang yang sudi memandang aku sebagai seorang wanita sejati?' keluh Anim sambil menyentuh pantulan wajahnya."
+          ]
+        },
+        {
+          "id": 3,
+          "title": "Bab 3: Bunga di Celah Enjin Scrambler",
+          "subtitle": "Pertemuan Tak Diduga",
+          "paragraphs": [
+            "Hujan lebat petang itu memaksa Anim berteduh di sebuah pondok bas berhampiran stesen minyak Lebuhraya Persekutuan.",
+            "Seorang pemuda berbaju kemeja biru muda kelihatan cemas memegang payung yang patah ditiup angin kencang.",
+            "'Awak nak tumpang berteduh ke? Kotak motor saya ada payung lebih,' sapa Anim sambil menghulurkan payung lipat miliknya.",
+            "Pemuda itu menoleh. Pandangan mata mereka bertaut buat seketika diiringi deruan angin sejuk petang. Untuk pertama kalinya, tiada nada hairan atau sindiran di wajah orang lain terhadap Anim."
+          ]
+        },
+        {
+          "id": 4,
+          "title": "Bab 4: Pengakuan yang Tak Disangka",
+          "subtitle": "Membuka Pintu Hati",
+          "paragraphs": [
+            "'Nama saya Daniel. Terima kasih banyak sebab tolong saya tadi,' ucap pemuda itu dengan senyuman yang cukup ikhlas.",
+            "Anim terdiam seketika. Jantungnya berdegup laju—suatu perasaan yang belum pernah dialaminya selama dua puluh dua tahun hidup di dunia ini.",
+            "'Saya Anim. Tapi... nama sebenar saya Ainina.'",
+            "Daniel tersenyum manis. 'Ainina... nama yang sangat cantik, secantik orangnya.'",
+            "Kata-kata itu meruntuhkan tembok keras yang sekian lama membina perisai di hati Anim. Mungkin ini permulaan sebuah lembaran baru yang dinanti-nantikan."
+          ]
+        }
+      ]
+    },
+    "coverAccent": "#818cf8",
+    "isFree": true,
+    "category": "novel",
+    "readTime": "2 jam 30 min",
+    "storageProvider": "Cloudflare R2 & Firestore",
+    "id": "karya-user-1792809354728",
+    "updatedAt": "2026-10-24T13:41:24.053Z"
+  },
+  {
+    "publicationYear": 2026,
+    "isFree": false,
+    "rating": 5,
+    "r2StorageUrl": "/api/books/stream/karya-user-1792513665252?token=8d8f03f78a579aef0458b3a17fd57b9743c9c8b54550ac7316f348b4ec4e21cd&expires=1792600066&user=bangkarim79%40gmail.com",
+    "synopsis": "Naskhah pertarungan mistik dan silat pendekar terulung di belantara nusantara.",
+    "reviewsCount": 1,
+    "coverBadge": "Karya Asli",
+    "authorEmail": "bangkarim79@gmail.com",
+    "coverGradient": "from-slate-900 via-indigo-950 to-slate-950",
+    "publishedAt": "2026-10-24T04:03:06.783Z",
+    "category": "novel",
+    "sampleContent": {
+      "chapters": [
+        {
+          "id": 1,
+          "paragraphs": [
+            "Hujan renyai mula membasahi laluan desa ketika langkah kaki pertama dihayun. Udara dingin menyusup ke celah baju.",
+            "Ini adalah permulaan kepada sebuah kisah yang tidak pernah terbayang dek akal fikiran."
+          ],
+          "subtitle": "Karya Asli Penulis",
+          "title": "Bab 1: Permulaan Kembara"
+        }
+      ]
+    },
+    "isbn": "978-967-KD9755-M",
+    "r2Key": "ebooks/karya-user-1792513665252.json",
+    "genre": "Misteri & Thriller",
+    "coverAccent": "#818cf8",
+    "createdAt": 1792513665252,
+    "id": "karya-user-1792513665252",
+    "pages": 140,
+    "readTime": "3 jam 30 min",
+    "title": "Hikayat Pendekar Rimba",
+    "price": 15,
+    "author": "Bang Karim",
+    "storageProvider": "Cloudflare R2 & Firestore",
+    "publisher": "Penerbitan Bebas KaryaDigital"
+  }
+]

@@ -314,8 +314,9 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
       author: author.trim() || 'Penulis KaryaDigital',
       category,
       genre: genre.trim() || 'Umum',
-      price: isFree ? 0 : Number(price),
-      isFree,
+      price: isFree ? 0 : Number(price) || 0,
+      isFree: Boolean(isFree || Number(price) === 0),
+      updatedAt: Date.now(),
       synopsis: synopsis.trim(),
       pages: Number(pages) || 100,
       readTime: readTime.trim() || '2 jam',
@@ -544,7 +545,13 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
                     type="checkbox"
                     id="isFreeCheckbox"
                     checked={isFree}
-                    onChange={(e) => setIsFree(e.target.checked)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIsFree(checked);
+                      if (checked) {
+                        setPrice(0);
+                      }
+                    }}
                     className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                   />
                   <label htmlFor="isFreeCheckbox" className="text-xs font-bold text-indigo-950 cursor-pointer">

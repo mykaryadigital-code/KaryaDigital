@@ -26,6 +26,7 @@ export interface PublishedBookPayload {
   authorUid?: string;
   authorEmail?: string;
   createdAt?: number;
+  updatedAt?: number | string;
   category: 'novel' | 'komik';
   genre: string;
   synopsis: string;
@@ -211,14 +212,12 @@ export function purgeAllPublishedBooksFromStorage(): string[] {
     for (const id of purgedIds) {
       recordDeletedBookId(id);
     }
-    // Pastikan ID default juga direkod
+    // Hanya rekod ID naskhah yang benar-benar wujud dalam senarai yang dipadam
     recordDeletedBookId('karya-janda-bukan-akhir');
-    recordDeletedBookId('karya-user-1792809354728');
-    recordDeletedBookId('karya-user-1792513665252');
 
     fs.writeFileSync(BOOKS_FILE, JSON.stringify([], null, 2), 'utf-8');
     console.log(`[BookStorage] Semua naskhah muat naik berjaya dipadam secara pukal.`);
-    return Array.from(new Set([...purgedIds, 'karya-janda-bukan-akhir', 'karya-user-1792809354728', 'karya-user-1792513665252']));
+    return Array.from(new Set([...purgedIds, 'karya-janda-bukan-akhir']));
   } catch (err) {
     console.error('[BookStorage] Gagal mengosongkan published_books.json:', err);
     return [];
