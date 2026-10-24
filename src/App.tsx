@@ -311,19 +311,19 @@ export default function App() {
       );
       const price = isFree ? 0 : (useIncomingMeta ? incoming.price : existing.price);
 
-      // Pelihara bab & perenggan: jangan sesekali padam bab yang lebih lengkap dengan placeholder
+      // Pelihara bab & perenggan: Utamakan incoming chapters jika data masuk lebih baharu (useIncomingMeta)
+      // atau jika incoming mengandungi manuskrip tulen yang sah
       const existingChapters = existing.sampleContent?.chapters || [];
       const incomingChapters = incoming.sampleContent?.chapters || [];
 
-      const existingParaCount = existingChapters.reduce((sum, c) => sum + (c.paragraphs?.length || 0), 0);
-      const incomingParaCount = incomingChapters.reduce((sum, c) => sum + (c.paragraphs?.length || 0), 0);
-
-      const bestChapters =
-        incomingParaCount >= existingParaCount && incomingChapters.length > 0
-          ? incomingChapters
-          : existingChapters.length > 0
-          ? existingChapters
-          : incomingChapters;
+      let bestChapters = incomingChapters;
+      if (useIncomingMeta && incomingChapters.length > 0) {
+        bestChapters = incomingChapters;
+      } else if (!useIncomingMeta && existingChapters.length > 0) {
+        bestChapters = existingChapters;
+      } else {
+        bestChapters = incomingChapters.length > 0 ? incomingChapters : existingChapters;
+      }
 
       return {
         ...(useIncomingMeta ? existing : incoming),
@@ -426,7 +426,7 @@ export default function App() {
     // Bersihkan sebarang cache usang daripada sesi terdahulu agar semua pengguna melihat paparan yang tepat & terkini
     try {
       const currentCacheVer = localStorage.getItem('karyadigital_sync_version');
-      if (currentCacheVer !== 'v6_smart_free_sync') {
+      if (currentCacheVer !== 'v7_authentic_manuscript_sync') {
         localStorage.removeItem('karyadigital_published_books');
         // Bersihkan tombstone lapuk yang tersalah sekat karya aktif
         const oldDeletedRaw = localStorage.getItem('karyadigital_deleted_book_ids');
@@ -436,7 +436,7 @@ export default function App() {
           const cleaned = oldList.filter((id) => !activeSafeIds.has(id));
           localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(cleaned));
         }
-        localStorage.setItem('karyadigital_sync_version', 'v6_smart_free_sync');
+        localStorage.setItem('karyadigital_sync_version', 'v7_authentic_manuscript_sync');
       }
     } catch (e) {
       console.warn('Ralat kemaskini cache version:', e);
