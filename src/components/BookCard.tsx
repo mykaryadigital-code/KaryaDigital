@@ -71,8 +71,19 @@ export const BookCard: React.FC<BookCardProps> = ({
           </div>
         )}
 
+        {/* EPUB Format Tag */}
+        {book.epubUrl && (
+          <div
+            className={`absolute top-2 ${
+              Boolean(book.createdAt) || book.id.startsWith('karya-user-') ? 'left-18' : 'left-2'
+            } bg-blue-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-2xs z-10`}
+          >
+            EPUB
+          </div>
+        )}
+
         {/* PDF Format Tag */}
-        {book.pdfUrl && (
+        {book.pdfUrl && !book.epubUrl && (
           <div
             className={`absolute top-2 ${
               Boolean(book.createdAt) || book.id.startsWith('karya-user-') ? 'left-18' : 'left-2'

@@ -23,7 +23,8 @@ import {
   Edit3,
   Layers,
 } from 'lucide-react';
-import { EBook, BookCategory } from '../types/ebook.ts';
+import { EBook, BookCategory, Chapter } from '../types/ebook.ts';
+import { parseEpubFile } from '../utils/epubParser.ts';
 
 export type AuthorPortalTab = 'dashboard' | 'borang' | 'panduan' | 'royalti' | 'guide' | 'royalty' | 'register';
 
@@ -105,13 +106,18 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   const [selectedTheme, setSelectedTheme] = useState(HARDCOVER_THEMES[0]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // PDF File Upload State
-  const [pdfFile, setPdfFile] = useState<{
+  // Digital Manuscript File Upload State (.EPUB & .PDF)
+  const [manuscriptFile, setManuscriptFile] = useState<{
+    format: 'epub' | 'pdf';
     name: string;
     size: string;
     dataUrl: string;
+    chaptersCount?: number;
+    paragraphsCount?: number;
   } | null>(null);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
+  const [parsedEpubChapters, setParsedEpubChapters] = useState<Chapter[] | null>(null);
+  const [isParsingEpub, setIsParsingEpub] = useState(false);
+  const manuscriptInputRef = useRef<HTMLInputElement>(null);
 
   // Submission State
   const [submittedBook, setSubmittedBook] = useState<EBook | null>(null);
@@ -153,17 +159,21 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
     }
   };
 
-  const handlePdfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleManuscriptChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
-      alert('Sila pilih fail dokumen PDF yang sah (.pdf).');
+    const lowerName = file.name.toLowerCase();
+    const isEpub = lowerName.endsWith('.epub') || file.type.includes('epub');
+    const isPdf = lowerName.endsWith('.pdf') || file.type.includes('pdf');
+
+    if (!isEpub && !isPdf) {
+      alert('Sila pilih fail dokumen yang sah dalam format .EPUB atau .PDF.');
       return;
     }
 
-    if (file.size > 50 * 1024 * 1024) {
-      alert('Saiz fail PDF melebihi had maksimum 50MB.');
+    if (file.size > 80 * 1024 * 1024) {
+      alert('Saiz fail melebihi had maksimum 80MB.');
       return;
     }
 
@@ -172,32 +182,67 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
         ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
         : `${Math.round(file.size / 1024)} KB`;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setPdfFile({
+    if (isEpub) {
+      setIsParsingEpub(true);
+      try {
+        const parsed = await parseEpubFile(file);
+        setManuscriptFile({
+          format: 'epub',
           name: file.name,
           size: sizeFormatted,
-          dataUrl: reader.result,
+          dataUrl: parsed.dataUrl,
+          chaptersCount: parsed.totalChapters,
+          paragraphsCount: parsed.totalParagraphs,
         });
+        setParsedEpubChapters(parsed.chapters);
 
-        // Auto-fill title if empty
-        if (!title.trim()) {
-          const autoTitle = file.name
-            .replace(/\.pdf$/i, '')
-            .replace(/[-_]/g, ' ')
-            .trim();
-          setTitle(autoTitle);
+        // Auto-fill title if empty or placeholder
+        if (!title.trim() || title === 'Karya Baharu') {
+          if (parsed.title) {
+            setTitle(parsed.title);
+          }
         }
+        if (parsed.author && (!authorName || authorName === 'Bang Karim' || authorName === 'Penulis Tempatan')) {
+          setAuthorName(parsed.author);
+        }
+      } catch (err) {
+        console.error('Ralat menghurai fail EPUB:', err);
+        alert('Gagal membaca kandungan fail EPUB. Sila pastikan fail tidak dilindungi kata laluan atau cuba muat naik dalam format PDF.');
+      } finally {
+        setIsParsingEpub(false);
       }
-    };
-    reader.readAsDataURL(file);
+    } else {
+      // PDF File
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setManuscriptFile({
+            format: 'pdf',
+            name: file.name,
+            size: sizeFormatted,
+            dataUrl: reader.result,
+          });
+          setParsedEpubChapters(null);
+
+          // Auto-fill title if empty
+          if (!title.trim()) {
+            const autoTitle = file.name
+              .replace(/\.pdf$/i, '')
+              .replace(/[-_]/g, ' ')
+              .trim();
+            setTitle(autoTitle);
+          }
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
-  const handleClearPdf = () => {
-    setPdfFile(null);
-    if (pdfInputRef.current) {
-      pdfInputRef.current.value = '';
+  const handleClearManuscript = () => {
+    setManuscriptFile(null);
+    setParsedEpubChapters(null);
+    if (manuscriptInputRef.current) {
+      manuscriptInputRef.current.value = '';
     }
   };
 
@@ -228,8 +273,8 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       reviewsCount: 1,
       price: parsedPrice,
       isFree: parsedPrice === 0,
-      pages: pdfFile ? 160 : 140,
-      readTime: pdfFile ? '4 jam' : '3 jam 30 min',
+      pages: manuscriptFile?.format === 'pdf' ? 160 : parsedEpubChapters ? Math.max(90, parsedEpubChapters.length * 12) : 140,
+      readTime: manuscriptFile?.format === 'pdf' ? '4 jam' : parsedEpubChapters ? `${Math.max(2, Math.round(parsedEpubChapters.length * 0.4))} jam` : '3 jam 30 min',
       publisher: 'Penerbitan Bebas KaryaDigital',
       publicationYear: 2026,
       createdAt: Date.now(),
@@ -237,23 +282,28 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       coverImage: coverImagePreview || undefined,
       coverGradient: selectedTheme.gradient,
       coverAccent: selectedTheme.accent,
-      coverBadge: pdfFile ? 'E-Buku PDF' : 'Karya Asli',
-      pdfUrl: pdfFile?.dataUrl,
-      pdfFileName: pdfFile?.name,
-      pdfFileSize: pdfFile?.size,
+      coverBadge: manuscriptFile?.format === 'epub' ? 'Format EPUB' : manuscriptFile?.format === 'pdf' ? 'E-Buku PDF' : 'Karya Asli',
+      pdfUrl: manuscriptFile?.format === 'pdf' ? manuscriptFile.dataUrl : undefined,
+      pdfFileName: manuscriptFile?.format === 'pdf' ? manuscriptFile.name : undefined,
+      pdfFileSize: manuscriptFile?.format === 'pdf' ? manuscriptFile.size : undefined,
+      epubUrl: manuscriptFile?.format === 'epub' ? manuscriptFile.dataUrl : undefined,
+      epubFileName: manuscriptFile?.format === 'epub' ? manuscriptFile.name : undefined,
+      epubFileSize: manuscriptFile?.format === 'epub' ? manuscriptFile.size : undefined,
       isSeries,
       seriesName: isSeries ? seriesName.trim() || undefined : undefined,
       seriesOrder: isSeries ? Number(seriesOrder) || 1 : undefined,
       seriesStatus: isSeries ? seriesStatus : undefined,
       sampleContent: {
-        chapters: [
-          {
-            id: 1,
-            title: sampleChapterTitle.trim() || 'Bab 1',
-            subtitle: isSeries ? `Jilid ${seriesOrder} • Karya Asli Penulis` : 'Karya Asli Penulis',
-            paragraphs: sampleParagraphs,
-          },
-        ],
+        chapters: parsedEpubChapters && parsedEpubChapters.length > 0
+          ? parsedEpubChapters
+          : [
+              {
+                id: 1,
+                title: sampleChapterTitle.trim() || 'Bab 1',
+                subtitle: isSeries ? `Jilid ${seriesOrder} • Karya Asli Penulis` : 'Karya Asli Penulis',
+                paragraphs: sampleParagraphs,
+              },
+            ],
       },
     };
 
@@ -275,9 +325,10 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
     setSeriesOrder(1);
     setSeriesStatus('ongoing');
     setCoverUrlInput('');
-    setPdfFile(null);
-    if (pdfInputRef.current) {
-      pdfInputRef.current.value = '';
+    setManuscriptFile(null);
+    setParsedEpubChapters(null);
+    if (manuscriptInputRef.current) {
+      manuscriptInputRef.current.value = '';
     }
     setSubmittedBook(null);
   };
@@ -1103,99 +1154,140 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                 )}
               </div>
 
-              {/* BAHAGIAN 3: MUAT NAIK FAIL E-BOOK PDF */}
-              <div className="p-3.5 bg-indigo-50/40 rounded-xl border border-indigo-200/80 space-y-2.5">
+              {/* BAHAGIAN 3: MUAT NAIK FAIL MANUSKRIP DIGITAL (.EPUB / .PDF) */}
+              <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-200/90 space-y-3">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
                     <FileUp className="w-4 h-4 text-indigo-600" />
-                    <span>Muat Naik Fail E-Buku PDF (Naskhah Lengkap)</span>
+                    <span>Muat Naik Manuskrip Digital (.EPUB atau .PDF)</span>
                   </label>
-                  <span className="text-[10px] font-semibold text-indigo-700 bg-indigo-100/80 px-2 py-0.5 rounded-full border border-indigo-200">
-                    Format .PDF Disokong
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full border border-blue-200">
+                      .EPUB (Disyorkan)
+                    </span>
+                    <span className="text-[10px] font-bold text-rose-700 bg-rose-100 px-2 py-0.5 rounded-full border border-rose-200">
+                      .PDF
+                    </span>
+                  </div>
                 </div>
 
-                <p className="text-[11px] text-slate-600">
-                  Muat naik fail PDF karya atau manuskrip anda secara terus dari komputer atau telefon. Fail dilindungi dengan tandatangan digital dan hanya boleh dibaca oleh pembeli berdaftar.
+                <p className="text-[11px] text-slate-600 leading-relaxed">
+                  <strong>Muat naik fail .EPUB secara terus:</strong> Sistem akan mengekstrak tajuk, senarai bab, dan keseluruhan teks perenggan secara automatik untuk pembaca e-buku selamat. Anda juga boleh memuat naik dokumen .PDF lengkap.
                 </p>
 
-                {/* Hidden input for PDF */}
+                {/* Hidden input for EPUB & PDF */}
                 <input
-                  ref={pdfInputRef}
+                  ref={manuscriptInputRef}
                   type="file"
-                  accept=".pdf,application/pdf"
-                  onChange={handlePdfChange}
+                  accept=".epub,.pdf,application/epub+zip,application/pdf"
+                  onChange={handleManuscriptChange}
                   className="hidden"
-                  id="pdf-upload-input"
+                  id="manuscript-upload-input"
                 />
 
-                {!pdfFile ? (
+                {isParsingEpub && (
+                  <div className="p-4 rounded-xl bg-blue-50 border border-blue-200 text-center space-y-2 animate-pulse">
+                    <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <p className="text-xs font-bold text-blue-900">
+                      Sedang Menghurai Fail EPUB...
+                    </p>
+                    <p className="text-[10px] text-blue-700">
+                      Mengekstrak susunan bab dan perenggan teks untuk pembaca responsif.
+                    </p>
+                  </div>
+                )}
+
+                {!manuscriptFile && !isParsingEpub ? (
                   <div
-                    onClick={() => pdfInputRef.current?.click()}
+                    onClick={() => manuscriptInputRef.current?.click()}
                     className="border-2 border-dashed border-indigo-300 hover:border-indigo-500 hover:bg-indigo-50/70 rounded-xl p-4 text-center cursor-pointer transition-all group"
                   >
                     <div className="w-10 h-10 rounded-full bg-indigo-100 group-hover:bg-indigo-200 text-indigo-600 flex items-center justify-center mx-auto mb-2 transition-colors shadow-2xs">
                       <FileUp className="w-5 h-5" />
                     </div>
                     <div className="text-xs font-bold text-slate-800 group-hover:text-indigo-600 transition-colors">
-                      Klik untuk Pilih Fail PDF dari Peranti Anda
+                      Klik untuk Pilih Fail .EPUB atau .PDF dari Peranti Anda
                     </div>
                     <p className="text-[10px] text-slate-500 mt-1">
-                      Menyokong dokumen PDF sehingga 50MB (Novel, Komik, Majalah, E-Buku)
+                      Menyokong fail e-buku .EPUB (Word/Sigil/Atticus) dan dokumen .PDF sehingga 80MB
                     </p>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        pdfInputRef.current?.click();
-                      }}
-                      className="mt-2.5 inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-colors cursor-pointer"
-                    >
-                      <FileUp className="w-3.5 h-3.5" />
-                      <span>Pilih Fail PDF</span>
-                    </button>
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          manuscriptInputRef.current?.click();
+                        }}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white shadow-2xs transition-colors cursor-pointer active:scale-95"
+                      >
+                        <FileUp className="w-3.5 h-3.5" />
+                        <span>Pilih Fail EPUB / PDF</span>
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <div className="p-3 bg-white rounded-xl border border-indigo-200 shadow-2xs flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-9 h-10 rounded-lg bg-rose-600 text-white flex flex-col items-center justify-center font-black text-[9px] shrink-0 shadow-2xs">
-                        <span>PDF</span>
+                ) : manuscriptFile ? (
+                  <div className="p-3.5 bg-white rounded-xl border border-indigo-200 shadow-2xs space-y-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div
+                          className={`w-10 h-11 rounded-lg text-white flex flex-col items-center justify-center font-black text-[9px] shrink-0 shadow-2xs ${
+                            manuscriptFile.format === 'epub' ? 'bg-blue-600' : 'bg-rose-600'
+                          }`}
+                        >
+                          <span>{manuscriptFile.format.toUpperCase()}</span>
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold text-slate-900 truncate" title={manuscriptFile.name}>
+                            {manuscriptFile.name}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
+                            <span className="font-semibold text-indigo-600">{manuscriptFile.size}</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 font-bold flex items-center gap-0.5">
+                              <CheckCircle2 className="w-3 h-3" />
+                              {manuscriptFile.format === 'epub'
+                                ? `EPUB Berjaya Dihurai (${manuscriptFile.chaptersCount || 0} Bab)`
+                                : 'Dokumen PDF Sedia Diterbitkan'}
+                            </span>
+                          </div>
+                        </div>
                       </div>
-                      <div className="min-w-0">
-                        <div className="text-xs font-bold text-slate-900 truncate" title={pdfFile.name}>
-                          {pdfFile.name}
-                        </div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-500 mt-0.5">
-                          <span className="font-semibold text-indigo-600">{pdfFile.size}</span>
-                          <span>•</span>
-                          <span className="text-emerald-600 font-bold flex items-center gap-0.5">
-                            <CheckCircle2 className="w-3 h-3" />
-                            Fail PDF Sedia Diterbitkan
-                          </span>
-                        </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => manuscriptInputRef.current?.click()}
+                          className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
+                        >
+                          Tukar Fail
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleClearManuscript}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
+                          title="Padam fail ini"
+                          aria-label="Padam Fail"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => pdfInputRef.current?.click()}
-                        className="px-2.5 py-1 text-xs font-semibold rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-                      >
-                        Tukar Fail
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleClearPdf}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition cursor-pointer"
-                        title="Padam fail PDF ini"
-                        aria-label="Padam PDF"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {manuscriptFile.format === 'epub' && parsedEpubChapters && parsedEpubChapters.length > 0 && (
+                      <div className="p-2.5 bg-blue-50/80 rounded-lg border border-blue-200 text-[11px] text-blue-900 flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 font-medium">
+                          <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                          <span>
+                            {parsedEpubChapters.length} bab ({manuscriptFile.paragraphsCount} perenggan) diekstrak terus ke mod pembaca selamat.
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-bold text-blue-700 underline">
+                          Automatik
+                        </span>
+                      </div>
+                    )}
                   </div>
-                )}
+                ) : null}
               </div>
 
               {/* Teks Sampel / Bab 1 */}

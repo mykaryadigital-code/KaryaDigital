@@ -52,6 +52,9 @@ export interface EBook {
   pdfUrl?: string;
   pdfFileName?: string;
   pdfFileSize?: string;
+  epubUrl?: string;
+  epubFileName?: string;
+  epubFileSize?: string;
   isSeries?: boolean;
   seriesName?: string;
   seriesOrder?: number;

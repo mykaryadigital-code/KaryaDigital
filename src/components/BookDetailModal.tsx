@@ -217,7 +217,12 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                 <span className="px-2.5 py-1 rounded-md bg-slate-100 font-medium text-slate-700">
                   {book.genre}
                 </span>
-                {book.pdfUrl && (
+                {book.epubUrl && (
+                  <span className="px-2 py-0.5 rounded-md bg-blue-50 text-blue-700 font-bold text-[11px] border border-blue-200">
+                    Format EPUB (Interaktif)
+                  </span>
+                )}
+                {book.pdfUrl && !book.epubUrl && (
                   <span className="px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 font-bold text-[11px] border border-rose-200">
                     Format PDF
                   </span>

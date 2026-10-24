@@ -20,6 +20,7 @@ import {
   Info,
 } from 'lucide-react';
 import { EBook, BookCategory, Chapter } from '../types/ebook.ts';
+import { parseEpubFile } from '../utils/epubParser.ts';
 
 interface EditBookModalProps {
   isOpen: boolean;
@@ -80,7 +81,13 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
   const [pdfUrl, setPdfUrl] = useState<string | undefined>(undefined);
   const [pdfFileName, setPdfFileName] = useState<string | undefined>(undefined);
   const [pdfFileSize, setPdfFileSize] = useState<string | undefined>(undefined);
-  const pdfInputRef = useRef<HTMLInputElement>(null);
+
+  // EPUB
+  const [epubUrl, setEpubUrl] = useState<string | undefined>(undefined);
+  const [epubFileName, setEpubFileName] = useState<string | undefined>(undefined);
+  const [epubFileSize, setEpubFileSize] = useState<string | undefined>(undefined);
+  const [isParsingEpub, setIsParsingEpub] = useState(false);
+  const manuscriptInputRef = useRef<HTMLInputElement>(null);
 
   // Siri & Bersambung
   const [isSeries, setIsSeries] = useState(false);
@@ -132,6 +139,11 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
       setPdfUrl(book.pdfUrl);
       setPdfFileName(book.pdfFileName);
       setPdfFileSize(book.pdfFileSize);
+
+      // EPUB
+      setEpubUrl(book.epubUrl);
+      setEpubFileName(book.epubFileName);
+      setEpubFileSize(book.epubFileSize);
 
       // Siri
       setIsSeries(Boolean(book.isSeries));
@@ -217,12 +229,16 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
     }
   };
 
-  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleManuscriptUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.type !== 'application/pdf') {
-      alert('Sila pilih fail PDF yang sah.');
+    const lower = file.name.toLowerCase();
+    const isEpub = lower.endsWith('.epub') || file.type.includes('epub');
+    const isPdf = lower.endsWith('.pdf') || file.type.includes('pdf');
+
+    if (!isEpub && !isPdf) {
+      alert('Sila pilih fail .EPUB atau fail dokumen .PDF yang sah.');
       return;
     }
 
@@ -231,15 +247,40 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
         ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
         : `${Math.round(file.size / 1024)} KB`;
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === 'string') {
-        setPdfUrl(reader.result);
-        setPdfFileName(file.name);
-        setPdfFileSize(fileSizeStr);
+    if (isEpub) {
+      setIsParsingEpub(true);
+      try {
+        const parsed = await parseEpubFile(file);
+        setEpubUrl(parsed.dataUrl);
+        setEpubFileName(file.name);
+        setEpubFileSize(fileSizeStr);
+
+        if (parsed.chapters && parsed.chapters.length > 0) {
+          setChapters(parsed.chapters);
+          setSelectedChapterIndex(0);
+          setChapterTitleInput(parsed.chapters[0].title);
+          setChapterSubtitleInput(parsed.chapters[0].subtitle || '');
+          setChapterContentInput(parsed.chapters[0].paragraphs.join('\n\n'));
+        }
+        alert(`Berjaya! Sebanyak ${parsed.totalChapters} bab (${parsed.totalParagraphs} perenggan) telah diekstrak daripada fail EPUB.`);
+      } catch (err) {
+        console.error('Ralat menghurai EPUB:', err);
+        alert('Gagal mengekstrak fail EPUB. Sila pastikan fail tidak rosak.');
+      } finally {
+        setIsParsingEpub(false);
       }
-    };
-    reader.readAsDataURL(file);
+    } else {
+      // PDF
+      const reader = new FileReader();
+      reader.onload = () => {
+        if (typeof reader.result === 'string') {
+          setPdfUrl(reader.result);
+          setPdfFileName(file.name);
+          setPdfFileSize(fileSizeStr);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -291,6 +332,9 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
       pdfUrl: pdfUrl || undefined,
       pdfFileName: pdfFileName || undefined,
       pdfFileSize: pdfFileSize || undefined,
+      epubUrl: epubUrl || undefined,
+      epubFileName: epubFileName || undefined,
+      epubFileSize: epubFileSize || undefined,
       // Siri & Episod
       isSeries,
       seriesName: isSeries ? seriesName.trim() || undefined : undefined,
@@ -606,42 +650,75 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
                 </div>
               </div>
 
-              {/* Fail PDF Section */}
+              {/* Fail Manuskrip Digital (EPUB & PDF) Section */}
               <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-rose-600" />
+                    <FileUp className="w-4 h-4 text-indigo-600" />
                     <span className="text-xs font-bold text-slate-900">
-                      Fail PDF Manuskrip Naskhah (Pilihan)
+                      Muat Naik Fail Manuskrip (.EPUB atau .PDF)
                     </span>
                   </div>
-                  {pdfUrl ? (
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
-                      Tersedia: {pdfFileName || 'Fail PDF Aktif'} ({pdfFileSize || ''})
-                    </span>
-                  ) : (
-                    <span className="text-[10px] font-medium text-slate-500">
-                      Tiada fail PDF (Menggunakan mod pembaca teks bab)
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1.5">
+                    {epubUrl && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800 border border-blue-300">
+                        EPUB: {epubFileName || 'Fail EPUB'} ({epubFileSize || ''})
+                      </span>
+                    )}
+                    {pdfUrl && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-300">
+                        PDF: {pdfFileName || 'Fail PDF'} ({pdfFileSize || ''})
+                      </span>
+                    )}
+                    {!epubUrl && !pdfUrl && (
+                      <span className="text-[10px] font-medium text-slate-500">
+                        Tiada fail luar (Menggunakan mod teks bab secara langsung)
+                      </span>
+                    )}
+                  </div>
                 </div>
 
+                <p className="text-[11px] text-slate-600">
+                  💡 <strong>Tip EPUB:</strong> Jika anda memuat naik fail <code>.epub</code>, sistem akan mengekstrak semua bab dan perenggan teks terus ke dalam editor di bawah secara automatik!
+                </p>
+
+                <input
+                  ref={manuscriptInputRef}
+                  type="file"
+                  accept=".epub,.pdf,application/epub+zip,application/pdf"
+                  onChange={handleManuscriptUpload}
+                  className="hidden"
+                />
+
+                {isParsingEpub && (
+                  <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-center text-xs font-bold text-blue-800 animate-pulse">
+                    Sedang mengekstrak fail EPUB ke dalam editor bab...
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    ref={pdfInputRef}
-                    type="file"
-                    accept="application/pdf"
-                    onChange={handlePdfUpload}
-                    className="hidden"
-                  />
                   <button
                     type="button"
-                    onClick={() => pdfInputRef.current?.click()}
-                    className="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-700 font-bold text-xs flex items-center gap-1.5 transition cursor-pointer"
+                    onClick={() => manuscriptInputRef.current?.click()}
+                    className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 transition cursor-pointer shadow-2xs active:scale-95"
                   >
-                    <FileUp className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>{pdfUrl ? 'Gantikan Fail PDF' : 'Muat Naik Fail PDF'}</span>
+                    <FileUp className="w-3.5 h-3.5" />
+                    <span>Muat Naik / Gantikan Fail .EPUB atau .PDF</span>
                   </button>
+
+                  {epubUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEpubUrl(undefined);
+                        setEpubFileName(undefined);
+                        setEpubFileSize(undefined);
+                      }}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
+                    >
+                      Keluarkan Pautan EPUB
+                    </button>
+                  )}
 
                   {pdfUrl && (
                     <button
@@ -651,9 +728,9 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
                         setPdfFileName(undefined);
                         setPdfFileSize(undefined);
                       }}
-                      className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 font-bold text-xs transition cursor-pointer"
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-100 border border-slate-300 hover:bg-slate-200 text-slate-700 font-bold text-xs transition cursor-pointer"
                     >
-                      Padam Fail PDF (Guna Teks Sahaja)
+                      Keluarkan Fail PDF
                     </button>
                   )}
                 </div>
