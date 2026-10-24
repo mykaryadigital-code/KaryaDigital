@@ -39,6 +39,7 @@ import {
   saveBookToFirestore,
   getPublishedBooksFromFirestore,
   deleteBookFromFirestore,
+  subscribeToPublishedBooks,
 } from './firebase.ts';
 
 function getStoredDeletedBookIds(): Set<string> {
@@ -287,222 +288,74 @@ export default function App() {
     }, 4000);
   };
 
-  // Muat turun naskhah yang diterbitkan daripada Cloudflare R2 / Stor Pelayan / Firestore / LocalStorage
+  // =========================================================================
+  // PENYELARASAN BUKU: 100% TERUS DARI FIREBASE FIRESTORE & CLOUDFLARE R2
+  // TIDAK MENGGUNAKAN LOCALSTORAGE UNTUK BUKU SAMA SEKALI
+  // =========================================================================
   useEffect(() => {
-    // Fungsi penggabungan pintar naskhah: memelihara bab & format tanpa ditindih oleh data kosong
-    const mergeSingleBook = (existing: EBook, incoming: EBook): EBook => {
-      const parseTime = (val: number | string | undefined): number => {
-        if (!val) return 0;
-        if (typeof val === 'number') return val;
-        const parsed = new Date(val).getTime();
-        return isNaN(parsed) ? 0 : parsed;
-      };
+    // 1. Bersihkan sebarang sisa localStorage usang dari peranti untuk mengelakkan pertembungan
+    try {
+      localStorage.removeItem('karyadigital_published_books');
+      localStorage.removeItem('karyadigital_sync_version');
+    } catch (e) {}
 
-      const existingTime = parseTime(existing.updatedAt) || existing.createdAt || 0;
-      const incomingTime = parseTime(incoming.updatedAt) || incoming.createdAt || 0;
-      const useIncomingMeta = incomingTime >= existingTime;
+    // 2. Langganan Langsung Masa Nyata (Realtime Live Sync) dari Firebase Firestore
+    // Setiap kali buku ditambah, disunting, atau dipadam oleh sesiapa, semua pengguna di seluruh dunia
+    // akan melihat perubahan secara serentak tanpa perlu muat semula (refresh).
+    const unsubscribeLiveBooks = subscribeToPublishedBooks((firestoreBooks) => {
+      if (Array.isArray(firestoreBooks)) {
+        const livePublishedList: EBook[] = firestoreBooks.map((b) => {
+          const isFree = Boolean(b.isFree || Number(b.price) === 0);
+          return {
+            ...b,
+            isFree,
+            price: isFree ? 0 : Number(b.price) || 0,
+          };
+        });
 
-      // Status Percuma: Jika salah satu menetapkan isFree: true atau price: 0, kekalkan status percuma secara kekal
-      const isFree = Boolean(
-        incoming.isFree ||
-        incoming.price === 0 ||
-        existing.isFree ||
-        existing.price === 0
-      );
-      const price = isFree ? 0 : (useIncomingMeta ? incoming.price : existing.price);
-
-      // Pelihara bab & perenggan: Utamakan incoming chapters jika data masuk lebih baharu (useIncomingMeta)
-      // atau jika incoming mengandungi manuskrip tulen yang sah
-      const existingChapters = existing.sampleContent?.chapters || [];
-      const incomingChapters = incoming.sampleContent?.chapters || [];
-
-      let bestChapters = incomingChapters;
-      if (useIncomingMeta && incomingChapters.length > 0) {
-        bestChapters = incomingChapters;
-      } else if (!useIncomingMeta && existingChapters.length > 0) {
-        bestChapters = existingChapters;
-      } else {
-        bestChapters = incomingChapters.length > 0 ? incomingChapters : existingChapters;
-      }
-
-      return {
-        ...(useIncomingMeta ? existing : incoming),
-        ...(useIncomingMeta ? incoming : existing),
-        price,
-        isFree,
-        coverImage: incoming.coverImage || existing.coverImage,
-        coverGradient: incoming.coverGradient || existing.coverGradient,
-        coverAccent: incoming.coverAccent || existing.coverAccent,
-        coverBadge: incoming.coverBadge || existing.coverBadge,
-        pdfUrl: incoming.pdfUrl || existing.pdfUrl,
-        pdfFileName: incoming.pdfFileName || existing.pdfFileName,
-        pdfFileSize: incoming.pdfFileSize || existing.pdfFileSize,
-        epubUrl: incoming.epubUrl || existing.epubUrl,
-        epubFileName: incoming.epubFileName || existing.epubFileName,
-        epubFileSize: incoming.epubFileSize || existing.epubFileSize,
-        isSeries: incoming.isSeries ?? existing.isSeries,
-        seriesName: incoming.seriesName || existing.seriesName,
-        seriesOrder: incoming.seriesOrder || existing.seriesOrder,
-        seriesStatus: incoming.seriesStatus || existing.seriesStatus,
-        sampleContent: {
-          chapters: bestChapters,
-        },
-        updatedAt: Math.max(existingTime, incomingTime) || Date.now(),
-      };
-    };
-
-    const mergeBooks = (newBooks: EBook[]) => {
-      if (!newBooks.length) return;
-      setBooks((prev) => {
-        const deletedSet = getStoredDeletedBookIds();
-        const showcaseIds = new Set(INITIAL_EBOOKS.map((b) => b.id));
-        const showcaseBooks = INITIAL_EBOOKS.filter((b) => !deletedSet.has(b.id));
-        const officialIds = new Set(OFFICIAL_PUBLISHED_BOOKS.map((b) => b.id));
-
-        // Map to keep unique published books
-        const publishedMap = new Map<string, EBook>();
-
-        // 0. Seed official published books
-        for (const opb of OFFICIAL_PUBLISHED_BOOKS) {
-          if (!deletedSet.has(opb.id)) {
-            publishedMap.set(opb.id, opb);
-          }
-        }
-
-        // 1. Add any non-showcase books currently in prev
-        for (const b of prev) {
-          if (!showcaseIds.has(b.id) && !deletedSet.has(b.id)) {
-            if (officialIds.has(b.id)) {
-              const canonical = OFFICIAL_PUBLISHED_BOOKS.find((o) => o.id === b.id);
-              publishedMap.set(b.id, { ...b, ...canonical });
-            } else {
-              publishedMap.set(b.id, b);
-            }
-          }
-        }
-
-        // 2. Add or update with newBooks (canonical data takes precedence over stale cache, skip deleted)
-        for (const nb of newBooks) {
-          if (!showcaseIds.has(nb.id) && !deletedSet.has(nb.id)) {
-            if (officialIds.has(nb.id)) {
-              const canonical = OFFICIAL_PUBLISHED_BOOKS.find((o) => o.id === nb.id);
-              publishedMap.set(nb.id, { ...nb, ...canonical });
-            } else {
-              const existing = publishedMap.get(nb.id);
-              if (existing) {
-                publishedMap.set(nb.id, mergeSingleBook(existing, nb));
-              } else {
-                const isFree = Boolean(nb.isFree || nb.price === 0);
-                publishedMap.set(nb.id, {
-                  ...nb,
-                  isFree,
-                  price: isFree ? 0 : nb.price,
-                });
-              }
-            }
-          }
-        }
-
-        const publishedList = Array.from(publishedMap.values());
-        // Susun buku yang diterbitkan supaya naskhah terbaru sentiasa berada di bahagian paling atas
-        publishedList.sort((a, b) => {
+        // Susun naskhah baharu di bahagian paling atas
+        livePublishedList.sort((a, b) => {
           const timeA = a.createdAt || (a.id.startsWith('karya-user-') ? parseInt(a.id.replace('karya-user-', '')) : 0);
           const timeB = b.createdAt || (b.id.startsWith('karya-user-') ? parseInt(b.id.replace('karya-user-', '')) : 0);
           return timeB - timeA;
         });
 
-        // Segerakkan kembali cache localStorage supaya tiada lagi perbezaan data antara peranti
-        try {
-          localStorage.setItem('karyadigital_published_books', JSON.stringify(publishedList));
-        } catch (e) {
-          // ignore
-        }
-
-        // BUKU TERBARU DILETAKKAN DI BAHAGIAN PALING ATAS KATALOG
-        return [...publishedList, ...showcaseBooks];
-      });
-    };
-
-    // Bersihkan sebarang cache usang daripada sesi terdahulu agar semua pengguna melihat paparan yang tepat & terkini
-    try {
-      const currentCacheVer = localStorage.getItem('karyadigital_sync_version');
-      if (currentCacheVer !== 'v7_authentic_manuscript_sync') {
-        localStorage.removeItem('karyadigital_published_books');
-        // Bersihkan tombstone lapuk yang tersalah sekat karya aktif
-        const oldDeletedRaw = localStorage.getItem('karyadigital_deleted_book_ids');
-        if (oldDeletedRaw) {
-          const oldList: string[] = JSON.parse(oldDeletedRaw);
-          const activeSafeIds = new Set(['karya-user-1792809354728', 'karya-user-1792513665252']);
-          const cleaned = oldList.filter((id) => !activeSafeIds.has(id));
-          localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(cleaned));
-        }
-        localStorage.setItem('karyadigital_sync_version', 'v7_authentic_manuscript_sync');
+        setBooks(() => {
+          const liveIds = new Set(livePublishedList.map((b) => b.id));
+          const showcaseRemaining = INITIAL_EBOOKS.filter((b) => !liveIds.has(b.id));
+          return [...livePublishedList, ...showcaseRemaining];
+        });
       }
-    } catch (e) {
-      console.warn('Ralat kemaskini cache version:', e);
-    }
+    });
 
-    // 0. Muat turun senarai naskhah yang telah dipadam secara kekal dari Pelayan (Tombstone)
-    fetch('/api/books/deleted')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.success && Array.isArray(data.deletedIds) && data.deletedIds.length > 0) {
-          const activeSafeIds = new Set(['karya-user-1792809354728', 'karya-user-1792513665252']);
-          const validDeleted = data.deletedIds.filter((id: string) => !activeSafeIds.has(id));
-          setDeletedBookIds((prev) => {
-            const updated = new Set([...prev, ...validDeleted]);
-            try {
-              localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
-            } catch (e) {}
-            return updated;
-          });
-          const serverDeletedSet = new Set(validDeleted);
-          setBooks((prev) => prev.filter((b) => !serverDeletedSet.has(b.id)));
-        }
-      })
-      .catch((err) => console.warn('Ralat muat turun deleted books API:', err));
-
-    // A. Muat turun dari LocalStorage serta merta
-    try {
-      const localSaved = localStorage.getItem('karyadigital_published_books');
-      if (localSaved) {
-        const parsed = JSON.parse(localSaved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          mergeBooks(parsed);
-        }
-      }
-    } catch (err) {
-      console.warn('Ralat membaca localStorage:', err);
-    }
-
-    // B. Muat turun dari Cloudflare R2 / Server Storan Kekal
+    // 3. Sandaran Pantas dari Cloudflare R2 / Server Storan Kekal
     fetch('/api/books/published')
       .then((res) => res.json())
       .then((data) => {
         if (data.success && Array.isArray(data.books) && data.books.length > 0) {
-          mergeBooks(data.books);
-        }
-      })
-      .catch((err) => console.warn('Ralat Cloudflare R2 API:', err));
-
-    // C. Muat turun dari Firebase Firestore
-    getPublishedBooksFromFirestore()
-      .then((firestoreBooks) => {
-        if (Array.isArray(firestoreBooks) && firestoreBooks.length > 0) {
-          // Naskhah aktif dari Firestore dinyah-tombstone supaya tidak dipadam
-          const activeIds = firestoreBooks.map((b) => b.id);
-          setDeletedBookIds((prev) => {
-            const next = new Set(prev);
-            activeIds.forEach((id) => next.delete(id));
-            try {
-              localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(next)));
-            } catch (e) {}
-            return next;
+          const r2Books: EBook[] = data.books.map((b: any) => {
+            const isFree = Boolean(b.isFree || Number(b.price) === 0);
+            return {
+              ...b,
+              isFree,
+              price: isFree ? 0 : Number(b.price) || 0,
+            };
           });
-          mergeBooks(firestoreBooks as EBook[]);
+
+          setBooks((prev) => {
+            // Hanya masukkan naskhah R2 jika belum ada dalam senarai
+            const currentIds = new Set(prev.map((b) => b.id));
+            const newR2 = r2Books.filter((b) => !currentIds.has(b.id));
+            if (newR2.length === 0) return prev;
+            return [...newR2, ...prev];
+          });
         }
       })
-      .catch((err) => console.warn('Ralat Firestore:', err));
+      .catch((err) => console.warn('[Cloudflare R2 API]:', err));
+
+    return () => {
+      unsubscribeLiveBooks();
+    };
   }, []);
 
   // Gabungan naskhah dibeli + naskhah karya sendiri yang sah + SEMUA naskhah percuma (bebas dibaca tanpa perlu bayar)
@@ -847,16 +700,7 @@ export default function App() {
       ...prev.filter((b) => b.id !== bookWithAuthorAndTimestamp.id),
     ]);
 
-    // 3. Simpan secara kekal ke LocalStorage
-    try {
-      const existingLocal = JSON.parse(localStorage.getItem('karyadigital_published_books') || '[]');
-      const updatedLocal = [bookWithAuthorAndTimestamp, ...existingLocal.filter((b: EBook) => b.id !== bookWithAuthorAndTimestamp.id)];
-      localStorage.setItem('karyadigital_published_books', JSON.stringify(updatedLocal));
-    } catch (err) {
-      console.warn('Ralat menyimpan ke localStorage:', err);
-    }
-
-    // 4. Muat naik & simpan ke Cloudflare R2 Object Storage melalui Server API
+    // 2. Muat naik & simpan ke Cloudflare R2 Object Storage melalui Server API
     try {
       const resp = await fetch('/api/books/publish', {
         method: 'POST',
@@ -936,24 +780,7 @@ export default function App() {
 
     setBooks((prev) => prev.map((b) => (b.id === safeUpdatedBook.id ? safeUpdatedBook : b)));
 
-    // Simpan ke LocalStorage
-    try {
-      const saved = localStorage.getItem('karyadigital_published_books');
-      if (saved) {
-        const list: EBook[] = JSON.parse(saved);
-        const idx = list.findIndex((b) => b.id === safeUpdatedBook.id);
-        if (idx >= 0) {
-          list[idx] = safeUpdatedBook;
-        } else {
-          list.unshift(safeUpdatedBook);
-        }
-        localStorage.setItem('karyadigital_published_books', JSON.stringify(list));
-      }
-    } catch (e) {
-      console.warn('Ralat mengemas kini localStorage:', e);
-    }
-
-    // Simpan ke Firestore
+    // Simpan terus ke Firestore (Realtime Live Sync ke semua pembaca)
     saveBookToFirestore(safeUpdatedBook).catch(console.warn);
 
     // Simpan ke Pelayan / R2
@@ -995,17 +822,7 @@ export default function App() {
     // 2. Padam serta-merta daripada state paparan
     setBooks((prev) => prev.filter((b) => b.id !== bookId));
 
-    // 3. Padam daripada cache LocalStorage
-    try {
-      const saved = localStorage.getItem('karyadigital_published_books');
-      if (saved) {
-        const list: EBook[] = JSON.parse(saved);
-        const filtered = list.filter((b) => b.id !== bookId);
-        localStorage.setItem('karyadigital_published_books', JSON.stringify(filtered));
-      }
-    } catch (e) {
-      console.warn('Ralat memadam dari localStorage:', e);
-    }
+
 
     // 4. Padam daripada senarai id saya jika ada
     try {
@@ -1053,7 +870,7 @@ export default function App() {
 
     // 3. Buang dari local storage
     try {
-      localStorage.setItem('karyadigital_published_books', JSON.stringify([]));
+      localStorage.removeItem('karyadigital_published_books');
       localStorage.removeItem('karyadigital_my_author_book_ids');
     } catch (e) {}
 

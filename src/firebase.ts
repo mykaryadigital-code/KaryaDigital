@@ -408,6 +408,30 @@ export async function deleteBookFromFirestore(bookId: string): Promise<void> {
   }
 }
 
+/**
+ * Langganan masa nyata koleksi buku yang diterbitkan (Realtime Live Sync)
+ * Menjamin semua pengguna melihat penambahan, suntingan, dan pemadaman buku secara serentak.
+ */
+export function subscribeToPublishedBooks(
+  onBooksChange: (books: any[]) => void
+) {
+  const colRef = collection(db, 'published_books');
+  return onSnapshot(
+    colRef,
+    (snapshot) => {
+      const books: any[] = [];
+      snapshot.forEach((d) => {
+        books.push(d.data());
+      });
+      console.log(`[Firestore Realtime] Menerima ${books.length} naskhah aktif secara langsung.`);
+      onBooksChange(books);
+    },
+    (error) => {
+      console.warn('[Firestore Realtime Sync Warning]:', error);
+    }
+  );
+}
+
 // 6. Ulasan Naskhah (Book Reviews Collection)
 export interface BookReviewItem {
   id: string;
