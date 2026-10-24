@@ -20,7 +20,7 @@ import {
   Info,
 } from 'lucide-react';
 import { EBook, BookCategory, Chapter } from '../types/ebook.ts';
-import { parseEpubFile } from '../utils/epubParser.ts';
+import { parseEpubFile, splitParagraphsIntoChapters } from '../utils/epubParser.ts';
 
 interface EditBookModalProps {
   isOpen: boolean;
@@ -226,6 +226,37 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
         setChapterSubtitleInput(filtered[newIdx].subtitle || '');
         setChapterContentInput((filtered[newIdx].paragraphs || []).join('\n\n'));
       }
+    }
+  };
+
+  const handleAutoSplitChapters = () => {
+    // Segerakkan suntingan aktif terlebih dahulu
+    syncCurrentChapter(selectedChapterIndex, chapterTitleInput, chapterSubtitleInput, chapterContentInput);
+
+    const newlySplitChapters: Chapter[] = [];
+    let splitCount = 0;
+
+    for (let c = 0; c < chapters.length; c++) {
+      const ch = chapters[c];
+      const paragraphs = ch.paragraphs || [];
+      const splitResult = splitParagraphsIntoChapters(paragraphs, ch.title, newlySplitChapters.length + 1);
+      if (splitResult.length > 1) {
+        splitCount += splitResult.length - 1;
+      }
+      newlySplitChapters.push(...splitResult);
+    }
+
+    const finalChapters = newlySplitChapters.map((ch, idx) => ({ ...ch, id: idx + 1 }));
+
+    if (splitCount > 0 || finalChapters.length > chapters.length) {
+      setChapters(finalChapters);
+      setSelectedChapterIndex(0);
+      setChapterTitleInput(finalChapters[0].title);
+      setChapterSubtitleInput(finalChapters[0].subtitle || '');
+      setChapterContentInput(finalChapters[0].paragraphs.join('\n\n'));
+      alert(`Berjaya! Sistem telah mengenal pasti dan memisahkan teks kepada ${finalChapters.length} bab / episod secara automatik.`);
+    } else {
+      alert('Sistem tidak menemui penanda episod/bab baharu di dalam teks. Anda boleh menambah bab secara manual menggunakan butang "Tambah Bab Baharu".');
     }
   };
 
@@ -745,18 +776,29 @@ export const EditBookModal: React.FC<EditBookModalProps> = ({
 
               {/* Senarai & Penyunting Bab */}
               <div className="space-y-3">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2 flex-wrap">
                   <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
                     Senarai Bab / Episod Teks ({chapters.length})
                   </h4>
-                  <button
-                    type="button"
-                    onClick={handleAddChapter}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Tambah Bab Baharu</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleAutoSplitChapters}
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                      title="Kesan dan pisahkan bab/episod secara automatik daripada kandungan perenggan yang panjang"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Pisahkan Bab Automatik</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddChapter}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-2xs transition cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Tambah Bab Baharu</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Chapter Pills */}
