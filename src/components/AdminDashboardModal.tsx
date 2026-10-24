@@ -25,6 +25,9 @@ import {
   Check,
   Edit3,
   Trash2,
+  PenTool,
+  BadgeCheck,
+  UserCheck,
 } from 'lucide-react';
 import { EBook, UserProfile } from '../types/ebook.ts';
 import { formatMYR } from '../utils/ebookLogic.ts';
@@ -80,14 +83,88 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
   const [filterGenre, setFilterGenre] = useState('semua');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Mock initial transactions for platform review
+  // Helper untuk mengenal pasti Penulis Sebenar bagi mana-mana judul naskhah
+  const resolveBookAuthor = (
+    title: string
+  ): { author: string; authorEmail?: string; isVerified: boolean; royaltyRate: number } => {
+    const cleanTitle = title.trim().toLowerCase();
+    const found = books.find(
+      (b) =>
+        b.title.toLowerCase().includes(cleanTitle) ||
+        cleanTitle.includes(b.title.toLowerCase())
+    );
+    if (found) {
+      const email =
+        found.authorEmail ||
+        (found.author.toLowerCase().includes('karim')
+          ? 'bangkarim79@gmail.com'
+          : undefined);
+      return {
+        author: found.author,
+        authorEmail: email,
+        isVerified: Boolean(email),
+        royaltyRate: 70,
+      };
+    }
+    if (cleanTitle.includes('janda bukan akhir')) {
+      return {
+        author: 'Bang Karim',
+        authorEmail: 'bangkarim79@gmail.com',
+        isVerified: true,
+        royaltyRate: 70,
+      };
+    }
+    if (cleanTitle.includes('anim')) {
+      return {
+        author: 'KaryaDigital Studio',
+        authorEmail: 'karyadigital@mykaryadigital.com',
+        isVerified: true,
+        royaltyRate: 70,
+      };
+    }
+    if (cleanTitle.includes('pendekar siber')) {
+      return {
+        author: 'Faizal Razali',
+        isVerified: false,
+        royaltyRate: 70,
+      };
+    }
+    if (cleanTitle.includes('tempoyak') || cleanTitle.includes('mak tok')) {
+      return {
+        author: 'Mak Tok Timah',
+        isVerified: false,
+        royaltyRate: 70,
+      };
+    }
+    if (cleanTitle.includes('angkasa')) {
+      return {
+        author: 'Kamal Azman',
+        isVerified: false,
+        royaltyRate: 70,
+      };
+    }
+    if (cleanTitle.includes('bayang')) {
+      return {
+        author: 'Farhan Iskandar',
+        isVerified: false,
+        royaltyRate: 70,
+      };
+    }
+    return {
+      author: 'Penulis Komuniti',
+      isVerified: false,
+      royaltyRate: 70,
+    };
+  };
+
+  // Log Transaksi Pembelian dengan perincian Pembeli & Penulis Sebenar
   const [orders, setOrders] = useState<OrderRecord[]>([
     {
       id: 'ord-101',
       orderNumber: 'KD-2026-9041',
       userName: 'Aina Zulkifli',
       userEmail: 'aina@karyadigital.my',
-      bookTitles: ['Janda Bukan Akhir Segalanya', 'Bayang Di Balik Tirai'],
+      bookTitles: ['Janda Bukan Akhir', 'Bayang Di Balik Tirai'],
       amount: 45.0,
       gateway: 'bcl',
       channel: 'duitnow',
@@ -139,7 +216,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
       orderNumber: 'KD-2026-9037',
       userName: 'Siti Sarah',
       userEmail: 'sarah.siti@gmail.com',
-      bookTitles: ['Janda Bukan Akhir Segalanya'],
+      bookTitles: ['Janda Bukan Akhir'],
       amount: 25.0,
       gateway: 'bcl',
       channel: 'tng',
@@ -149,12 +226,12 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     },
   ]);
 
-  // Mock initial author payout requests
+  // Permohonan Pengeluaran Royalti Penulis Sebenar (Berdaftar di Platform)
   const [payouts, setPayouts] = useState<AuthorPayoutRequest[]>([
     {
       id: 'po-1',
-      authorName: 'Karim Rahman',
-      authorEmail: 'karim.rahman@karyadigital.my',
+      authorName: 'Bang Karim',
+      authorEmail: 'bangkarim79@gmail.com',
       bankName: 'Maybank',
       accountNumber: '1640-5231-9011',
       amount: 875.0,
@@ -164,25 +241,25 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
     },
     {
       id: 'po-2',
-      authorName: 'Dr. Zulkifli Hasan',
-      authorEmail: 'dr.zul@karyadigital.my',
+      authorName: 'KaryaDigital Studio',
+      authorEmail: 'karyadigital@mykaryadigital.com',
       bankName: 'CIMB Bank',
-      accountNumber: '7051-2290-4412',
-      amount: 1420.0,
-      salesCount: 82,
+      accountNumber: '8604-1290-3341',
+      amount: 420.0,
+      salesCount: 28,
       status: 'approved',
-      requestDate: '21 Okt 2026',
+      requestDate: '22 Okt 2026',
     },
     {
       id: 'po-3',
-      authorName: 'Aiman Hafiz (Kru Komik Melayu)',
-      authorEmail: 'aiman.hafiz@komik.my',
+      authorName: 'Dr. Zulkifli Hasan',
+      authorEmail: 'dr.zul@karyadigital.my',
       bankName: 'Bank Islam',
-      accountNumber: '1209-4410-8890',
-      amount: 630.0,
-      salesCount: 35,
+      accountNumber: '7051-2290-4412',
+      amount: 1420.0,
+      salesCount: 82,
       status: 'completed',
-      requestDate: '18 Okt 2026',
+      requestDate: '21 Okt 2026',
     },
   ]);
 
@@ -514,12 +591,94 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 </div>
               </div>
 
-              {/* Recent Orders Preview */}
+              {/* Penulis Sebenar Berdaftar & Pemilikan Hak Cipta Card */}
+              <div className="p-5 rounded-2xl bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white space-y-4 shadow-md">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-xl bg-amber-400 text-slate-950 font-bold">
+                      <PenTool className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black uppercase tracking-wider text-amber-300">
+                        Penulis Sebenar Berdaftar & Pemilik Hak Cipta (Royalti 70%)
+                      </h4>
+                      <p className="text-[11px] text-slate-300">
+                        Pengesahan identiti pengarang naskhah di platform KaryaDigital
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab('penulis')}
+                    className="text-xs font-bold text-amber-300 hover:text-white underline cursor-pointer"
+                  >
+                    Urus Royalti & Penulis →
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {/* Penulis 1: Bang Karim */}
+                  <div className="p-3.5 rounded-xl bg-white/10 border border-white/10 hover:border-amber-400/40 transition">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-black text-sm text-white">Bang Karim</span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-400 text-slate-950">
+                            PENULIS DISAHKAN
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-mono text-amber-200 mt-0.5">
+                          bangkarim79@gmail.com
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-slate-300">Royalti Terkumpul</div>
+                        <div className="text-xs font-black text-emerald-400">RM 875.00</div>
+                      </div>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-white/10 text-[11px] text-slate-200 flex items-center gap-1">
+                      <span className="text-amber-300 font-bold">Naskhah:</span>
+                      <span className="font-semibold underline">Janda Bukan Akhir</span>, Hikayat Pendekar Rimba
+                    </div>
+                  </div>
+
+                  {/* Penulis 2: KaryaDigital Studio */}
+                  <div className="p-3.5 rounded-xl bg-white/10 border border-white/10 hover:border-amber-400/40 transition">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-black text-sm text-white">KaryaDigital Studio</span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-400 text-slate-950">
+                            PENULIS RASMI
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-mono text-indigo-200 mt-0.5">
+                          karyadigital@mykaryadigital.com
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-[10px] text-slate-300">Royalti Terkumpul</div>
+                        <div className="text-xs font-black text-emerald-400">RM 420.00</div>
+                      </div>
+                    </div>
+                    <div className="mt-2.5 pt-2 border-t border-white/10 text-[11px] text-slate-200 flex items-center gap-1">
+                      <span className="text-amber-300 font-bold">Naskhah:</span>
+                      <span className="font-semibold underline">Anim - Aku Bukan Tomboy</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recent Orders Preview dengan Perbezaan Jelas Pembeli vs Penulis Sebenar */}
               <div className="p-5 rounded-2xl bg-white border border-slate-200 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                    5 Transaksi Pembelian Terkini
-                  </h4>
+                  <div>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                      5 Transaksi Pembelian Terkini
+                    </h4>
+                    <p className="text-[11px] text-slate-500">
+                      Menunjukkan pembeli yang membuat bayaran dan penulis sebenar yang menerima hak royalti.
+                    </p>
+                  </div>
                   <button
                     onClick={() => setActiveTab('transaksi')}
                     className="text-xs font-bold text-indigo-600 hover:underline cursor-pointer"
@@ -530,14 +689,44 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
 
                 <div className="divide-y divide-slate-100">
                   {orders.slice(0, 5).map((order) => (
-                    <div key={order.id} className="py-2.5 flex items-center justify-between text-xs gap-3">
-                      <div>
-                        <div className="font-bold text-slate-900">{order.userName}</div>
-                        <div className="text-[11px] text-slate-500">{order.bookTitles.join(', ')}</div>
+                    <div key={order.id} className="py-3 flex flex-col sm:flex-row sm:items-center justify-between text-xs gap-3">
+                      <div className="space-y-1.5">
+                        {/* Pembeli info */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                            👤 Pembeli (Pelanggan):
+                          </span>
+                          <span className="font-bold text-slate-900">{order.userName}</span>
+                          <span className="text-[11px] text-slate-400 font-mono">({order.userEmail})</span>
+                        </div>
+
+                        {/* Judul Buku & Penulis Sebenar */}
+                        <div className="pl-2.5 border-l-2 border-indigo-300 space-y-1">
+                          {order.bookTitles.map((title, idx) => {
+                            const authorInfo = resolveBookAuthor(title);
+                            return (
+                              <div key={idx} className="flex items-center gap-2 flex-wrap text-slate-700">
+                                <span className="font-semibold text-slate-900">📖 {title}</span>
+                                <span className="text-slate-300">•</span>
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-900 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-md">
+                                  <PenTool className="w-3 h-3 text-indigo-600 shrink-0" />
+                                  <span>Penulis Sebenar:</span>
+                                  <strong className="text-indigo-950">{authorInfo.author}</strong>
+                                  {authorInfo.authorEmail && (
+                                    <span className="font-mono text-indigo-600 font-semibold text-[10px]">
+                                      ({authorInfo.authorEmail})
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-black text-slate-900">{formatMYR(order.amount)}</div>
-                        <span className="text-[10px] font-extrabold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800">
+
+                      <div className="text-right sm:self-center shrink-0">
+                        <div className="font-black text-slate-900 text-sm">{formatMYR(order.amount)}</div>
+                        <span className="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800">
                           {order.gateway.toUpperCase()} • {order.channel.toUpperCase()}
                         </span>
                       </div>
@@ -608,7 +797,25 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                                 <div className="font-bold text-slate-900 truncate max-w-[200px]">
                                   {book.title}
                                 </div>
-                                <div className="text-[11px] text-slate-500">Oleh {book.author}</div>
+                                <div className="text-[11px] text-slate-600 flex items-center gap-1.5 flex-wrap mt-0.5">
+                                  <span className="font-semibold text-slate-800 flex items-center gap-1">
+                                    <PenTool className="w-3 h-3 text-indigo-600" />
+                                    <span>Penulis Sebenar: <strong>{book.author}</strong></span>
+                                  </span>
+                                  {book.authorEmail ? (
+                                    <span className="font-mono text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-1.5 py-0.2 rounded font-semibold">
+                                      {book.authorEmail}
+                                    </span>
+                                  ) : book.id === 'karya-janda-bukan-akhir' ? (
+                                    <span className="font-mono text-[10px] bg-indigo-50 border border-indigo-200 text-indigo-700 px-1.5 py-0.2 rounded font-semibold">
+                                      bangkarim79@gmail.com
+                                    </span>
+                                  ) : (
+                                    <span className="text-[10px] text-slate-400">
+                                      (Akaun KaryaDigital)
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </td>
@@ -696,7 +903,7 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     Log Rekod Transaksi Bayaran Sah
                   </h4>
                   <p className="text-xs text-slate-500">
-                    Direkod melalui perkhidmatan gerbang BCL (Bayarcash) dan ToyyibPay.
+                    Menyemak aliran dana dari Pembeli ke Penulis Sebenar (70%) dan Platform KaryaDigital (30%).
                   </p>
                 </div>
                 <button
@@ -715,10 +922,10 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                     <thead className="bg-slate-100 text-slate-700 font-bold border-b border-slate-200">
                       <tr>
                         <th className="py-3 px-4">No. Pesanan</th>
-                        <th className="py-3 px-3">Pembeli</th>
-                        <th className="py-3 px-3">Naskhah Dibeli</th>
+                        <th className="py-3 px-3">Pembeli (Pelanggan)</th>
+                        <th className="py-3 px-3">Naskhah & Penulis Sebenar</th>
                         <th className="py-3 px-3">Gerbang & Saluran</th>
-                        <th className="py-3 px-3">Jumlah</th>
+                        <th className="py-3 px-3">Jumlah Bayaran</th>
                         <th className="py-3 px-3">Status</th>
                         <th className="py-3 px-4 text-right">Masa</th>
                       </tr>
@@ -733,11 +940,30 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                             </span>
                           </td>
                           <td className="py-3 px-3">
+                            <div className="text-[10px] font-bold text-slate-400">👤 Pembeli</div>
                             <span className="font-bold text-slate-900 block">{ord.userName}</span>
                             <span className="text-[11px] text-slate-500 font-mono">{ord.userEmail}</span>
                           </td>
                           <td className="py-3 px-3 text-slate-700">
-                            {ord.bookTitles.join(', ')}
+                            <div className="space-y-1.5">
+                              {ord.bookTitles.map((t, idx) => {
+                                const info = resolveBookAuthor(t);
+                                return (
+                                  <div key={idx} className="p-1.5 rounded-lg bg-slate-50 border border-slate-200/80 text-xs">
+                                    <div className="font-semibold text-slate-900">📖 {t}</div>
+                                    <div className="text-[11px] text-indigo-700 font-bold flex items-center gap-1 mt-0.5">
+                                      <PenTool className="w-3 h-3 text-indigo-600 shrink-0" />
+                                      <span>Penulis Sebenar: <strong>{info.author}</strong></span>
+                                      {info.authorEmail && (
+                                        <span className="font-mono text-indigo-500 font-normal text-[10px]">
+                                          ({info.authorEmail})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
                           </td>
                           <td className="py-3 px-3">
                             <span className={`inline-block text-[10px] font-extrabold px-1.5 py-0.5 rounded ${
@@ -792,6 +1018,75 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                 </div>
               </div>
 
+              {/* Verified Platform Authors List */}
+              <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="text-xs font-black uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                    <PenTool className="w-4 h-4 text-indigo-600" />
+                    <span>Penulis Sebenar Berdaftar & Pemilik Karya di Platform</span>
+                  </h5>
+                  <span className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 font-bold px-2 py-0.5 rounded-full">
+                    Akaun Disahkan Sah
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-black text-sm text-slate-900 flex items-center gap-1.5">
+                          <span>Bang Karim</span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-amber-400 text-slate-950">
+                            PENULIS
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-mono text-indigo-600 font-bold">
+                          bangkarim79@gmail.com
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Aktif
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 pt-1 border-t border-slate-200">
+                      <span className="font-bold text-slate-800">Karya Asli Terbitan:</span>{' '}
+                      <span className="font-semibold text-indigo-900">Janda Bukan Akhir</span> & Hikayat Pendekar Rimba
+                    </div>
+                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      <span>Maybank: 1640-5231-9011 (Karim)</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-2">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <div className="font-black text-sm text-slate-900 flex items-center gap-1.5">
+                          <span>KaryaDigital Studio</span>
+                          <span className="text-[9px] font-black px-1.5 py-0.2 rounded bg-indigo-500 text-white">
+                            PENERBIT RASMI
+                          </span>
+                        </div>
+                        <div className="text-[11px] font-mono text-indigo-600 font-bold">
+                          karyadigital@mykaryadigital.com
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Aktif
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 pt-1 border-t border-slate-200">
+                      <span className="font-bold text-slate-800">Karya Asli Terbitan:</span>{' '}
+                      <span className="font-semibold text-indigo-900">Anim - Aku Bukan Tomboy</span>
+                    </div>
+                    <div className="text-[11px] text-slate-500 flex items-center gap-1.5">
+                      <Building2 className="w-3.5 h-3.5 text-slate-400" />
+                      <span>CIMB Bank: 8604-1290-3341 (KaryaDigital)</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
                 <div className="p-4 border-b border-slate-100 font-bold text-xs text-slate-700 flex items-center justify-between">
                   <span>Permohonan Pengeluaran Royalti Penulis (Payouts)</span>
@@ -802,7 +1097,14 @@ export const AdminDashboardModal: React.FC<AdminDashboardModalProps> = ({
                   {payouts.map((po) => (
                     <div key={po.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                       <div>
-                        <div className="font-bold text-slate-900 text-sm">{po.authorName}</div>
+                        <div className="font-bold text-slate-900 text-sm flex items-center gap-2">
+                          <span>{po.authorName}</span>
+                          {po.authorEmail === 'bangkarim79@gmail.com' && (
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-300">
+                              PENULIS JANDA BUKAN AKHIR
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[11px] text-slate-500 font-mono">{po.authorEmail}</div>
                         <div className="text-slate-700 mt-1 flex items-center gap-2">
                           <Building2 className="w-3.5 h-3.5 text-slate-500" />
