@@ -272,11 +272,12 @@ export default function App() {
       setBooks((prev) => {
         const showcaseIds = new Set(INITIAL_EBOOKS.map((b) => b.id));
         const showcaseBooks = INITIAL_EBOOKS;
+        const officialIds = new Set(OFFICIAL_PUBLISHED_BOOKS.map((b) => b.id));
 
         // Map to keep unique published books
         const publishedMap = new Map<string, EBook>();
 
-        // 0. Seed official published books (termasuk Janda Bukan Akhir)
+        // 0. Seed official published books (termasuk Janda Bukan Akhir tulisan Bang Karim)
         for (const opb of OFFICIAL_PUBLISHED_BOOKS) {
           publishedMap.set(opb.id, opb);
         }
@@ -284,14 +285,24 @@ export default function App() {
         // 1. Add any non-showcase books currently in prev
         for (const b of prev) {
           if (!showcaseIds.has(b.id)) {
-            publishedMap.set(b.id, b);
+            if (officialIds.has(b.id)) {
+              const canonical = OFFICIAL_PUBLISHED_BOOKS.find((o) => o.id === b.id);
+              publishedMap.set(b.id, { ...b, ...canonical });
+            } else {
+              publishedMap.set(b.id, b);
+            }
           }
         }
 
-        // 2. Add or update with newBooks
+        // 2. Add or update with newBooks (canonical data takes precedence over stale cache)
         for (const nb of newBooks) {
           if (!showcaseIds.has(nb.id)) {
-            publishedMap.set(nb.id, nb);
+            if (officialIds.has(nb.id)) {
+              const canonical = OFFICIAL_PUBLISHED_BOOKS.find((o) => o.id === nb.id);
+              publishedMap.set(nb.id, { ...nb, ...canonical });
+            } else {
+              publishedMap.set(nb.id, nb);
+            }
           }
         }
 
@@ -303,10 +314,28 @@ export default function App() {
           return timeB - timeA;
         });
 
+        // Segerakkan kembali cache localStorage supaya tiada lagi perbezaan data antara peranti
+        try {
+          localStorage.setItem('karyadigital_published_books', JSON.stringify(publishedList));
+        } catch (e) {
+          // ignore
+        }
+
         // BUKU TERBARU DILETAKKAN DI BAHAGIAN PALING ATAS KATALOG
         return [...publishedList, ...showcaseBooks];
       });
     };
+
+    // Bersihkan sebarang cache usang daripada sesi terdahulu agar semua pengguna melihat paparan yang tepat
+    try {
+      const currentCacheVer = localStorage.getItem('karyadigital_sync_version');
+      if (currentCacheVer !== 'v3_bangkarim_portrait') {
+        localStorage.removeItem('karyadigital_published_books');
+        localStorage.setItem('karyadigital_sync_version', 'v3_bangkarim_portrait');
+      }
+    } catch (e) {
+      console.warn('Ralat kemaskini cache version:', e);
+    }
 
     // A. Muat turun dari LocalStorage serta merta
     try {
@@ -1007,6 +1036,13 @@ export default function App() {
         initialTab={authorPortalTab}
         onBecomeAuthor={handleBecomeAuthor}
         authorBooks={books.filter((b) => {
+          const isSuperAdmin =
+            user.role === 'admin' ||
+            user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
+          if (isSuperAdmin) {
+            // Super Admin dapat melihat semua naskhah yang diterbitkan di platform (Anim, Janda Bukan Akhir, dsb)
+            return b.id.startsWith('karya-') || isUserBookOwner(b, user);
+          }
           if (user.isLoggedIn) {
             return isUserBookOwner(b, user);
           }

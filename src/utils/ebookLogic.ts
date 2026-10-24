@@ -287,14 +287,12 @@ export function isUserBookOwner(
     return false;
   }
 
-  // 2. Padanan melalui Emel Akaun
-  if (userEmail && bookEmail) {
-    if (userEmail === bookEmail) return true;
-    // Jika emel pemilik ditetapkan kepada orang lain, akses dinafikan
-    return false;
+  // 2. Padanan terus melalui Emel Akaun
+  if (userEmail && bookEmail && userEmail === bookEmail) {
+    return true;
   }
 
-  // 3. Pengiktirafan hak pengarang akaun Bang Karim (bangkarim79@gmail.com)
+  // 3a. Pengiktirafan hak pengarang akaun Bang Karim (bangkarim79@gmail.com)
   if (userEmail === 'bangkarim79@gmail.com') {
     const bookTitleLower = (book.title || '').trim().toLowerCase();
     const authorLower = (book.author || '').trim().toLowerCase();
@@ -302,11 +300,30 @@ export function isUserBookOwner(
       bookTitleLower.includes('janda bukan akhir') ||
       authorLower.includes('karim')
     ) {
-      // Pastikan bukan milik emel orang lain yang berbeza
       if (!bookEmail || bookEmail === userEmail) {
         return true;
       }
     }
+  }
+
+  // 3b. Pengiktirafan hak pemilik & penerbit rasmi platform (mykaryadigital@gmail.com / karyadigital@mykaryadigital.com)
+  if (
+    userEmail === 'mykaryadigital@gmail.com' ||
+    userEmail === 'karyadigital@mykaryadigital.com'
+  ) {
+    if (
+      bookEmail === 'mykaryadigital@gmail.com' ||
+      bookEmail === 'karyadigital@mykaryadigital.com' ||
+      (book.author || '').toLowerCase().includes('karyadigital') ||
+      (book.title || '').toLowerCase().includes('anim')
+    ) {
+      return true;
+    }
+  }
+
+  // Jika kedua-dua emel wujud tetapi jelas merujuk kepada pengguna lain, akses dinafikan
+  if (userEmail && bookEmail && userEmail !== bookEmail) {
+    return false;
   }
 
   // 4. Jika naskhah belum mempunyai authorUid atau authorEmail (karya sedia ada):

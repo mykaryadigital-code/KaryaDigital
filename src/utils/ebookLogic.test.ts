@@ -308,5 +308,14 @@ test('isUserBookOwner correctly grants access to author bangkarim79@gmail.com an
   // 5. Guest user cannot access anything
   assert.equal(isUserBookOwner(jandaBook, guestUser), false);
   assert.equal(isUserBookOwner(jandaBook, null), false);
+
+  // 6. Super Admin / Platform owner mykaryadigital@gmail.com owns Anim platform publication
+  const adminUser = {
+    uid: 'uid-admin-1',
+    email: 'mykaryadigital@gmail.com',
+    name: 'Super Admin KaryaDigital',
+    isLoggedIn: true,
+  };
+  assert.equal(isUserBookOwner(animBook, adminUser), true);
 });
 

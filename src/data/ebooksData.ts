@@ -31,7 +31,7 @@ export const OFFICIAL_PUBLISHED_BOOKS: EBook[] = [
     publisher: 'Penerbitan Bebas KaryaDigital',
     publicationYear: 2026,
     isbn: '978-967-KD-JBA88',
-    coverImage: '/assets/aistudio/Janda_Bukan_Akhir_hero_banner_933c27ae.png',
+    coverImage: '/assets/aistudio/janda_bukan_akhir_portrait_cover.png',
     coverGradient: 'from-rose-950 via-pink-950 to-slate-950',
     coverAccent: '#fb7185',
     coverBadge: 'Karya Asli',
