@@ -22,6 +22,7 @@ import { ReaderHelpModal, ReaderHelpTab } from './components/ReaderHelpModal.tsx
 import { AuthModal } from './components/AuthModal.tsx';
 import { AdminDashboardModal } from './components/AdminDashboardModal.tsx';
 import { EditBookModal } from './components/EditBookModal.tsx';
+import { OfflineIndicator } from './components/PWAInstallButton.tsx';
 import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS, OFFICIAL_PUBLISHED_BOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent, BookmarkEntry } from './types/ebook.ts';
@@ -1365,6 +1366,9 @@ export default function App() {
         isSearchActive={!!searchQuery}
         isLoggedIn={Boolean(user.isLoggedIn)}
       />
+
+      {/* Offline Connectivity Toast Indicator */}
+      <OfflineIndicator />
     </div>
   );
 }

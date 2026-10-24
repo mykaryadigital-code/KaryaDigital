@@ -12,6 +12,7 @@ import {
   Crown,
 } from 'lucide-react';
 import { BookCategory, UserProfile } from '../types/ebook.ts';
+import { PWAInstallButton } from './PWAInstallButton.tsx';
 
 interface HeaderProps {
   searchQuery: string;
@@ -145,6 +146,9 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{isAuthor ? 'Dashboard Penulis' : 'Terbit Karya'}</span>
               </button>
             )}
+
+            {/* PWA Install Button (Mobile & Desktop) */}
+            <PWAInstallButton variant="nav" />
 
             {/* Cart Icon with Purple Circular Badge */}
             <button
@@ -330,6 +334,11 @@ export const Header: React.FC<HeaderProps> = ({
                 <span>{isAuthor ? 'Dashboard Penulis' : 'Jadi Penulis'}</span>
               </button>
             )}
+
+            {/* PWA Mobile Install Banner */}
+            <div className="pt-2 border-t border-slate-100">
+              <PWAInstallButton variant="full" />
+            </div>
           </div>
         )}
       </div>

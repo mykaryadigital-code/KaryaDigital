@@ -1,0 +1,57 @@
+
+  <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0f172a" />
+        <stop offset="50%" stop-color="#1e1b4b" />
+        <stop offset="100%" stop-color="#312e81" />
+      </linearGradient>
+      <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#fbbf24" />
+        <stop offset="100%" stop-color="#f59e0b" />
+      </linearGradient>
+      <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#6366f1" />
+        <stop offset="100%" stop-color="#818cf8" />
+      </linearGradient>
+      <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+        <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000" flood-opacity="0.35" />
+      </filter>
+    </defs>
+
+    <!-- Background -->
+    <rect width="512" height="512" rx="112.64" fill="url(#bg)" />
+
+    <!-- Subtle inner border for unmasked/standard -->
+    <rect x="2" y="2" width="508" height="508" rx="112.64" fill="none" stroke="#6366f1" stroke-width="2" stroke-opacity="0.4" />
+
+    <g transform="translate(40.96, 40.96)" filter="url(#shadow)">
+      <!-- Book open pages -->
+      <path d="M 43.008 120.42240000000001 
+               C 129.024 103.21919999999999, 193.536 111.8208, 215.04 137.6256
+               L 215.04 335.4624
+               C 193.536 309.6576, 129.024 301.056, 43.008 318.25919999999996
+               Z" fill="url(#gold)" />
+      
+      <path d="M 387.072 120.42240000000001 
+               C 301.056 103.21919999999999, 236.544 111.8208, 215.04 137.6256
+               L 215.04 335.4624
+               C 236.544 309.6576, 301.056 301.056, 387.072 318.25919999999996
+               Z" fill="#ffffff" fill-opacity="0.95" />
+
+      <!-- Center spine divider -->
+      <line x1="215.04" y1="137.6256" x2="215.04" y2="344.064" stroke="#4338ca" stroke-width="8.6016" stroke-linecap="round" />
+
+      <!-- Bookmark Ribbon -->
+      <path d="M 206.43839999999997 86.016
+               L 240.84480000000002 86.016
+               L 240.84480000000002 180.63359999999997
+               L 223.6416 163.4304
+               L 206.43839999999997 180.63359999999997
+               Z" fill="#ef4444" />
+
+      <!-- Stylized Sparkle / Digital star -->
+      <circle cx="352.6656" cy="94.6176" r="17.2032" fill="#facc15" />
+    </g>
+  </svg>
+  

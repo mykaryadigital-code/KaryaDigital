@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { UserProfile, EBook } from '../types/ebook.ts';
 import { isUserBookOwner } from '../utils/ebookLogic.ts';
+import { PWAInstallButton } from './PWAInstallButton.tsx';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -393,6 +394,28 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       Tukar Status: {isAuthor ? 'Jadikan Pembaca' : 'Jadikan Penulis'}
                     </button>
                   )}
+                </div>
+              </div>
+
+              {/* Aplikasi Web Mudah Alih (PWA) Card */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white space-y-2.5 border border-indigo-900/60 shadow-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">📱</span>
+                    <div>
+                      <div className="text-xs font-bold text-white">Aplikasi Web Mudah Alih (PWA)</div>
+                      <div className="text-[10px] text-slate-300">Pasang terus ke telefon pintar tanpa Play Store / App Store</div>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 border border-amber-400/30">
+                    PWA
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-300 leading-relaxed">
+                  Nikmati pengalaman pembacaan skrin penuh, pemuatan pantas, dan sokongan luar talian di telefon Android mahupun iOS anda.
+                </p>
+                <div className="pt-1">
+                  <PWAInstallButton variant="full" />
                 </div>
               </div>
 
