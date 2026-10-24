@@ -13,8 +13,11 @@ import {
   LogIn,
   LogOut,
   Crown,
+  PenTool,
+  Edit3,
 } from 'lucide-react';
 import { UserProfile, EBook } from '../types/ebook.ts';
+import { isUserBookOwner } from '../utils/ebookLogic.ts';
 
 interface AccountModalProps {
   isOpen: boolean;
@@ -24,6 +27,7 @@ interface AccountModalProps {
   onTopUpBalance: (amount: number) => void;
   onReadBook: (book: EBook, initialPage?: number) => void;
   onViewSecureAsset?: (bookId: string, bookTitle: string) => void;
+  onEditBook?: (book: EBook) => void;
   firebaseUser?: any;
   onSignInGoogle?: () => Promise<any>;
   onSignOut?: () => Promise<void>;
@@ -43,6 +47,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onTopUpBalance,
   onReadBook,
   onViewSecureAsset,
+  onEditBook,
   firebaseUser,
   onSignInGoogle,
   onSignOut,
@@ -53,14 +58,19 @@ export const AccountModal: React.FC<AccountModalProps> = ({
   onToggleAuthorRole,
   onOpenReaderHelp,
 }) => {
-  const [activeTab, setActiveTab] = useState<'profil' | 'rak' | 'baki'>('profil');
+  const [activeTab, setActiveTab] = useState<'profil' | 'rak' | 'karya' | 'baki'>('profil');
   const [topUpSuccess, setTopUpSuccess] = useState(false);
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [authError, setAuthError] = useState('');
 
   if (!isOpen) return null;
 
-  const ownedBooks = allBooks.filter((b) => user.ownedBookIds.includes(b.id));
+  // Naskhah karya asli pengarang yang log masuk (contoh: Janda Bukan Akhir)
+  const authoredBooks = allBooks.filter((b) => isUserBookOwner(b, user));
+  // Naskhah dalam koleksi rak (gabungan naskhah dibeli + naskhah karya sendiri yang sah)
+  const ownedBooks = allBooks.filter(
+    (b) => user.ownedBookIds.includes(b.id) || isUserBookOwner(b, user)
+  );
 
   const handleTopUp = (amount: number) => {
     onTopUpBalance(amount);
@@ -137,17 +147,30 @@ export const AccountModal: React.FC<AccountModalProps> = ({
               onClick={() => setActiveTab('rak')}
               className={`pb-2 px-3 text-xs font-bold transition-colors border-b-2 -mb-[2px] ${
                 activeTab === 'rak'
-                  ? 'border-amber-400 text-amber-300'
+                  ? 'border-amber-400 text-amber-300 font-black'
                   : 'border-transparent text-slate-400 hover:text-white'
               }`}
             >
-              Koleksi Buku ({ownedBooks.length})
+              Koleksi / Rak ({ownedBooks.length})
             </button>
+            {(authoredBooks.length > 0 || isAuthor) && (
+              <button
+                onClick={() => setActiveTab('karya')}
+                className={`pb-2 px-3 text-xs font-bold transition-colors border-b-2 -mb-[2px] flex items-center gap-1.5 cursor-pointer ${
+                  activeTab === 'karya'
+                    ? 'border-amber-400 text-amber-300 font-black'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <PenTool className="w-3.5 h-3.5 text-amber-400" />
+                <span>Karya Penulis ({authoredBooks.length})</span>
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('baki')}
               className={`pb-2 px-3 text-xs font-bold transition-colors border-b-2 -mb-[2px] ${
                 activeTab === 'baki'
-                  ? 'border-amber-400 text-amber-300'
+                  ? 'border-amber-400 text-amber-300 font-black'
                   : 'border-transparent text-slate-400 hover:text-white'
               }`}
             >
@@ -160,7 +183,7 @@ export const AccountModal: React.FC<AccountModalProps> = ({
         <div className="p-6 overflow-y-auto space-y-6">
           {activeTab === 'profil' && (
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className={`grid ${authoredBooks.length > 0 ? 'grid-cols-3' : 'grid-cols-2'} gap-3`}>
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100">
                   <div className="text-xs font-semibold text-slate-500">Naskhah Dimiliki</div>
                   <div className="text-2xl font-black text-slate-900 mt-1">
@@ -176,7 +199,106 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                   </div>
                   <div className="text-[11px] text-slate-400">Boleh guna terus</div>
                 </div>
+
+                {authoredBooks.length > 0 && (
+                  <div className="p-4 rounded-2xl bg-indigo-50 border border-indigo-200">
+                    <div className="text-xs font-semibold text-indigo-700 flex items-center gap-1">
+                      <PenTool className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Karya Penulis</span>
+                    </div>
+                    <div className="text-2xl font-black text-indigo-950 mt-1">
+                      {authoredBooks.length}
+                    </div>
+                    <div className="text-[11px] text-indigo-600 font-medium">Hak Milik Sah</div>
+                  </div>
+                )}
               </div>
+
+              {/* Author Showcase Card for author accounts */}
+              {authoredBooks.length > 0 && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50/50 to-slate-50 border border-indigo-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-xs">
+                        ✍️
+                      </div>
+                      <div>
+                        <div className="text-xs font-black text-slate-900">
+                          Karya Anda di Katalog ({authoredBooks.length} Naskhah)
+                        </div>
+                        <div className="text-[11px] text-indigo-700 font-medium">
+                          {user.email === 'bangkarim79@gmail.com' ? 'Akaun Penulis: Bang Karim' : 'Karya Asli Pengarang'}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('karya')}
+                      className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                    >
+                      Urus Karya →
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {authoredBooks.map((bk) => (
+                      <div
+                        key={bk.id}
+                        className="p-3 rounded-xl bg-white border border-indigo-100 flex items-center justify-between gap-3 shadow-2xs"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-9 h-12 rounded-md bg-slate-900 overflow-hidden shrink-0 shadow-2xs relative">
+                            {bk.coverImage ? (
+                              <img src={bk.coverImage} alt={bk.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full bg-gradient-to-br from-indigo-950 to-slate-900 p-0.5 text-[6px] text-white flex items-center justify-center text-center font-bold">
+                                {bk.title.slice(0, 8)}
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-slate-900 truncate">{bk.title}</div>
+                            <div className="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap">
+                              <span className="font-semibold text-slate-700">{bk.genre}</span>
+                              <span>•</span>
+                              <span className="font-bold text-indigo-600">RM {bk.price.toFixed(2)}</span>
+                              <span>•</span>
+                              <span className="text-emerald-600 font-semibold">Royalti: RM {(bk.price * 0.7).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {onEditBook && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                onClose();
+                                onEditBook(bk);
+                              }}
+                              className="px-2.5 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1"
+                              title="Sunting Naskhah"
+                            >
+                              <Edit3 className="w-3 h-3 text-amber-700" />
+                              <span className="hidden sm:inline">Sunting</span>
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onReadBook(bk);
+                            }}
+                            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer shadow-2xs"
+                          >
+                            Baca
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Super Admin Control Panel Card */}
               {(user.email?.toLowerCase() === 'mykaryadigital@gmail.com' || user.role === 'admin') && (
@@ -385,10 +507,15 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                             {book.title}
                           </h5>
                           <p className="text-[11px] text-slate-500 truncate">Oleh {book.author}</p>
-                          <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className="text-[10px] font-semibold text-indigo-600">
                               {book.category === 'novel' ? 'Novel Teks' : 'Komik Grafik'}
                             </span>
+                            {isUserBookOwner(book, user) && (
+                              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 px-1.5 py-0.2 rounded border border-emerald-200">
+                                Karya Anda (Penulis)
+                              </span>
+                            )}
                             {user.bookmarks[book.id]?.length > 0 && (
                               <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded border border-amber-200 flex items-center gap-0.5">
                                 📌 Hlm {user.bookmarks[book.id][user.bookmarks[book.id].length - 1].pageNumber}
@@ -399,6 +526,20 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
+                        {isUserBookOwner(book, user) && onEditBook && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onEditBook(book);
+                            }}
+                            className="px-2.5 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 text-xs font-bold transition-colors flex items-center gap-1 cursor-pointer"
+                            title="Sunting Naskhah Anda"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                            <span className="hidden sm:inline">Sunting</span>
+                          </button>
+                        )}
                         {onViewSecureAsset && (
                           <button
                             onClick={() => onViewSecureAsset(book.id, book.title)}
@@ -420,6 +561,126 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                           {user.bookmarks[book.id]?.length > 0
                             ? `Sambung (Hlm ${user.bookmarks[book.id][user.bookmarks[book.id].length - 1].pageNumber})`
                             : 'Buka & Baca'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'karya' && (
+            <div className="space-y-4 animate-in fade-in duration-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Karya Anda di Katalog KaryaDigital ({authoredBooks.length})
+                  </h4>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    Naskhah yang diterbitkan dan dipautkan secara rasmi kepada akaun anda.
+                  </p>
+                </div>
+                {onOpenAuthorPortal && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onOpenAuthorPortal('dashboard');
+                    }}
+                    className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <span>Dashboard Penulis</span>
+                    <span>→</span>
+                  </button>
+                )}
+              </div>
+
+              {authoredBooks.length === 0 ? (
+                <div className="text-center py-10 rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 space-y-3">
+                  <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                    <PenTool className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h5 className="font-bold text-slate-900 text-sm">Tiada Naskhah Diterbitkan Lagi</h5>
+                    <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                      Karya yang anda terbitkan akan dipaparkan di sini dengan hak pengurusan penuh.
+                    </p>
+                  </div>
+                  {onOpenAuthorPortal && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenAuthorPortal('register');
+                      }}
+                      className="px-4 py-2 rounded-xl bg-indigo-600 text-white font-bold text-xs hover:bg-indigo-700 transition cursor-pointer"
+                    >
+                      Terbit Naskhah Sekarang
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {authoredBooks.map((bk) => (
+                    <div
+                      key={bk.id}
+                      className="p-3.5 rounded-2xl bg-white border border-slate-200 shadow-2xs hover:border-indigo-300 transition-colors flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-12 h-16 rounded-xl bg-slate-900 overflow-hidden shrink-0 shadow-2xs relative border border-slate-200">
+                          {bk.coverImage ? (
+                            <img src={bk.coverImage} alt={bk.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-indigo-950 to-slate-900 p-1 flex flex-col justify-between text-white text-[7px] text-center">
+                              <span className="text-amber-400 font-bold uppercase">{bk.category}</span>
+                              <span className="line-clamp-2 font-bold leading-tight">{bk.title}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h5 className="font-bold text-slate-900 text-sm truncate">{bk.title}</h5>
+                            <span className="text-[9px] font-extrabold px-1.5 py-0.2 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300">
+                              Aktif
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 mt-0.5">Penulis: {bk.author}</p>
+                          <div className="flex flex-wrap items-center gap-2 mt-1 text-[11px] text-slate-600">
+                            <span className="px-1.5 py-0.2 rounded bg-slate-100 text-slate-700 font-medium">{bk.genre}</span>
+                            <span>•</span>
+                            <span className="font-bold text-indigo-600">RM {bk.price.toFixed(2)}</span>
+                            <span>•</span>
+                            <span className="text-emerald-600 font-semibold">Royalti: RM {(bk.price * 0.7).toFixed(2)} (70%)</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+                        {onEditBook && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              onClose();
+                              onEditBook(bk);
+                            }}
+                            className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-300 font-bold text-xs transition cursor-pointer flex items-center gap-1 active:scale-95"
+                            title="Sunting & Kemas Kini Maklumat Naskhah"
+                          >
+                            <Edit3 className="w-3.5 h-3.5 text-amber-700" />
+                            <span>Sunting</span>
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onClose();
+                            onReadBook(bk);
+                          }}
+                          className="px-3.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs transition cursor-pointer shadow-2xs active:scale-95 flex items-center gap-1"
+                        >
+                          <BookOpen className="w-3.5 h-3.5" />
+                          <span>Baca Naskhah</span>
                         </button>
                       </div>
                     </div>

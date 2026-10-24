@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Header } from './components/Header.tsx';
 import { HeroBanner } from './components/HeroBanner.tsx';
 import { BookGrid } from './components/BookGrid.tsx';
@@ -23,9 +23,9 @@ import { AuthModal } from './components/AuthModal.tsx';
 import { AdminDashboardModal } from './components/AdminDashboardModal.tsx';
 import { EditBookModal } from './components/EditBookModal.tsx';
 import { Footer } from './components/Footer.tsx';
-import { INITIAL_EBOOKS } from './data/ebooksData.ts';
+import { INITIAL_EBOOKS, OFFICIAL_PUBLISHED_BOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent, BookmarkEntry } from './types/ebook.ts';
-import { evaluateSecurityAttempt, toggleBookmarkInList, removeBookmarkFromList } from './utils/ebookLogic.ts';
+import { evaluateSecurityAttempt, toggleBookmarkInList, removeBookmarkFromList, isUserBookOwner } from './utils/ebookLogic.ts';
 import {
   auth,
   signInWithGoogle,
@@ -41,7 +41,10 @@ import {
 } from './firebase.ts';
 
 export default function App() {
-  const [books, setBooks] = useState<EBook[]>(INITIAL_EBOOKS);
+  const [books, setBooks] = useState<EBook[]>(() => [
+    ...OFFICIAL_PUBLISHED_BOOKS,
+    ...INITIAL_EBOOKS,
+  ]);
   const [activeCategory, setActiveCategory] = useState<'semua' | BookCategory | 'percuma' | 'koleksi'>('semua');
   const [selectedGenre, setSelectedGenre] = useState<string>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -273,6 +276,11 @@ export default function App() {
         // Map to keep unique published books
         const publishedMap = new Map<string, EBook>();
 
+        // 0. Seed official published books (termasuk Janda Bukan Akhir)
+        for (const opb of OFFICIAL_PUBLISHED_BOOKS) {
+          publishedMap.set(opb.id, opb);
+        }
+
         // 1. Add any non-showcase books currently in prev
         for (const b of prev) {
           if (!showcaseIds.has(b.id)) {
@@ -332,6 +340,12 @@ export default function App() {
       })
       .catch((err) => console.warn('Ralat Firestore:', err));
   }, []);
+
+  // Gabungan naskhah dibeli + naskhah karya sendiri yang sah (penulis automatik memiliki karyanya untuk dibaca & dipaparkan dalam akaun)
+  const effectiveOwnedBookIds = useMemo(() => {
+    const authoredIds = books.filter((b) => isUserBookOwner(b, user)).map((b) => b.id);
+    return Array.from(new Set([...user.ownedBookIds, ...authoredIds]));
+  }, [user, books]);
 
   // Global Security Protection Event Listeners (Sekat right-click dan copy)
   useEffect(() => {
@@ -465,20 +479,47 @@ export default function App() {
   useEffect(() => {
     const unsubscribeAuth = onUserAuthStateChange(async (fbUser) => {
       if (fbUser) {
-        const isSuperAdmin = fbUser.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
+        const cleanEmail = (fbUser.email || '').trim().toLowerCase();
+        const isSuperAdmin = cleanEmail === 'mykaryadigital@gmail.com';
+        const isBangKarim = cleanEmail === 'bangkarim79@gmail.com';
         const profile = await getUserProfileFromFirestore(fbUser.uid);
+
+        if (isBangKarim) {
+          try {
+            const currentMyIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
+            const updated = Array.from(new Set([...currentMyIds, 'karya-janda-bukan-akhir', 'karya-user-1792513665252']));
+            localStorage.setItem('karyadigital_my_author_book_ids', JSON.stringify(updated));
+            localStorage.setItem('karyadigital_user_role', 'author');
+            localStorage.setItem('karyadigital_is_author', 'true');
+
+            const currentOwned: string[] = JSON.parse(localStorage.getItem('karyadigital_owned_books') || '[]');
+            const updatedOwned = Array.from(new Set([...currentOwned, 'karya-janda-bukan-akhir', 'karya-user-1792513665252']));
+            localStorage.setItem('karyadigital_owned_books', JSON.stringify(updatedOwned));
+          } catch (e) {}
+        }
+
         setUser((prev) => {
-          const userRole = isSuperAdmin ? 'admin' : (profile?.role || prev.role || 'reader');
-          const isAuthor = isSuperAdmin ? true : Boolean(profile?.isAuthor ?? prev.isAuthor);
+          const userRole = isSuperAdmin
+            ? 'admin'
+            : isBangKarim
+            ? 'author'
+            : profile?.role || prev.role || 'reader';
+          const isAuthor = isSuperAdmin || isBangKarim ? true : Boolean(profile?.isAuthor ?? prev.isAuthor);
+          const defaultName = isBangKarim ? 'Bang Karim' : (fbUser.email ? fbUser.email.split('@')[0] : prev.name);
+          const updatedOwned = isBangKarim
+            ? Array.from(new Set([...prev.ownedBookIds, 'karya-janda-bukan-akhir', 'karya-user-1792513665252']))
+            : prev.ownedBookIds;
+
           return {
             ...prev,
             uid: fbUser.uid,
-            name: fbUser.displayName || profile?.displayName || (fbUser.email ? fbUser.email.split('@')[0] : prev.name),
+            name: fbUser.displayName || profile?.displayName || defaultName,
             email: fbUser.email || prev.email,
             photoURL: fbUser.photoURL || profile?.photoURL || undefined,
             isLoggedIn: true,
             role: userRole,
             isAuthor,
+            ownedBookIds: updatedOwned,
             balance: profile?.balance ?? 0.0,
             tier: isSuperAdmin ? 'Super Admin Platform' : (profile?.tier || 'Pembaca Malaysia'),
           };
@@ -605,32 +646,43 @@ export default function App() {
 
   // Handle Self-Publishing by Authors (Menyimpan secara kekal ke Cloudflare R2, Firestore & LocalStorage)
   const handlePublishBook = async (newBook: EBook) => {
-    const bookWithTimestamp: EBook = {
+    const bookWithAuthorAndTimestamp: EBook = {
       ...newBook,
+      authorUid: newBook.authorUid || user.uid || undefined,
+      authorEmail: newBook.authorEmail || user.email || undefined,
       createdAt: newBook.createdAt || Date.now(),
     };
 
-    // 1. Kemas kini segera katalog dalam state - letakkan naskhah TERBARU di bahagian PALING ATAS
+    // 1. Simpan rekod kepunyaan pada peranti ini
+    try {
+      const myPublishedIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
+      if (!myPublishedIds.includes(bookWithAuthorAndTimestamp.id)) {
+        myPublishedIds.push(bookWithAuthorAndTimestamp.id);
+        localStorage.setItem('karyadigital_my_author_book_ids', JSON.stringify(myPublishedIds));
+      }
+    } catch (e) {}
+
+    // 2. Kemas kini segera katalog dalam state - letakkan naskhah TERBARU di bahagian PALING ATAS
     setBooks((prev) => [
-      bookWithTimestamp,
-      ...prev.filter((b) => b.id !== bookWithTimestamp.id),
+      bookWithAuthorAndTimestamp,
+      ...prev.filter((b) => b.id !== bookWithAuthorAndTimestamp.id),
     ]);
 
-    // 2. Simpan secara kekal ke LocalStorage
+    // 3. Simpan secara kekal ke LocalStorage
     try {
       const existingLocal = JSON.parse(localStorage.getItem('karyadigital_published_books') || '[]');
-      const updatedLocal = [newBook, ...existingLocal.filter((b: EBook) => b.id !== newBook.id)];
+      const updatedLocal = [bookWithAuthorAndTimestamp, ...existingLocal.filter((b: EBook) => b.id !== bookWithAuthorAndTimestamp.id)];
       localStorage.setItem('karyadigital_published_books', JSON.stringify(updatedLocal));
     } catch (err) {
       console.warn('Ralat menyimpan ke localStorage:', err);
     }
 
-    // 3. Muat naik & simpan ke Cloudflare R2 Object Storage melalui Server API
+    // 4. Muat naik & simpan ke Cloudflare R2 Object Storage melalui Server API
     try {
       const resp = await fetch('/api/books/publish', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newBook),
+        body: JSON.stringify(bookWithAuthorAndTimestamp),
       });
       const data = await resp.json();
       if (data.success) {
@@ -640,42 +692,58 @@ export default function App() {
       console.warn('[Server API] Gagal memuat naik naskhah ke Cloudflare R2 pelayan:', err);
     }
 
-    // 4. Simpan ke Firebase Firestore
+    // 5. Simpan ke Firebase Firestore
     try {
-      await saveBookToFirestore(newBook);
+      await saveBookToFirestore(bookWithAuthorAndTimestamp);
     } catch (err) {
       console.warn('[Firestore] Gagal menyimpan ke pangkalan data Firestore:', err);
     }
 
-    // 5. Kemas kini peranan pengguna secara kekal ke Penulis Sah
+    // 6. Kemas kini peranan pengguna secara kekal ke Penulis Sah
     handleBecomeAuthor();
 
     triggerSecurityWarning(
-      `Karya "${newBook.title}" berjaya dimuat naik ke Cloudflare R2 dan disimpan secara kekal!`,
+      `Karya "${bookWithAuthorAndTimestamp.title}" berjaya diterbitkan dan disimpan secara selamat di bawah akaun anda!`,
       'info'
     );
   };
 
-  // Open Edit Book Modal
+  // Open Edit Book Modal dengan Semakan Kebenaran Sah
   const handleOpenEditBook = (book: EBook) => {
+    const isOwner = isUserBookOwner(book, user);
+    const isSuperAdmin = user.role === 'admin' || user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
+
+    if (!isOwner && !isSuperAdmin) {
+      triggerSecurityWarning(
+        `Akses dinafikan: Anda tidak mempunyai kebenaran untuk menyunting naskhah "${book.title}". Hanya pemilik karya asal yang dibenarkan.`,
+        'warning'
+      );
+      return;
+    }
     setEditingBook(book);
     setIsEditModalOpen(true);
   };
 
   // Save Edited Book (Kemas kini dalam state, LocalStorage, Cloudflare R2 & Firestore)
   const handleSaveEditedBook = (updatedBook: EBook) => {
-    setBooks((prev) => prev.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+    const safeUpdatedBook: EBook = {
+      ...updatedBook,
+      authorUid: updatedBook.authorUid || editingBook?.authorUid || user.uid,
+      authorEmail: updatedBook.authorEmail || editingBook?.authorEmail || user.email,
+    };
+
+    setBooks((prev) => prev.map((b) => (b.id === safeUpdatedBook.id ? safeUpdatedBook : b)));
 
     // Simpan ke LocalStorage
     try {
       const saved = localStorage.getItem('karyadigital_published_books');
       if (saved) {
         const list: EBook[] = JSON.parse(saved);
-        const idx = list.findIndex((b) => b.id === updatedBook.id);
+        const idx = list.findIndex((b) => b.id === safeUpdatedBook.id);
         if (idx >= 0) {
-          list[idx] = updatedBook;
+          list[idx] = safeUpdatedBook;
         } else {
-          list.unshift(updatedBook);
+          list.unshift(safeUpdatedBook);
         }
         localStorage.setItem('karyadigital_published_books', JSON.stringify(list));
       }
@@ -684,21 +752,34 @@ export default function App() {
     }
 
     // Simpan ke Firestore
-    saveBookToFirestore(updatedBook).catch(console.warn);
+    saveBookToFirestore(safeUpdatedBook).catch(console.warn);
 
     // Simpan ke Pelayan / R2
-    fetch(`/api/books/${updatedBook.id}`, {
+    fetch(`/api/books/${safeUpdatedBook.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(updatedBook),
+      body: JSON.stringify(safeUpdatedBook),
     }).catch(console.warn);
 
-    triggerSecurityWarning(`Naskhah "${updatedBook.title}" berjaya dikemas kini!`, 'info');
+    triggerSecurityWarning(`Naskhah "${safeUpdatedBook.title}" berjaya dikemas kini!`, 'info');
   };
 
-  // Padam / Tarik Balik Naskhah (State, LocalStorage, Firestore & Pelayan)
+  // Padam / Tarik Balik Naskhah (State, LocalStorage, Firestore & Pelayan) dengan Semakan Kuasa
   const handleDeleteBook = (bookId: string) => {
     const targetBook = books.find((b) => b.id === bookId);
+    if (!targetBook) return;
+
+    const isOwner = isUserBookOwner(targetBook, user);
+    const isSuperAdmin = user.role === 'admin' || user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com';
+
+    if (!isOwner && !isSuperAdmin) {
+      triggerSecurityWarning(
+        `Akses dinafikan: Anda tidak mempunyai kebenaran untuk memadam naskhah "${targetBook.title}".`,
+        'warning'
+      );
+      return;
+    }
+
     setBooks((prev) => prev.filter((b) => b.id !== bookId));
 
     // Padam dari LocalStorage
@@ -713,6 +794,13 @@ export default function App() {
       console.warn('Ralat memadam dari localStorage:', e);
     }
 
+    // Padam dari senarai id saya jika ada
+    try {
+      const myIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
+      const filtered = myIds.filter((id) => id !== bookId);
+      localStorage.setItem('karyadigital_my_author_book_ids', JSON.stringify(filtered));
+    } catch (e) {}
+
     // Padam dari Firestore
     deleteBookFromFirestore(bookId).catch(console.warn);
 
@@ -720,7 +808,7 @@ export default function App() {
     fetch(`/api/books/${bookId}`, { method: 'DELETE' }).catch(console.warn);
 
     triggerSecurityWarning(
-      `Naskhah "${targetBook?.title || bookId}" telah berjaya dipadam daripada katalog jualan.`,
+      `Naskhah "${targetBook.title}" telah berjaya dipadam daripada katalog jualan.`,
       'info'
     );
   };
@@ -759,9 +847,9 @@ export default function App() {
       {/* Main Book Catalog Grid or Rak Saya Shelf */}
       <main ref={catalogRef} className="flex-1">
         {/* Sambung Membaca Section: Dialihkan sepenuhnya dari halaman Utama ke halaman "Rak Saya" */}
-        {activeCategory === 'koleksi' && user.ownedBookIds.length > 0 && (
+        {activeCategory === 'koleksi' && effectiveOwnedBookIds.length > 0 && (
           <ContinueReadingSection
-            ownedBooks={books.filter((b) => user.ownedBookIds.includes(b.id))}
+            ownedBooks={books.filter((b) => effectiveOwnedBookIds.includes(b.id))}
             onRead={handleOpenReader}
             bookmarks={user.bookmarks}
             isInShelfPage={true}
@@ -773,7 +861,7 @@ export default function App() {
           onCategoryChange={setActiveCategory}
           selectedGenre={selectedGenre}
           onGenreChange={setSelectedGenre}
-          ownedBookIds={user.ownedBookIds}
+          ownedBookIds={effectiveOwnedBookIds}
           cartBookIds={cart.map((c) => c.book.id)}
           onRead={handleOpenReader}
           onAddToCart={handleAddToCart}
@@ -791,7 +879,7 @@ export default function App() {
           setIsReaderOpen(false);
           setReaderInitialPage(undefined);
         }}
-        isOwned={activeReadingBook ? user.ownedBookIds.includes(activeReadingBook.id) : false}
+        isOwned={activeReadingBook ? (effectiveOwnedBookIds.includes(activeReadingBook.id) || isUserBookOwner(activeReadingBook, user)) : false}
         onAddToCart={handleAddToCart}
         onTriggerSecurityWarning={triggerSecurityWarning}
         buyerEmail={user.email}
@@ -826,13 +914,14 @@ export default function App() {
       <AccountModal
         isOpen={isAccountOpen}
         onClose={() => setIsAccountOpen(false)}
-        user={user}
+        user={{ ...user, ownedBookIds: effectiveOwnedBookIds }}
         allBooks={books}
         onTopUpBalance={handleTopUp}
         onReadBook={handleOpenReader}
         onViewSecureAsset={(bookId, bookTitle) =>
           setSecureAssetModal({ isOpen: true, bookId, bookTitle })
         }
+        onEditBook={handleOpenEditBook}
         firebaseUser={auth.currentUser}
         onSignInGoogle={signInWithGoogle}
         onSignOut={handleSignOut}
@@ -896,7 +985,7 @@ export default function App() {
         book={selectedDetailBook}
         isOpen={!!selectedDetailBook}
         onClose={() => setSelectedDetailBook(null)}
-        isOwned={selectedDetailBook ? user.ownedBookIds.includes(selectedDetailBook.id) : false}
+        isOwned={selectedDetailBook ? (effectiveOwnedBookIds.includes(selectedDetailBook.id) || isUserBookOwner(selectedDetailBook, user)) : false}
         isInCart={selectedDetailBook ? cart.some((c) => c.book.id === selectedDetailBook.id) : false}
         onRead={(b) => {
           setSelectedDetailBook(null);
@@ -912,14 +1001,22 @@ export default function App() {
         onClose={() => setIsAuthorPortalOpen(false)}
         onPublishBook={handlePublishBook}
         currentUserName={user.name}
+        currentUserEmail={user.email}
+        currentUserUid={user.uid}
         isAuthor={Boolean(user.isAuthor || user.role === 'author')}
         initialTab={authorPortalTab}
         onBecomeAuthor={handleBecomeAuthor}
-        authorBooks={books.filter(
-          (b) =>
-            b.author.toLowerCase() === user.name.toLowerCase() ||
-            b.id.startsWith('karya-user-')
-        )}
+        authorBooks={books.filter((b) => {
+          if (user.isLoggedIn) {
+            return isUserBookOwner(b, user);
+          }
+          try {
+            const myIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
+            return myIds.includes(b.id);
+          } catch (e) {
+            return false;
+          }
+        })}
         onEditBook={handleOpenEditBook}
         onDeleteBook={handleDeleteBook}
       />
@@ -990,7 +1087,7 @@ export default function App() {
           setSearchQuery('');
           handleScrollToCatalog();
         }}
-        ownedBooksCount={user.ownedBookIds.length}
+        ownedBooksCount={effectiveOwnedBookIds.length}
         onOpenSearch={() => {
           window.scrollTo({ top: 0, behavior: 'smooth' });
           const input = document.querySelector('input[type="text"]') as HTMLInputElement;

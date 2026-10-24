@@ -29,6 +29,8 @@ export interface EBook {
   id: string;
   title: string;
   author: string;
+  authorUid?: string;
+  authorEmail?: string;
   category: BookCategory;
   genre: string;
   coverImage?: string;
@@ -55,6 +57,8 @@ export interface EBook {
   epubUrl?: string;
   epubFileName?: string;
   epubFileSize?: string;
+  r2Key?: string;
+  r2StorageUrl?: string;
   isSeries?: boolean;
   seriesName?: string;
   seriesOrder?: number;

@@ -11,6 +11,7 @@ import {
   removeBookmarkFromList,
   getLastBookmark,
   getMostRecentBookmarkedBook,
+  isUserBookOwner,
 } from './ebookLogic.ts';
 import type { EBook, CartItem, BookmarkEntry } from '../types/ebook.ts';
 
@@ -231,3 +232,81 @@ test('bookmark operations manage page bookmarks and resume positions', () => {
   assert.equal(mostRecent?.bookId, 'komik-1');
   assert.equal(mostRecent?.bookmark.pageNumber, 4);
 });
+
+test('isUserBookOwner correctly grants access to author bangkarim79@gmail.com and blocks unauthorized accounts', () => {
+  const jandaBook: EBook = {
+    id: 'karya-janda-bukan-akhir',
+    title: 'Janda Bukan Akhir',
+    author: 'Bang Karim',
+    authorEmail: 'bangkarim79@gmail.com',
+    category: 'novel',
+    genre: 'Romantik',
+    synopsis: 'Kisah ketabahan seorang wanita tabah membina hidup baharu.',
+    price: 10,
+    rating: 4.9,
+    reviewsCount: 12,
+    pages: 180,
+    readTime: '4 jam',
+    publisher: 'KaryaDigital',
+    publicationYear: 2026,
+    isbn: '978-967-KD-88',
+    coverGradient: 'from-rose-950 via-pink-950 to-slate-950',
+    coverAccent: '#fb7185',
+  };
+
+  const animBook: EBook = {
+    id: 'karya-user-1792809354728',
+    title: 'Anim - Aku Bukan Tomboy',
+    author: 'KaryaDigital',
+    authorEmail: 'karyadigital@mykaryadigital.com',
+    category: 'novel',
+    genre: 'Romantik',
+    synopsis: 'Anim bukan tomboy...',
+    price: 10,
+    rating: 5,
+    reviewsCount: 1,
+    pages: 120,
+    readTime: '2 jam',
+    publisher: 'KaryaDigital',
+    publicationYear: 2026,
+    isbn: '978-967-KD-02',
+    coverGradient: 'from-slate-900 to-indigo-950',
+    coverAccent: '#818cf8',
+  };
+
+  const bangKarimUser = {
+    uid: 'uid-karim-123',
+    email: 'bangkarim79@gmail.com',
+    name: 'Bang Karim',
+    isLoggedIn: true,
+  };
+
+  const otherUser = {
+    uid: 'uid-other-999',
+    email: 'siti@gmail.com',
+    name: 'Siti Rahmah',
+    isLoggedIn: true,
+  };
+
+  const guestUser = {
+    name: 'Pembaca KaryaDigital',
+    isLoggedIn: false,
+  };
+
+  // 1. bangkarim79@gmail.com owns Janda Bukan Akhir
+  assert.equal(isUserBookOwner(jandaBook, bangKarimUser), true);
+
+  // 2. bangkarim79@gmail.com even with username fallback 'bangkarim79'
+  assert.equal(isUserBookOwner(jandaBook, { ...bangKarimUser, name: 'bangkarim79' }), true);
+
+  // 3. bangkarim79@gmail.com does NOT own Anim
+  assert.equal(isUserBookOwner(animBook, bangKarimUser), false);
+
+  // 4. Other user siti@gmail.com cannot access Janda Bukan Akhir
+  assert.equal(isUserBookOwner(jandaBook, otherUser), false);
+
+  // 5. Guest user cannot access anything
+  assert.equal(isUserBookOwner(jandaBook, guestUser), false);
+  assert.equal(isUserBookOwner(jandaBook, null), false);
+});
+

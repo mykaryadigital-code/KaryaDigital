@@ -23,6 +23,9 @@ export interface PublishedBookPayload {
   id: string;
   title: string;
   author: string;
+  authorUid?: string;
+  authorEmail?: string;
+  createdAt?: number;
   category: 'novel' | 'komik';
   genre: string;
   synopsis: string;

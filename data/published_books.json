@@ -1,14 +1,101 @@
 [
   {
+    "id": "karya-janda-bukan-akhir",
+    "title": "Janda Bukan Akhir",
+    "author": "Bang Karim",
+    "authorEmail": "bangkarim79@gmail.com",
+    "category": "novel",
+    "genre": "Romantik",
+    "synopsis": "Kisah cinta, ketabahan dan harapan seorang wanita bernama Nurina. Di sebalik duka perpisahan dan pandangan sinis masyarakat terhadap status janda, dia bangkit membuktikan bahawa takdir tidak terhenti di situ. Pertemuan tidak disangka dengan seorang lelaki yang ikhlas membuka lembaran baharu dalam hidupnya.",
+    "rating": 4.9,
+    "reviewsCount": 12,
+    "price": 10.0,
+    "isFree": false,
+    "pages": 180,
+    "readTime": "4 jam",
+    "publisher": "Penerbitan Bebas KaryaDigital",
+    "publicationYear": 2026,
+    "isbn": "978-967-KD-JBA88",
+    "coverImage": "/assets/aistudio/Janda_Bukan_Akhir_hero_banner_933c27ae.png",
+    "coverGradient": "from-rose-950 via-pink-950 to-slate-950",
+    "coverAccent": "#fb7185",
+    "coverBadge": "Karya Asli",
+    "createdAt": 1792810000000,
+    "sampleContent": {
+      "chapters": [
+        {
+          "id": 1,
+          "title": "Bab 1: Menatap Senja di Beranda",
+          "subtitle": "Karya Asli Bang Karim",
+          "paragraphs": [
+            "Cahaya jingga senja mula melabuhkan tirainya di ufuk barat. Nurina duduk memangku secangkir teh serai suam, membiarkan angin petang membelai pipinya yang basah dek ingatan silam.",
+            "Tiga tahun sudah berlalu sejak hari perpisahan itu, namun bisikan-bisikan sumbang masyarakat sekeliling masih kadangkala hinggap di telinganya. 'Janda muda', satu gelaran yang bagai membawa beban yang tidak dipinta.",
+            "Namun hari ini berbeza. Nurina menghembus nafas panjang dan tersenyum nipis. Hidup ini miliknya, dan kisah bahagianya belum tamat. Ia baru sahaja bermula."
+          ]
+        },
+        {
+          "id": 2,
+          "title": "Bab 2: Pertemuan di Kedai Buku",
+          "subtitle": "Kuala Lumpur, Hujan Rintik",
+          "paragraphs": [
+            "Bunyi gemersik titisan hujan membasahi kaca tingkap kafe buku di tengah ibu kota. Nurina sedang menyusun naskhah-naskhah kraf tangan warisan keluarganya.",
+            "'Boleh saya lihat naskhah ini?' Satu suara garau namun lembut menyapa dari sisi.",
+            "Ketika mata mereka bertentang, ada satu getaran aneh yang sudah lama hilang dari dalam dada Nurina. Satu sinar harapan yang tidak pernah disangka."
+          ]
+        }
+      ]
+    },
+    "r2Key": "ebooks/karya-janda-bukan-akhir.json",
+    "r2StorageUrl": "/api/books/stream/karya-janda-bukan-akhir?token=jba882194&expires=1792900000&user=bangkarim79%40gmail.com"
+  },
+  {
+    "id": "karya-user-1792809354728",
+    "title": "Anim - Aku Bukan Tomboy",
+    "author": "KaryaDigital",
+    "authorEmail": "karyadigital@mykaryadigital.com",
+    "category": "novel",
+    "genre": "Romantik",
+    "synopsis": "Kisah Anim yang sering disalahertikan sebagai kasar dan tomboy, sedangkan hatinya sarat dengan kelembutan seorang gadis yang mendambakan kasih sayang sejati.",
+    "rating": 5.0,
+    "reviewsCount": 1,
+    "price": 10.0,
+    "isFree": false,
+    "pages": 120,
+    "readTime": "2 jam 30 min",
+    "publisher": "Penerbitan Bebas KaryaDigital",
+    "publicationYear": 2026,
+    "isbn": "978-967-KD-ANIM99",
+    "coverGradient": "from-slate-900 via-indigo-950 to-slate-950",
+    "coverAccent": "#818cf8",
+    "coverBadge": "Karya Asli",
+    "createdAt": 1792809354728,
+    "sampleContent": {
+      "chapters": [
+        {
+          "id": 1,
+          "title": "Bab 1: Jangan Panggil Aku Abang",
+          "subtitle": "Koleksi Penulis",
+          "paragraphs": [
+            "Anim membetulkan topi snapback kesayangannya sebelum melangkah turun dari motor scrambler.",
+            "'Woi Anim, jom main futsal!' laung Lan dari seberang jalan.",
+            "Anim hanya tersengih sambil menggeleng kepala. Kalau mereka tahu apa yang terpendam di dalam hatinya sekarang, pasti terbeliak mata semua orang."
+          ]
+        }
+      ]
+    },
+    "r2Key": "ebooks/karya-user-1792809354728.json"
+  },
+  {
     "id": "karya-user-1792513665252",
     "title": "Hikayat Pendekar Rimba",
     "author": "Bang Karim",
+    "authorEmail": "bangkarim79@gmail.com",
     "category": "novel",
     "genre": "Misteri & Thriller",
     "synopsis": "Naskhah pertarungan mistik dan silat pendekar terulung di belantara nusantara.",
-    "rating": 5,
+    "rating": 5.0,
     "reviewsCount": 1,
-    "price": 15,
+    "price": 15.0,
     "isFree": false,
     "pages": 140,
     "readTime": "3 jam 30 min",
@@ -18,6 +105,7 @@
     "coverGradient": "from-slate-900 via-indigo-950 to-slate-950",
     "coverAccent": "#818cf8",
     "coverBadge": "Karya Asli",
+    "createdAt": 1792513665252,
     "sampleContent": {
       "chapters": [
         {
@@ -32,6 +120,6 @@
       ]
     },
     "r2Key": "ebooks/karya-user-1792513665252.json",
-    "r2StorageUrl": "/api/books/stream/karya-user-1792513665252?token=8d8f03f78a579aef0458b3a17fd57b9743c9c8b54550ac7316f348b4ec4e21cd&expires=1792600066&user=author%40karyadigital.my"
+    "r2StorageUrl": "/api/books/stream/karya-user-1792513665252?token=8d8f03f78a579aef0458b3a17fd57b9743c9c8b54550ac7316f348b4ec4e21cd&expires=1792600066&user=bangkarim79%40gmail.com"
   }
 ]

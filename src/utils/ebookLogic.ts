@@ -264,3 +264,85 @@ export function getMostRecentBookmarkedBook(
 
   return mostRecent;
 }
+
+/**
+ * Menyemak sama ada sesuatu naskhah adalah kepunyaan sah pengguna (penulis karya).
+ * Mengutamakan semakan Firebase UID, emel, dan nama pena yang disahkan.
+ */
+export function isUserBookOwner(
+  book: EBook,
+  user?: { uid?: string; email?: string; name?: string; isLoggedIn?: boolean } | null
+): boolean {
+  if (!user || !user.isLoggedIn) return false;
+
+  const userEmail = (user.email || '').trim().toLowerCase();
+  const bookEmail = (book.authorEmail || '').trim().toLowerCase();
+  const bookUid = book.authorUid || '';
+  const userUid = user.uid || '';
+
+  // 1. Padanan kukuh melalui Firebase UID
+  if (userUid && bookUid) {
+    if (userUid === bookUid) return true;
+    // Jika UID berbeza dan tidak sepadan, akses dinafikan
+    return false;
+  }
+
+  // 2. Padanan melalui Emel Akaun
+  if (userEmail && bookEmail) {
+    if (userEmail === bookEmail) return true;
+    // Jika emel pemilik ditetapkan kepada orang lain, akses dinafikan
+    return false;
+  }
+
+  // 3. Pengiktirafan hak pengarang akaun Bang Karim (bangkarim79@gmail.com)
+  if (userEmail === 'bangkarim79@gmail.com') {
+    const bookTitleLower = (book.title || '').trim().toLowerCase();
+    const authorLower = (book.author || '').trim().toLowerCase();
+    if (
+      bookTitleLower.includes('janda bukan akhir') ||
+      authorLower.includes('karim')
+    ) {
+      // Pastikan bukan milik emel orang lain yang berbeza
+      if (!bookEmail || bookEmail === userEmail) {
+        return true;
+      }
+    }
+  }
+
+  // 4. Jika naskhah belum mempunyai authorUid atau authorEmail (karya sedia ada):
+  // Sahkan nama pengarang sepadan dengan nama pengguna atau username emel
+  const authorName = (book.author || '').trim().toLowerCase();
+  const userName = (user.name || '').trim().toLowerCase();
+  const emailPrefix = userEmail ? userEmail.split('@')[0] : '';
+
+  // Buang aksara nombor dan ruang untuk semakan nama asas (contoh: "bangkarim79" -> "bangkarim" sepadan "bang karim")
+  const normAuthor = authorName.replace(/[^a-z]/g, '');
+  const normUser = userName.replace(/[^a-z]/g, '');
+  const normPrefix = emailPrefix.replace(/[^a-z]/g, '');
+
+  const isGenericName =
+    !normUser ||
+    normUser === 'pembacakaryadigital' ||
+    normUser === 'pembaca' ||
+    normUser === 'tetamu';
+
+  if (!isGenericName && normAuthor) {
+    const isDirectMatch = normAuthor === normUser || normAuthor === normPrefix;
+    const isSubstringMatch =
+      normAuthor.length >= 4 &&
+      (normUser.includes(normAuthor) ||
+        normAuthor.includes(normUser) ||
+        normPrefix.includes(normAuthor) ||
+        normAuthor.includes(normPrefix));
+
+    if (isDirectMatch || isSubstringMatch) {
+      if (bookUid && userUid && bookUid !== userUid) return false;
+      if (bookEmail && userEmail && bookEmail !== userEmail) return false;
+      return true;
+    }
+  }
+
+  return false;
+}
+
+
