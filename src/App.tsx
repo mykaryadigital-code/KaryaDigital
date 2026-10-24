@@ -700,7 +700,8 @@ export default function App() {
       ...prev.filter((b) => b.id !== bookWithAuthorAndTimestamp.id),
     ]);
 
-    // 2. Muat naik & simpan ke Cloudflare R2 Object Storage melalui Server API
+    // 2. Muat naik fail manuskrip ke Cloudflare R2 Object Storage melalui Server API
+    let bookToBroadcast = bookWithAuthorAndTimestamp;
     try {
       const resp = await fetch('/api/books/publish', {
         method: 'POST',
@@ -708,25 +709,31 @@ export default function App() {
         body: JSON.stringify(bookWithAuthorAndTimestamp),
       });
       const data = await resp.json();
-      if (data.success) {
+      if (data.success && data.book) {
+        bookToBroadcast = data.book;
         console.log('[Cloudflare R2] Naskhah disimpan secara kekal dengan kunci R2:', data.r2Key);
       }
     } catch (err) {
       console.warn('[Server API] Gagal memuat naik naskhah ke Cloudflare R2 pelayan:', err);
     }
 
-    // 5. Simpan ke Firebase Firestore
+    // 3. Simpan naskhah ringan ke Firebase Firestore (Hanya ~2KB tanpa data binari berat)
     try {
-      await saveBookToFirestore(bookWithAuthorAndTimestamp);
+      await saveBookToFirestore(bookToBroadcast);
+      // Kemas kini state paparan dengan naskhah yang mempunyai pautan strim R2
+      setBooks((prev) => [
+        bookToBroadcast,
+        ...prev.filter((b) => b.id !== bookToBroadcast.id),
+      ]);
     } catch (err) {
       console.warn('[Firestore] Gagal menyimpan ke pangkalan data Firestore:', err);
     }
 
-    // 6. Kemas kini peranan pengguna secara kekal ke Penulis Sah
+    // 4. Kemas kini peranan pengguna secara kekal ke Penulis Sah
     handleBecomeAuthor();
 
     triggerSecurityWarning(
-      `Karya "${bookWithAuthorAndTimestamp.title}" berjaya diterbitkan dan disimpan secara selamat di bawah akaun anda!`,
+      `Karya "${bookToBroadcast.title}" berjaya diterbitkan dan disimpan secara selamat di bawah akaun anda!`,
       'info'
     );
   };
@@ -747,7 +754,7 @@ export default function App() {
   };
 
   // Save Edited Book: HANYA PENGARANG ASAL DIBENARKAN
-  const handleSaveEditedBook = (updatedBook: EBook) => {
+  const handleSaveEditedBook = async (updatedBook: EBook) => {
     const isOwner = isUserBookOwner(editingBook || updatedBook, user);
 
     if (!isOwner) {
@@ -778,19 +785,28 @@ export default function App() {
       return updated;
     });
 
-    setBooks((prev) => prev.map((b) => (b.id === safeUpdatedBook.id ? safeUpdatedBook : b)));
+    // 1. Simpan ke Pelayan / R2 dahulu untuk memproses sebarang fail PDF/EPUB besar
+    let bookToSave = safeUpdatedBook;
+    try {
+      const resp = await fetch(`/api/books/${safeUpdatedBook.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(safeUpdatedBook),
+      });
+      const data = await resp.json();
+      if (data.success && data.book) {
+        bookToSave = data.book;
+      }
+    } catch (err) {
+      console.warn('[Server API] Gagal mengemas kini naskhah:', err);
+    }
 
-    // Simpan terus ke Firestore (Realtime Live Sync ke semua pembaca)
-    saveBookToFirestore(safeUpdatedBook).catch(console.warn);
+    setBooks((prev) => prev.map((b) => (b.id === bookToSave.id ? bookToSave : b)));
 
-    // Simpan ke Pelayan / R2
-    fetch(`/api/books/${safeUpdatedBook.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(safeUpdatedBook),
-    }).catch(console.warn);
+    // 2. Simpan naskhah ringan terus ke Firestore (Realtime Live Sync ke semua pembaca)
+    saveBookToFirestore(bookToSave).catch(console.warn);
 
-    triggerSecurityWarning(`Naskhah "${safeUpdatedBook.title}" berjaya dikemas kini!`, 'info');
+    triggerSecurityWarning(`Naskhah "${bookToSave.title}" berjaya dikemas kini!`, 'info');
   };
 
   // Padam / Tarik Balik Naskhah secara Kekal (Menghalang sebarang resurrection pada refresh)

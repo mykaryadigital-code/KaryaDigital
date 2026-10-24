@@ -7,6 +7,7 @@
 import express, { Request, Response } from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { createToyyibPayBill, verifyToyyibPayCallback } from './src/server/toyyibpay.ts';
 import { createBclBill, verifyBclCallback, getBclConfig } from './src/server/bcl.ts';
@@ -37,9 +38,9 @@ const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
-// Middleware parsing JSON dan x-www-form-urlencoded (menyokong muat naik PDF hingga 50MB)
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+// Middleware parsing JSON dan x-www-form-urlencoded (menyokong muat naik PDF grafik resolusi tinggi hingga 150MB)
+app.use(express.json({ limit: '150mb' }));
+app.use(express.urlencoded({ extended: true, limit: '150mb' }));
 
 // Sajikan fail statik dari folder public
 app.use(express.static(path.resolve(__dirname, 'public')));
@@ -455,6 +456,64 @@ app.get(['/reader-prototype.html', '/prototype'], (_req: Request, res: Response)
 
 app.get(['/homepage.html', '/homepage'], (_req: Request, res: Response) => {
   res.sendFile(path.resolve(__dirname, 'public', 'homepage.html'));
+});
+
+/**
+ * GET /api/books/pdf/:id
+ * Menstrim fail dokumen PDF secara terus ke pembaca pelayar (Resolusi penuh tanpa sebarang ralat memori)
+ */
+app.get('/api/books/pdf/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
+  const r2CacheDir = path.resolve(__dirname, 'public/uploads/r2-cache');
+
+  if (fs.existsSync(r2CacheDir)) {
+    // Cari fail sepadan seperti manuscripts_karya-user-...pdf atau karya-user-...pdf
+    const files = fs.readdirSync(r2CacheDir);
+    const targetFile = files.find(
+      (f) => (f.includes(safeId) || f === `manuscripts_${safeId}.pdf`) && f.endsWith('.pdf')
+    );
+
+    if (targetFile) {
+      const fullPath = path.join(r2CacheDir, targetFile);
+      const stat = fs.statSync(fullPath);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Content-Disposition', 'inline; filename="karya_digital.pdf"');
+      res.setHeader('Accept-Ranges', 'bytes');
+      return fs.createReadStream(fullPath).pipe(res);
+    }
+  }
+
+  return res.status(404).send('Fail PDF naskhah tidak ditemui pada storan.');
+});
+
+/**
+ * GET /api/books/epub/:id
+ * Menstrim fail EPUB naskhah
+ */
+app.get('/api/books/epub/:id', (req: Request, res: Response) => {
+  const { id } = req.params;
+  const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
+  const r2CacheDir = path.resolve(__dirname, 'public/uploads/r2-cache');
+
+  if (fs.existsSync(r2CacheDir)) {
+    const files = fs.readdirSync(r2CacheDir);
+    const targetFile = files.find(
+      (f) => (f.includes(safeId) || f === `manuscripts_${safeId}.epub`) && f.endsWith('.epub')
+    );
+
+    if (targetFile) {
+      const fullPath = path.join(r2CacheDir, targetFile);
+      const stat = fs.statSync(fullPath);
+      res.setHeader('Content-Type', 'application/epub+zip');
+      res.setHeader('Content-Length', stat.size);
+      res.setHeader('Content-Disposition', 'inline; filename="karya_digital.epub"');
+      return fs.createReadStream(fullPath).pipe(res);
+    }
+  }
+
+  return res.status(404).send('Fail EPUB naskhah tidak ditemui pada storan.');
 });
 
 // ====================================================================

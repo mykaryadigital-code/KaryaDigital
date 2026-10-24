@@ -19,6 +19,7 @@ import {
   ListOrdered,
   BookmarkCheck,
   ArrowRight,
+  ExternalLink,
 } from 'lucide-react';
 import { EBook, ReaderSettings, BookmarkEntry } from '../types/ebook.ts';
 import { calculateReadingProgress, formatMYR } from '../utils/ebookLogic.ts';
@@ -290,7 +291,11 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                 {book.title}
               </h3>
               <p className="text-[10px] opacity-70 truncate">
-                {isNovel ? `Bahagian ${currentStep} / ${totalSteps}` : `Halaman ${currentStep} / ${totalSteps}`}
+                {readerFormat === 'pdf'
+                  ? `Dokumen PDF (${book.pages || 10} Halaman)`
+                  : isNovel
+                  ? `Bahagian ${currentStep} / ${totalSteps || 1}`
+                  : `Halaman ${currentStep} / ${totalSteps || 1}`}
               </p>
             </div>
           </div>
@@ -689,22 +694,40 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                   </div>
                 </div>
 
-                <div className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold border border-emerald-300/40">
-                  {isOwned || book.isFree ? 'Akses Sah Pembeli' : 'Mod Pratonton'}
+                <div className="flex items-center gap-2">
+                  <a
+                    href={book.pdfUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition flex items-center gap-1 shadow-2xs"
+                    title="Buka fail PDF dalam paparan skrin penuh atau tab baharu"
+                  >
+                    <span>Skrin Penuh</span>
+                    <span>↗</span>
+                  </a>
+                  <div className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold border border-emerald-300/40">
+                    {isOwned || book.isFree ? 'Akses Sah Pembeli' : 'Mod Pratonton'}
+                  </div>
                 </div>
               </div>
 
               {isOwned || book.isFree ? (
-                <div className="relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-slate-900 shadow-2xl h-[76vh]">
+                <div className="relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-white shadow-2xl h-[80vh]">
                   {/* Floating Security Watermark Tag */}
                   <div className="absolute top-2 right-4 z-20 pointer-events-none bg-slate-950/85 text-amber-300 text-[10px] font-mono px-2.5 py-1 rounded-md backdrop-blur-xs border border-amber-400/40">
                     🔒 Dilesenkan kepada: {buyerEmail}
                   </div>
-                  <iframe
-                    src={book.pdfUrl}
-                    className="w-full h-full border-0 rounded-2xl bg-slate-800"
-                    title={book.title}
-                  />
+                  <object
+                    data={`${book.pdfUrl}#toolbar=1&navpanes=1`}
+                    type="application/pdf"
+                    className="w-full h-full rounded-2xl bg-white"
+                  >
+                    <iframe
+                      src={`${book.pdfUrl}#toolbar=1`}
+                      className="w-full h-full border-0 rounded-2xl bg-white"
+                      title={book.title}
+                    />
+                  </object>
                 </div>
               ) : (
                 <div className="p-6 sm:p-8 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300/70 text-center space-y-4 max-w-lg mx-auto">
@@ -973,66 +996,96 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
             themeHeaderClasses[settings.theme]
           }`}
         >
-          {/* Previous Button */}
-          <button
-            onClick={() => {
-              if (isNovel) {
-                setCurrentChapterIndex((prev) => Math.max(0, prev - 1));
-              } else {
-                setCurrentComicPageIndex((prev) => Math.max(0, prev - 1));
-              }
-            }}
-            disabled={isNovel ? currentChapterIndex === 0 : currentComicPageIndex === 0}
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-black/5 dark:bg-white/10 hover:bg-black/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4" />
-            <span className="hidden sm:inline">Sebelumnya</span>
-          </button>
-
-          {/* Center Page Indicator / Chapter Switcher */}
-          <div className="flex items-center gap-2 text-xs font-semibold">
-            {isNovel ? (
-              <select
-                value={currentChapterIndex}
-                onChange={(e) => setCurrentChapterIndex(Number(e.target.value))}
-                className="bg-transparent font-bold border border-current/20 rounded-md px-2 py-1 text-xs focus:outline-none cursor-pointer"
-              >
-                {chapters.map((ch, idx) => {
-                  const label = ch.title.startsWith('Bab') ? ch.title : `Bab ${ch.id}: ${ch.title}`;
-                  return (
-                    <option key={ch.id} value={idx} className="bg-white text-slate-900">
-                      {label.length > 30 ? label.substring(0, 30) + '...' : label}
-                    </option>
-                  );
-                })}
-              </select>
-            ) : (
-              <span className="font-mono text-xs">
-                Muka Surat {currentStep} / {totalSteps}
+        {readerFormat === 'pdf' ? (
+          <div className="w-full flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                PDF
               </span>
-            )}
+              <span className="text-xs font-semibold truncate max-w-[180px] sm:max-w-md opacity-80">
+                {book.pdfFileName || book.title}
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-mono opacity-70 hidden sm:inline">
+                {book.pages ? `${book.pages} Muka Surat` : 'Dokumen PDF Asli'}
+              </span>
+              <a
+                href={book.pdfUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
+                title="Buka dokumen PDF dalam tab penuh atau tetingkap baharu"
+              >
+                <span>Buka Skrin Penuh</span>
+                <ExternalLink className="w-3.5 h-3.5" />
+              </a>
+            </div>
           </div>
+        ) : (
+          <>
+            {/* Previous Button */}
+            <button
+              onClick={() => {
+                if (isNovel) {
+                  setCurrentChapterIndex((prev) => Math.max(0, prev - 1));
+                } else {
+                  setCurrentComicPageIndex((prev) => Math.max(0, prev - 1));
+                }
+              }}
+              disabled={isNovel ? currentChapterIndex === 0 : currentComicPageIndex === 0}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-black/5 dark:bg-white/10 hover:bg-black/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Sebelumnya</span>
+            </button>
 
-          {/* Next Button */}
-          <button
-            onClick={() => {
-              if (isNovel) {
-                setCurrentChapterIndex((prev) => Math.min(chapters.length - 1, prev + 1));
-              } else {
-                setCurrentComicPageIndex((prev) => Math.min(comicPanels.length - 1, prev + 1));
+            {/* Center Page Indicator / Chapter Switcher */}
+            <div className="flex items-center gap-2 text-xs font-semibold">
+              {isNovel ? (
+                <select
+                  value={currentChapterIndex}
+                  onChange={(e) => setCurrentChapterIndex(Number(e.target.value))}
+                  className="bg-transparent font-bold border border-current/20 rounded-md px-2 py-1 text-xs focus:outline-none cursor-pointer"
+                >
+                  {chapters.map((ch, idx) => {
+                    const label = ch.title.startsWith('Bab') ? ch.title : `Bab ${ch.id}: ${ch.title}`;
+                    return (
+                      <option key={ch.id} value={idx} className="bg-white text-slate-900">
+                        {label.length > 30 ? label.substring(0, 30) + '...' : label}
+                      </option>
+                    );
+                  })}
+                </select>
+              ) : (
+                <span className="font-mono text-xs">
+                  Muka Surat {currentStep} / {totalSteps}
+                </span>
+              )}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => {
+                if (isNovel) {
+                  setCurrentChapterIndex((prev) => Math.min(chapters.length - 1, prev + 1));
+                } else {
+                  setCurrentComicPageIndex((prev) => Math.min(comicPanels.length - 1, prev + 1));
+                }
+              }}
+              disabled={
+                isNovel
+                  ? currentChapterIndex >= chapters.length - 1
+                  : currentComicPageIndex >= comicPanels.length - 1
               }
-            }}
-            disabled={
-              isNovel
-                ? currentChapterIndex >= chapters.length - 1
-                : currentComicPageIndex >= comicPanels.length - 1
-            }
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-black/5 dark:bg-white/10 hover:bg-black/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-          >
-            <span className="hidden sm:inline">Seterusnya</span>
-            <ChevronRight className="w-4 h-4" />
-          </button>
-        </footer>
+              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-black/5 dark:bg-white/10 hover:bg-black/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+            >
+              <span className="hidden sm:inline">Seterusnya</span>
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </>
+        )}
+      </footer>
       </div>
     </div>
   );

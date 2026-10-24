@@ -48,6 +48,10 @@ export interface PublishedBookPayload {
   pdfUrl?: string;
   pdfFileName?: string;
   pdfFileSize?: string;
+  epubUrl?: string;
+  epubFileName?: string;
+  epubFileSize?: string;
+  comicSample?: any;
   sampleContent?: {
     chapters: {
       id: number;
@@ -56,6 +60,7 @@ export interface PublishedBookPayload {
       paragraphs: string[];
     }[];
   };
+  [key: string]: any;
 }
 
 const DELETED_BOOKS_FILE = path.join(DATA_DIR, 'deleted_books.json');
@@ -137,10 +142,59 @@ export async function savePublishedBookToStorage(book: PublishedBookPayload): Pr
   // Jika pernah dipadam, nyah-rekod daripada senarai tombstone
   unmarkDeletedBookId(book.id);
 
-  const r2Key = `ebooks/${book.id}.json`;
-  const manuscriptContent = JSON.stringify(book, null, 2);
+  // 1. Ekstrak dan pindahkan fail binari besar (PDF & EPUB) ke Cloudflare R2
+  // Menukar rentetan Base64 besar (40MB+) kepada fail binari sebenar dan pautan strim pantas
+  let finalPdfUrl = book.pdfUrl;
+  let pdfKey: string | undefined = undefined;
 
-  // 1. Muat naik naskhah ke Cloudflare R2 Object Storage
+  if (book.pdfUrl && book.pdfUrl.startsWith('data:')) {
+    try {
+      const base64Data = book.pdfUrl.replace(/^data:[^;]*;base64,/, '');
+      const pdfBuffer = Buffer.from(base64Data, 'base64');
+      pdfKey = `manuscripts/${book.id}.pdf`;
+      await uploadAssetToR2({
+        fileKey: pdfKey,
+        data: pdfBuffer,
+        contentType: 'application/pdf',
+      });
+      finalPdfUrl = `/api/books/pdf/${book.id}`;
+      console.log(`[Cloudflare R2] Fail PDF (${(pdfBuffer.length / (1024 * 1024)).toFixed(2)} MB) berjaya dimuat naik ke R2!`);
+    } catch (err) {
+      console.error('[Cloudflare R2] Ralat memproses fail PDF:', err);
+    }
+  }
+
+  let finalEpubUrl = book.epubUrl;
+  let epubKey: string | undefined = undefined;
+
+  if (book.epubUrl && book.epubUrl.startsWith('data:')) {
+    try {
+      const base64Data = book.epubUrl.replace(/^data:[^;]*;base64,/, '');
+      const epubBuffer = Buffer.from(base64Data, 'base64');
+      epubKey = `manuscripts/${book.id}.epub`;
+      await uploadAssetToR2({
+        fileKey: epubKey,
+        data: epubBuffer,
+        contentType: 'application/epub+zip',
+      });
+      finalEpubUrl = `/api/books/epub/${book.id}`;
+      console.log(`[Cloudflare R2] Fail EPUB (${(epubBuffer.length / (1024 * 1024)).toFixed(2)} MB) berjaya dimuat naik ke R2!`);
+    } catch (err) {
+      console.error('[Cloudflare R2] Ralat memproses fail EPUB:', err);
+    }
+  }
+
+  // Cipta naskhah ringan (hanya metadata ~2KB) untuk disimpan ke Firestore & Pelayan
+  const lightBookPayload: PublishedBookPayload = {
+    ...book,
+    pdfUrl: finalPdfUrl,
+    epubUrl: finalEpubUrl,
+  };
+
+  const r2Key = `ebooks/${book.id}.json`;
+  const manuscriptContent = JSON.stringify(lightBookPayload, null, 2);
+
+  // 2. Muat naik naskhah metadata ke Cloudflare R2 Object Storage
   const r2Result = await uploadAssetToR2({
     fileKey: r2Key,
     data: manuscriptContent,
@@ -154,7 +208,7 @@ export async function savePublishedBookToStorage(book: PublishedBookPayload): Pr
   });
 
   const enrichedBook: PublishedBookPayload = {
-    ...book,
+    ...lightBookPayload,
     r2Key,
     r2StorageUrl: signedStreamUrl,
   };
