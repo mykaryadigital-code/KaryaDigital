@@ -120,7 +120,7 @@ export const BookGrid: React.FC<BookGridProps> = ({
     );
   }
 
-  // 5. Susunan (Sorting)
+  // 5. Susunan (Sorting) - Naskhah terbaru sentiasa berada di bahagian paling atas secara automatik
   if (sortBy === 'rating') {
     displayedBooks.sort((a, b) => b.rating - a.rating);
   } else if (sortBy === 'price-asc') {
@@ -128,7 +128,21 @@ export const BookGrid: React.FC<BookGridProps> = ({
   } else if (sortBy === 'price-desc') {
     displayedBooks.sort((a, b) => b.price - a.price);
   } else if (sortBy === 'newest') {
-    displayedBooks.sort((a, b) => b.publicationYear - a.publicationYear);
+    displayedBooks.sort((a, b) => {
+      const timeA = a.createdAt || (a.id.startsWith('karya-user-') ? parseInt(a.id.replace('karya-user-', '')) : 0) || a.publicationYear * 1000;
+      const timeB = b.createdAt || (b.id.startsWith('karya-user-') ? parseInt(b.id.replace('karya-user-', '')) : 0) || b.publicationYear * 1000;
+      return timeB - timeA;
+    });
+  } else {
+    // Default: Pastikan buku terbaru diterbitkan sentiasa di bahagian atas
+    displayedBooks.sort((a, b) => {
+      const timeA = a.createdAt || (a.id.startsWith('karya-user-') ? parseInt(a.id.replace('karya-user-', '')) : 0);
+      const timeB = b.createdAt || (b.id.startsWith('karya-user-') ? parseInt(b.id.replace('karya-user-', '')) : 0);
+      if (timeA || timeB) {
+        return timeB - timeA;
+      }
+      return 0;
+    });
   }
 
   const isFiltered =
@@ -149,11 +163,11 @@ export const BookGrid: React.FC<BookGridProps> = ({
   };
 
   const sortOptions = [
-    { id: 'default', label: 'Paling Popular' },
+    { id: 'default', label: 'Terkini / Terbaru' },
     { id: 'rating', label: 'Penarafan Tertinggi' },
     { id: 'price-asc', label: 'Harga: Rendah ke Tinggi' },
     { id: 'price-desc', label: 'Harga: Tinggi ke Rendah' },
-    { id: 'newest', label: 'Terkini' },
+    { id: 'newest', label: 'Tahun Terbitan' },
   ];
 
   return (

@@ -45,6 +45,7 @@ export interface EBook {
   isFeatured?: boolean;
   isBestseller?: boolean;
   isFree?: boolean;
+  createdAt?: number;
   coverGradient: string;
   coverAccent: string;
   coverBadge?: string;

@@ -232,6 +232,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       readTime: pdfFile ? '4 jam' : '3 jam 30 min',
       publisher: 'Penerbitan Bebas KaryaDigital',
       publicationYear: 2026,
+      createdAt: Date.now(),
       isbn: `978-967-KD${Math.floor(1000 + Math.random() * 9000)}-M`,
       coverImage: coverImagePreview || undefined,
       coverGradient: selectedTheme.gradient,

@@ -63,9 +63,21 @@ export const BookCard: React.FC<BookCardProps> = ({
           </div>
         )}
 
+        {/* New / Terkini Badge */}
+        {(Boolean(book.createdAt) || book.id.startsWith('karya-user-')) && (
+          <div className="absolute top-2 left-2 bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-2xs z-10 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+            <span>TERBARU</span>
+          </div>
+        )}
+
         {/* PDF Format Tag */}
         {book.pdfUrl && (
-          <div className="absolute top-2 left-2 bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-2xs z-10">
+          <div
+            className={`absolute top-2 ${
+              Boolean(book.createdAt) || book.id.startsWith('karya-user-') ? 'left-18' : 'left-2'
+            } bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-2xs z-10`}
+          >
             PDF
           </div>
         )}

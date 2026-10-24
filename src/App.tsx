@@ -267,16 +267,36 @@ export default function App() {
     const mergeBooks = (newBooks: EBook[]) => {
       if (!newBooks.length) return;
       setBooks((prev) => {
-        const showcaseIds = new Set(INITIAL_EBOOKS.slice(0, 10).map((b) => b.id));
-        const showcaseBooks = INITIAL_EBOOKS.slice(0, 10);
-        const otherPrev = prev.filter((b) => !showcaseIds.has(b.id));
-        const otherMap = new Map(otherPrev.map((b) => [b.id, b]));
-        for (const nb of newBooks) {
-          if (!showcaseIds.has(nb.id)) {
-            otherMap.set(nb.id, nb);
+        const showcaseIds = new Set(INITIAL_EBOOKS.map((b) => b.id));
+        const showcaseBooks = INITIAL_EBOOKS;
+
+        // Map to keep unique published books
+        const publishedMap = new Map<string, EBook>();
+
+        // 1. Add any non-showcase books currently in prev
+        for (const b of prev) {
+          if (!showcaseIds.has(b.id)) {
+            publishedMap.set(b.id, b);
           }
         }
-        return [...showcaseBooks, ...Array.from(otherMap.values())];
+
+        // 2. Add or update with newBooks
+        for (const nb of newBooks) {
+          if (!showcaseIds.has(nb.id)) {
+            publishedMap.set(nb.id, nb);
+          }
+        }
+
+        const publishedList = Array.from(publishedMap.values());
+        // Susun buku yang diterbitkan supaya naskhah terbaru sentiasa berada di bahagian paling atas
+        publishedList.sort((a, b) => {
+          const timeA = a.createdAt || (a.id.startsWith('karya-user-') ? parseInt(a.id.replace('karya-user-', '')) : 0);
+          const timeB = b.createdAt || (b.id.startsWith('karya-user-') ? parseInt(b.id.replace('karya-user-', '')) : 0);
+          return timeB - timeA;
+        });
+
+        // BUKU TERBARU DILETAKKAN DI BAHAGIAN PALING ATAS KATALOG
+        return [...publishedList, ...showcaseBooks];
       });
     };
 
@@ -585,13 +605,16 @@ export default function App() {
 
   // Handle Self-Publishing by Authors (Menyimpan secara kekal ke Cloudflare R2, Firestore & LocalStorage)
   const handlePublishBook = async (newBook: EBook) => {
-    // 1. Kemas kini segera katalog dalam state (mengekalkan 10 naskhah showcase utama)
-    setBooks((prev) => {
-      const showcaseIds = new Set(INITIAL_EBOOKS.slice(0, 10).map((b) => b.id));
-      const showcaseBooks = INITIAL_EBOOKS.slice(0, 10);
-      const remaining = prev.filter((b) => !showcaseIds.has(b.id) && b.id !== newBook.id);
-      return [...showcaseBooks, newBook, ...remaining];
-    });
+    const bookWithTimestamp: EBook = {
+      ...newBook,
+      createdAt: newBook.createdAt || Date.now(),
+    };
+
+    // 1. Kemas kini segera katalog dalam state - letakkan naskhah TERBARU di bahagian PALING ATAS
+    setBooks((prev) => [
+      bookWithTimestamp,
+      ...prev.filter((b) => b.id !== bookWithTimestamp.id),
+    ]);
 
     // 2. Simpan secara kekal ke LocalStorage
     try {
