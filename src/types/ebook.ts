@@ -51,6 +51,11 @@ export interface EBook {
   pdfUrl?: string;
   pdfFileName?: string;
   pdfFileSize?: string;
+  isSeries?: boolean;
+  seriesName?: string;
+  seriesOrder?: number;
+  seriesStatus?: 'ongoing' | 'completed';
+  seriesUpdateSchedule?: string;
   sampleContent?: {
     chapters: Chapter[];
   };

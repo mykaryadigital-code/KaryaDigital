@@ -775,8 +775,10 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                     {currentChapterIndex < chapters.length - 1
                       ? 'Teruskan membaca bab seterusnya di bawah.'
                       : isOwned
-                      ? 'Tahniah, anda telah selesai membaca keseluruhan naskhah ini!'
-                      : 'Naskhah penuh mengandungi 348 muka surat lagi! Dapatkan versi penuh untuk sokong penulis.'}
+                      ? book.isSeries && book.seriesStatus === 'ongoing'
+                        ? '✨ Anda telah membaca semua bab yang diterbitkan setakat ini! Penulis akan menambah bab baharu tidak lama lagi. Kemas kini akan muncul secara automatik di sini.'
+                        : 'Tahniah, anda telah selesai membaca keseluruhan naskhah ini!'
+                      : 'Naskhah penuh mengandungi lebih banyak bab! Dapatkan versi penuh untuk menyokong karya penulis tempatan.'}
                   </p>
                 </div>
 

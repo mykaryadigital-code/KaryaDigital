@@ -21,6 +21,7 @@ import {
   BookOpen,
   FileUp,
   Edit3,
+  Layers,
 } from 'lucide-react';
 import { EBook, BookCategory } from '../types/ebook.ts';
 
@@ -90,6 +91,12 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   const [sampleContent, setSampleContent] = useState('');
   const [bankName, setBankName] = useState('Maybank');
   const [bankAccountNumber, setBankAccountNumber] = useState('');
+
+  // Series & Episodic State
+  const [isSeries, setIsSeries] = useState(false);
+  const [seriesName, setSeriesName] = useState('');
+  const [seriesOrder, setSeriesOrder] = useState<number>(1);
+  const [seriesStatus, setSeriesStatus] = useState<'ongoing' | 'completed'>('ongoing');
 
   // Cover Image State
   const [coverMode, setCoverMode] = useState<'upload' | 'url' | 'theme'>('upload');
@@ -233,12 +240,16 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       pdfUrl: pdfFile?.dataUrl,
       pdfFileName: pdfFile?.name,
       pdfFileSize: pdfFile?.size,
+      isSeries,
+      seriesName: isSeries ? seriesName.trim() || undefined : undefined,
+      seriesOrder: isSeries ? Number(seriesOrder) || 1 : undefined,
+      seriesStatus: isSeries ? seriesStatus : undefined,
       sampleContent: {
         chapters: [
           {
             id: 1,
             title: sampleChapterTitle.trim() || 'Bab 1',
-            subtitle: 'Karya Asli Penulis',
+            subtitle: isSeries ? `Jilid ${seriesOrder} • Karya Asli Penulis` : 'Karya Asli Penulis',
             paragraphs: sampleParagraphs,
           },
         ],
@@ -258,6 +269,10 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
     setSynopsis('');
     setSampleContent('');
     setCoverImagePreview(null);
+    setIsSeries(false);
+    setSeriesName('');
+    setSeriesOrder(1);
+    setSeriesStatus('ongoing');
     setCoverUrlInput('');
     setPdfFile(null);
     if (pdfInputRef.current) {
@@ -1017,6 +1032,74 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
                   placeholder="Ringkasan jalan cerita untuk menarik minat pembaca di halaman katalog..."
                   className="w-full px-3 py-2 text-xs rounded-lg border border-slate-300 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 focus:outline-none"
                 ></textarea>
+              </div>
+
+              {/* Pilihan Naskhah Bersiri / Bersambung */}
+              <div className="p-3.5 bg-purple-50/60 rounded-xl border border-purple-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Layers className="w-4 h-4 text-purple-700" />
+                    <div>
+                      <span className="text-xs font-bold text-purple-950 block">
+                        Adakah ini naskhah bersiri / bersambung?
+                      </span>
+                      <span className="text-[10px] text-purple-700">
+                        Untuk novel episodik, webtoon/komik bersambung, atau siri antologi
+                      </span>
+                    </div>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={isSeries}
+                      onChange={(e) => setIsSeries(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-purple-600"></div>
+                  </label>
+                </div>
+
+                {isSeries && (
+                  <div className="pt-3 border-t border-purple-200/70 grid grid-cols-1 sm:grid-cols-3 gap-3 animate-in fade-in duration-150">
+                    <div>
+                      <label className="text-[11px] font-bold text-purple-950 block mb-1">
+                        Nama Siri / Koleksi *
+                      </label>
+                      <input
+                        type="text"
+                        value={seriesName}
+                        onChange={(e) => setSeriesName(e.target.value)}
+                        placeholder="cth: Saga Alam Satria"
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-purple-300 bg-white focus:outline-none focus:ring-1 focus:ring-purple-600 font-semibold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-purple-950 block mb-1">
+                        Nombor Jilid / Episod
+                      </label>
+                      <input
+                        type="number"
+                        min="1"
+                        value={seriesOrder}
+                        onChange={(e) => setSeriesOrder(parseInt(e.target.value) || 1)}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-purple-300 bg-white focus:outline-none focus:ring-1 focus:ring-purple-600 font-bold"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-purple-950 block mb-1">
+                        Status Naskhah
+                      </label>
+                      <select
+                        value={seriesStatus}
+                        onChange={(e) => setSeriesStatus(e.target.value as 'ongoing' | 'completed')}
+                        className="w-full px-2.5 py-1.5 text-xs rounded-lg border border-purple-300 bg-white focus:outline-none focus:ring-1 focus:ring-purple-600 font-medium"
+                      >
+                        <option value="ongoing">Sedang Bersambung (Ongoing)</option>
+                        <option value="completed">Tamat (Completed)</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* BAHAGIAN 3: MUAT NAIK FAIL E-BOOK PDF */}

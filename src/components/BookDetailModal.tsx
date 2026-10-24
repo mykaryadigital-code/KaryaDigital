@@ -9,6 +9,7 @@ import {
   Send,
   MessageSquare,
   CheckCircle2,
+  Layers,
 } from 'lucide-react';
 import { EBook } from '../types/ebook.ts';
 import { formatMYR } from '../utils/ebookLogic.ts';
@@ -241,6 +242,35 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
                   </span>
                 )}
               </div>
+
+              {/* Naskhah Bersiri / Bersambung */}
+              {book.isSeries && (
+                <div className="pt-2">
+                  <div className="p-3 bg-gradient-to-r from-purple-50 via-indigo-50/60 to-purple-50 border border-purple-200 rounded-xl space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 font-bold text-xs text-purple-950">
+                        <Layers className="w-4 h-4 text-purple-700" />
+                        <span>{book.seriesName ? `${book.seriesName} (Jilid ${book.seriesOrder || 1})` : `Naskhah Bersiri Jilid ${book.seriesOrder || 1}`}</span>
+                      </div>
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full ${
+                        book.seriesStatus === 'ongoing' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-slate-200 text-slate-700'
+                      }`}>
+                        {book.seriesStatus === 'ongoing' ? '● Sedang Bersambung (Ongoing)' : '✓ Tamat Sepenuhnya'}
+                      </span>
+                    </div>
+                    {book.seriesUpdateSchedule && (
+                      <p className="text-[11px] text-purple-900 font-medium">
+                        Jadual: {book.seriesUpdateSchedule}
+                      </p>
+                    )}
+                    {book.seriesStatus === 'ongoing' && (
+                      <p className="text-[10px] text-purple-700">
+                        💡 Penulis akan mengemas kini bab baharu secara berkala. Pemilik naskhah dapat terus membaca bab seterusnya secara automatik!
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

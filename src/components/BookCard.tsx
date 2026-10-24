@@ -70,6 +70,16 @@ export const BookCard: React.FC<BookCardProps> = ({
           </div>
         )}
 
+        {/* Series Badge */}
+        {book.isSeries && (
+          <div className="absolute bottom-2 left-2 right-2 bg-purple-950/90 text-purple-200 backdrop-blur-xs text-[8px] sm:text-[9px] font-bold px-2 py-0.5 rounded shadow-xs flex items-center justify-between border border-purple-500/40 z-10 truncate">
+            <span className="truncate">{book.seriesName ? `${book.seriesName} (Jilid ${book.seriesOrder || 1})` : `Jilid ${book.seriesOrder || 1}`}</span>
+            <span className={`shrink-0 ml-1 text-[7.5px] uppercase font-black px-1 rounded ${book.seriesStatus === 'ongoing' ? 'bg-emerald-500/30 text-emerald-300' : 'bg-slate-700 text-slate-300'}`}>
+              {book.seriesStatus === 'ongoing' ? 'Bersambung' : 'Tamat'}
+            </span>
+          </div>
+        )}
+
         {/* Owned Status Badge */}
         {isOwned && (
           <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-2xs flex items-center gap-1 z-10">
