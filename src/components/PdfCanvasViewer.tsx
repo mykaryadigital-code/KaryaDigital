@@ -11,14 +11,20 @@ import {
   AlertCircle,
   FileText,
   ShieldCheck,
+  Upload,
 } from 'lucide-react';
+import { saveManuscriptToIndexedDb, getManuscriptFromIndexedDb } from '../utils/indexedDbStorage';
 
 interface PdfCanvasViewerProps {
+  bookId?: string;
   pdfUrl: string;
   title: string;
   buyerEmail?: string;
   initialPage?: number;
   onPageChange?: (page: number, totalPages: number) => void;
+  onSwitchToTextMode?: () => void;
+  hasTextModeFallback?: boolean;
+  onPdfReloaded?: (newUrl: string) => void;
   className?: string;
 }
 
@@ -34,58 +40,67 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
-// Dynamically load the self-hosted Mozilla PDF.js library
+// Dynamically load the self-hosted Mozilla PDF.js library with guaranteed polling & timeout
 function loadPdfJsLibrary(): Promise<any> {
   return new Promise((resolve, reject) => {
-    if ((window as any).pdfjsLib) {
-      const lib = (window as any).pdfjsLib;
-      if (!lib.GlobalWorkerOptions?.workerSrc) {
-        lib.GlobalWorkerOptions = lib.GlobalWorkerOptions || {};
-        lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
-      }
-      return resolve(lib);
-    }
-
-    const existingScript = document.querySelector('script[src="/vendor/pdfjs/pdf.min.js"]');
-    if (existingScript) {
-      existingScript.addEventListener('load', () => {
-        const lib = (window as any).pdfjsLib;
-        if (lib) {
-          lib.GlobalWorkerOptions = lib.GlobalWorkerOptions || {};
-          lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
-          resolve(lib);
-        } else {
-          reject(new Error('PDF.js library failed to initialize.'));
-        }
-      });
-      existingScript.addEventListener('error', () => reject(new Error('Gagal memuatkan skrip PDF.js.')));
-      return;
-    }
-
-    const script = document.createElement('script');
-    script.src = '/vendor/pdfjs/pdf.min.js';
-    script.async = true;
-    script.onload = () => {
+    const checkLib = () => {
       const lib = (window as any).pdfjsLib;
       if (lib) {
-        lib.GlobalWorkerOptions = lib.GlobalWorkerOptions || {};
-        lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
-        resolve(lib);
-      } else {
-        reject(new Error('Objek pdfjsLib tidak ditemui.'));
+        if (!lib.GlobalWorkerOptions?.workerSrc) {
+          lib.GlobalWorkerOptions = lib.GlobalWorkerOptions || {};
+          lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+        }
+        return lib;
       }
+      return null;
     };
-    script.onerror = () => reject(new Error('Gagal memuatkan enjin PDF.js dari pelayan tempatan.'));
-    document.head.appendChild(script);
+
+    const immediate = checkLib();
+    if (immediate) return resolve(immediate);
+
+    let attempts = 0;
+    const interval = setInterval(() => {
+      attempts++;
+      const lib = checkLib();
+      if (lib) {
+        clearInterval(interval);
+        return resolve(lib);
+      }
+      if (attempts > 60) {
+        clearInterval(interval);
+        const fallback = (window as any).pdfjsLib;
+        if (fallback) {
+          resolve(fallback);
+        } else {
+          reject(new Error('Enjin PDF.js mengambil masa terlalu lama untuk dimuatkan. Sila muat semula halaman.'));
+        }
+      }
+    }, 40);
+
+    const existingScript = document.querySelector('script[src*="pdf.min.js"]');
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = '/vendor/pdfjs/pdf.min.js';
+      script.async = true;
+      script.onerror = () => {
+        clearInterval(interval);
+        reject(new Error('Gagal memuatkan skrip PDF.js dari pelayan.'));
+      };
+      document.head.appendChild(script);
+    }
   });
 }
 
 export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
+  bookId,
   pdfUrl,
   title,
   buyerEmail = 'pembaca@karyadigital.my',
   initialPage = 1,
   onPageChange,
+  onSwitchToTextMode,
+  hasTextModeFallback,
+  onPdfReloaded,
   className = '',
 }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
@@ -104,6 +119,7 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
   const renderTaskRef = useRef<any>(null);
   const pageCanvasesRef = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const activePageRendersRef = useRef<Map<number, any>>(new Map());
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // 1. Inisialisasi dan Memuat Dokumen PDF
   const loadDocument = useCallback(async () => {
@@ -128,11 +144,56 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
           data: uint8Data,
           cMapPacked: true,
         });
-      } else {
+      } else if (pdfUrl.startsWith('blob:')) {
         loadingTask = pdfjsLib.getDocument({
           url: pdfUrl,
           cMapPacked: true,
         });
+      } else {
+        // Cuba muat turun daripada URL pelayan
+        let buf: ArrayBuffer | null = null;
+        try {
+          const resp = await fetch(pdfUrl);
+          if (resp.ok) {
+            buf = await resp.arrayBuffer();
+          }
+        } catch (e) {
+          console.warn('[PdfCanvasViewer] Amaran fetch:', e);
+        }
+
+        // Jika pelayan 404 / tiada fail fizikal, cuba ambil dari IndexedDB peranti pengguna
+        if (!buf && bookId) {
+          try {
+            const stored = await getManuscriptFromIndexedDb(bookId);
+            if (stored && stored.format === 'pdf' && stored.data) {
+              if (typeof stored.data === 'string' && stored.data.startsWith('data:')) {
+                const uint8 = base64ToUint8Array(stored.data);
+                buf = uint8.buffer as ArrayBuffer;
+              } else if (stored.data instanceof Blob) {
+                buf = await stored.data.arrayBuffer();
+              }
+            }
+          } catch (e) {
+            console.warn('[PdfCanvasViewer] Amaran IndexedDB fallback:', e);
+          }
+        }
+
+        if (buf) {
+          setLoadProgress(65);
+          loadingTask = pdfjsLib.getDocument({
+            data: new Uint8Array(buf),
+            cMapPacked: true,
+          });
+        } else {
+          try {
+            loadingTask = pdfjsLib.getDocument({
+              url: pdfUrl,
+              cMapPacked: true,
+            });
+          } catch (e) {
+            throw new Error('Fail PDF tidak ditemui pada storan pelayan mahupun peranti.');
+          }
+        }
       }
 
       loadingTask.onProgress = (progressData: { loaded: number; total: number }) => {
@@ -156,7 +217,59 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
       );
       setIsLoading(false);
     }
-  }, [pdfUrl, onPageChange]);
+  }, [pdfUrl, bookId, onPageChange]);
+
+  // Pengendali muat naik manual fail PDF tempatan jika fail di pelayan tiada
+  const handleLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.toLowerCase().endsWith('.pdf') && !file.type.includes('pdf')) {
+      alert('Sila pilih fail naskhah dalam format dokumen PDF yang sah.');
+      return;
+    }
+
+    setIsLoading(true);
+    setLoadError(null);
+    setLoadProgress(20);
+
+    try {
+      const pdfjsLib = await loadPdfJsLibrary();
+      setLoadProgress(45);
+
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8 = new Uint8Array(arrayBuffer);
+      setLoadProgress(70);
+
+      const loadingTask = pdfjsLib.getDocument({
+        data: uint8,
+        cMapPacked: true,
+      });
+
+      const doc = await loadingTask.promise;
+      setPdfDoc(doc);
+      setTotalPages(doc.numPages);
+      setLoadProgress(100);
+      setIsLoading(false);
+      onPageChange?.(1, doc.numPages);
+
+      // Simpan fail ke IndexedDB peranti pengguna supaya naskhah kekal ada bila dibuka semula
+      if (bookId) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (typeof reader.result === 'string') {
+            saveManuscriptToIndexedDb(bookId, reader.result, file.name, 'pdf').catch(console.warn);
+            onPdfReloaded?.(reader.result);
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    } catch (err: any) {
+      console.error('[PdfCanvasViewer] Gagal membaca fail PDF tempatan:', err);
+      setLoadError(err?.message || 'Gagal membaca fail PDF yang dipilih.');
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     loadDocument();
@@ -502,23 +615,56 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
               <AlertCircle className="w-6 h-6" />
             </div>
             <h4 className="font-bold text-sm text-rose-200">Tidak Dapat Membuka Dokumen PDF</h4>
-            <p className="text-xs text-rose-300/80 leading-relaxed">{loadError}</p>
+            {/* Tersembunyi: Input Pemilihan Fail Tempatan */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf,application/pdf"
+              onChange={handleLocalFileUpload}
+              className="hidden"
+            />
+
             <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
               <button
+                type="button"
                 onClick={loadDocument}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Cuba Semula</span>
               </button>
-              <a
-                href={pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors cursor-pointer shadow-xs"
+                title="Pilih fail PDF dari komputer/telefon untuk paparan segera dan simpanan tempatan"
               >
-                Buka Tab Baharu ↗
-              </a>
+                <Upload className="w-3.5 h-3.5" />
+                <span>Pilih Fail PDF Dari Peranti Ini</span>
+              </button>
+
+              {hasTextModeFallback && onSwitchToTextMode && (
+                <button
+                  type="button"
+                  onClick={onSwitchToTextMode}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors cursor-pointer shadow-xs"
+                >
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Baca Dalam Mod Teks</span>
+                </button>
+              )}
+
+              {(pdfUrl.startsWith('http') || pdfUrl.startsWith('/')) && (
+                <a
+                  href={pdfUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                >
+                  Buka Tab Baharu ↗
+                </a>
+              )}
             </div>
           </div>
         )}

@@ -99,37 +99,45 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
       setCurrentComicPageIndex(Math.min(targetPage, maxPanel));
     }
 
-    if (book.pdfUrl) {
-      setActivePdfUrl(book.pdfUrl);
-      setReaderFormat('pdf');
-    } else {
-      // Semak sama ada manuskrip disimpan dalam IndexedDB peranti pengguna
-      getManuscriptFromIndexedDb(book.id)
-        .then((stored) => {
-          if (!isMounted) return;
-          if (stored && stored.format === 'pdf') {
-            const url = typeof stored.data === 'string' ? stored.data : URL.createObjectURL(stored.data);
-            setActivePdfUrl(url);
-            setReaderFormat('pdf');
-          } else if (book.pdfFileName) {
-            setActivePdfUrl(`/api/books/pdf/${book.id}`);
-            setReaderFormat('pdf');
-          } else {
-            setActivePdfUrl(null);
-            setReaderFormat('standard');
-          }
-        })
-        .catch(() => {
-          if (!isMounted) return;
-          if (book.pdfFileName) {
-            setActivePdfUrl(`/api/books/pdf/${book.id}`);
-            setReaderFormat('pdf');
-          } else {
-            setActivePdfUrl(null);
-            setReaderFormat('standard');
-          }
-        });
-    }
+    // Semak IndexedDB terlebih dahulu untuk naskhah PDF penuh di peranti
+    getManuscriptFromIndexedDb(book.id)
+      .then((stored) => {
+        if (!isMounted) return;
+        if (stored && stored.format === 'pdf' && stored.data) {
+          const url =
+            typeof stored.data === 'string'
+              ? stored.data
+              : URL.createObjectURL(
+                  stored.data instanceof Blob
+                    ? stored.data
+                    : new Blob([stored.data], { type: 'application/pdf' })
+                );
+          setActivePdfUrl(url);
+          setReaderFormat('pdf');
+        } else if (book.pdfUrl) {
+          setActivePdfUrl(book.pdfUrl);
+          setReaderFormat('pdf');
+        } else if (book.pdfFileName) {
+          setActivePdfUrl(`/api/books/pdf/${book.id}`);
+          setReaderFormat('pdf');
+        } else {
+          setActivePdfUrl(null);
+          setReaderFormat('standard');
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        if (book.pdfUrl) {
+          setActivePdfUrl(book.pdfUrl);
+          setReaderFormat('pdf');
+        } else if (book.pdfFileName) {
+          setActivePdfUrl(`/api/books/pdf/${book.id}`);
+          setReaderFormat('pdf');
+        } else {
+          setActivePdfUrl(null);
+          setReaderFormat('standard');
+        }
+      });
 
     setComicZoom(1);
     setShowBookmarksList(false);
@@ -748,10 +756,14 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
 
               {isOwned || book.isFree ? (
                 <PdfCanvasViewer
+                  bookId={book.id}
                   pdfUrl={activePdfUrl || book.pdfUrl!}
                   title={book.title}
                   buyerEmail={buyerEmail}
                   initialPage={initialPageNumber || 1}
+                  onSwitchToTextMode={() => setReaderFormat('standard')}
+                  hasTextModeFallback={Boolean(book.sampleContent?.chapters?.length)}
+                  onPdfReloaded={(newUrl) => setActivePdfUrl(newUrl)}
                 />
               ) : (
                 <div className="p-6 sm:p-8 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300/70 text-center space-y-4 max-w-lg mx-auto">
