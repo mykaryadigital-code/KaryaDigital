@@ -151,13 +151,9 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
         }
       }
     } catch (err: any) {
-      console.warn('Fallback ke simulasi tempatan:', err);
-      // Fallback simulasi
-      const booksToUnlock = cartItems.map((item) => item.book);
-      setCompletedBooks(booksToUnlock);
+      console.error('[Pembayaran Ralat]:', err);
       setIsProcessing(false);
-      setCheckoutComplete(true);
-      onCheckoutSuccess(booksToUnlock);
+      alert(err?.message || 'Ralat semasa memproses invois pembayaran FPX. Sila cuba sebentar lagi.');
     }
   };
 

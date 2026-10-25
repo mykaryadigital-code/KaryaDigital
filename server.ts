@@ -15,7 +15,7 @@ import {
   createOrderRecord,
   markOrderPaidAndUnlockBook,
   getUserUnlockedBookIds,
-} from './src/server/supabase.ts';
+} from './src/server/orderStore.ts';
 import {
   generateR2SignedUrl,
   verifyHmacSignedUrl,
@@ -309,46 +309,12 @@ app.post('/api/payment/bcl-callback', async (req: Request, res: Response) => {
 
 /**
  * GET /api/payment/bcl-return
- * Pengguna diarahkan ke sini oleh portal BCL selepas transaksi selesai.
+ * Pengguna diarahkan ke sini oleh portal BCL selepas transaksi selesai (hanya redirect UI, pengesahan buku dibuat melalui webhook pelayan).
  */
-app.get('/api/payment/bcl-return', async (req: Request, res: Response) => {
-  const { status, bill_code, order_id } = req.query;
-  const isSuccess = status === 'success' || status === 'paid' || status === '1' || !status;
-
-  if (bill_code) {
-    await markOrderPaidAndUnlockBook({
-      billCode: (bill_code || order_id) as string,
-      transactionId: `BCL-RET-${Date.now()}`,
-      status: isSuccess ? 'SUCCESS' : 'FAILED',
-    });
-  }
-
+app.get('/api/payment/bcl-return', (req: Request, res: Response) => {
+  const { status, bill_code } = req.query;
+  const isSuccess = status === 'success' || status === 'paid' || status === '1';
   return res.redirect(`/?payment_status=${isSuccess ? 'success' : 'failed'}&gateway=bcl&bill_code=${bill_code || ''}`);
-});
-
-/**
- * POST /api/payment/bcl-simulate-test
- * Endpoint simulasi ujian pengesahan segera untuk prototaip BCL.
- */
-app.post('/api/payment/bcl-simulate-test', async (req: Request, res: Response) => {
-  const { billCode, orderId, status = 'SUCCESS' } = req.body;
-  const targetRef = billCode || orderId;
-
-  if (!targetRef) {
-    return res.status(400).json({ success: false, error: 'billCode atau orderId diperlukan.' });
-  }
-
-  const result = await markOrderPaidAndUnlockBook({
-    billCode: targetRef,
-    transactionId: `BCL-SIM-${Date.now()}`,
-    status: status === 'SUCCESS' ? 'SUCCESS' : 'FAILED',
-  });
-
-  return res.json({
-    success: true,
-    message: status === 'SUCCESS' ? 'Bayaran BCL BERJAYA disahkan! Buku telah dimasukkan ke dalam koleksi pengguna.' : 'Status bayaran BCL gagal.',
-    result,
-  });
 });
 
 // ====================================================================
@@ -460,22 +426,21 @@ app.get(['/homepage.html', '/homepage'], (_req: Request, res: Response) => {
 
 /**
  * GET /api/books/pdf/:id
- * Menstrim fail dokumen PDF secara terus ke pembaca pelayar (Resolusi penuh tanpa sebarang ralat memori)
+ * Menstrim fail dokumen PDF naskhah daripada storan dilindungi
  */
 app.get('/api/books/pdf/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
-  const r2CacheDir = path.resolve(__dirname, 'public/uploads/r2-cache');
+  const storageDir = path.resolve(__dirname, 'storage/manuscripts');
 
-  if (fs.existsSync(r2CacheDir)) {
-    // Cari fail sepadan seperti manuscripts_karya-user-...pdf atau karya-user-...pdf
-    const files = fs.readdirSync(r2CacheDir);
+  if (fs.existsSync(storageDir)) {
+    const files = fs.readdirSync(storageDir);
     const targetFile = files.find(
       (f) => (f.includes(safeId) || f === `manuscripts_${safeId}.pdf`) && f.endsWith('.pdf')
     );
 
     if (targetFile) {
-      const fullPath = path.join(r2CacheDir, targetFile);
+      const fullPath = path.join(storageDir, targetFile);
       const stat = fs.statSync(fullPath);
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Length', stat.size);
@@ -490,21 +455,21 @@ app.get('/api/books/pdf/:id', (req: Request, res: Response) => {
 
 /**
  * GET /api/books/epub/:id
- * Menstrim fail EPUB naskhah
+ * Menstrim fail EPUB naskhah daripada storan dilindungi
  */
 app.get('/api/books/epub/:id', (req: Request, res: Response) => {
   const { id } = req.params;
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
-  const r2CacheDir = path.resolve(__dirname, 'public/uploads/r2-cache');
+  const storageDir = path.resolve(__dirname, 'storage/manuscripts');
 
-  if (fs.existsSync(r2CacheDir)) {
-    const files = fs.readdirSync(r2CacheDir);
+  if (fs.existsSync(storageDir)) {
+    const files = fs.readdirSync(storageDir);
     const targetFile = files.find(
       (f) => (f.includes(safeId) || f === `manuscripts_${safeId}.epub`) && f.endsWith('.epub')
     );
 
     if (targetFile) {
-      const fullPath = path.join(r2CacheDir, targetFile);
+      const fullPath = path.join(storageDir, targetFile);
       const stat = fs.statSync(fullPath);
       res.setHeader('Content-Type', 'application/epub+zip');
       res.setHeader('Content-Length', stat.size);
@@ -613,24 +578,6 @@ app.get('/api/books/deleted', (_req: Request, res: Response) => {
   }
 });
 
-/**
- * POST /api/books/purge-all
- * Memadam semua naskhah muat naik daripada sistem secara pukal
- */
-app.post('/api/books/purge-all', (_req: Request, res: Response) => {
-  try {
-    const purgedIds = purgeAllPublishedBooksFromStorage();
-    return res.json({
-      success: true,
-      message: `Semua ${purgedIds.length} naskhah muat naik berjaya dipadam dari sistem.`,
-      purgedIds,
-    });
-  } catch (error: any) {
-    console.error('[Purge Books Error]:', error);
-    return res.status(500).json({ success: false, error: 'Gagal memadam semua naskhah: ' + error.message });
-  }
-});
-
 // ====================================================================
 // 5. INTEGRASI DEV VITE / PRODUKSI SERVING
 // ====================================================================
@@ -639,7 +586,11 @@ async function startServer() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      root: path.resolve(__dirname),
+      server: {
+        middlewareMode: true,
+        hmr: false,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

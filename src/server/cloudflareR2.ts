@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const uploadCacheDir = path.resolve(__dirname, '../../public/uploads/r2-cache');
+const uploadCacheDir = path.resolve(__dirname, '../../storage/manuscripts');
 
 // Kredential Cloudflare R2
 const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
