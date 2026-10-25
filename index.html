@@ -35,6 +35,15 @@
           e.preventDefault();
         }
       }, true);
+
+      // Pastikan Service Worker sentiasa menyemak dan memuatkan kemas kini versi web terkini
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(function(registrations) {
+          for (let reg of registrations) {
+            reg.update();
+          }
+        });
+      }
     </script>
     <script src="/vendor/pdfjs/pdf.min.js"></script>
   </head>

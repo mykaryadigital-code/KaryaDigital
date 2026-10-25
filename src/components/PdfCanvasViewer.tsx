@@ -134,6 +134,8 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
   const pageCanvasesRef = useRef<Map<number, HTMLCanvasElement>>(new Map());
   const activePageRendersRef = useRef<Map<number, any>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const renderedPagesRef = useRef<Set<number>>(new Set());
+  const renderingPagesRef = useRef<Set<number>>(new Set());
 
   // 1. Inisialisasi dan Memuat Dokumen PDF
   const loadDocument = useCallback(async () => {
@@ -217,7 +219,11 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
         }
       };
 
-      const doc = await loadingTask.promise;
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Masa memuatkan naskhah melebihi had (Timeout). Sila beralih ke Mod Teks.')), 6000)
+      );
+
+      const doc = (await Promise.race([loadingTask.promise, timeoutPromise])) as any;
       setPdfDoc(doc);
       setTotalPages(doc.numPages);
       setLoadProgress(100);
@@ -225,8 +231,8 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
       onPageChange?.(1, doc.numPages);
     } catch (err: any) {
       console.error('[PdfCanvasViewer] Ralat memuatkan dokumen:', err);
-      // Jika pembeli biasa dan naskhah mempunyai bab mod teks, bertukar secara pintar agar pembacaan tidak terganggu
-      if (!isAuthorOrAdmin && hasTextModeFallback && onSwitchToTextMode) {
+      // Auto-fallback: Jika naskhah mempunyai bab mod teks dan gagal memuat fail PDF fizikal, beralih terus ke Mod Teks
+      if (hasTextModeFallback && onSwitchToTextMode) {
         console.log('[PdfCanvasViewer] Beralih secara automatik ke Mod Teks untuk pembaca.');
         onSwitchToTextMode();
         return;
@@ -237,7 +243,7 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
       );
       setIsLoading(false);
     }
-  }, [pdfUrl, bookId, onPageChange, isAuthorOrAdmin, hasTextModeFallback, onSwitchToTextMode]);
+  }, [pdfUrl, bookId, onPageChange, hasTextModeFallback, onSwitchToTextMode]);
 
   // Pengendali muat naik fail PDF terus ke Cloudflare R2 (Hanya dipicu oleh Pengarang/Admin)
   const handleLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -380,18 +386,26 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
   const renderVerticalPage = useCallback(
     async (pageNumber: number, canvas: HTMLCanvasElement) => {
       if (!pdfDoc || !canvas || !containerRef.current) return;
+      if (renderingPagesRef.current.has(pageNumber)) return;
+
+      renderingPagesRef.current.add(pageNumber);
 
       const activeRender = activePageRendersRef.current.get(pageNumber);
       if (activeRender) {
         try {
           activeRender.cancel();
+          await activeRender.promise.catch(() => {});
         } catch (e) {}
+        activePageRendersRef.current.delete(pageNumber);
       }
 
       try {
         const page = await pdfDoc.getPage(pageNumber);
         const ctx = canvas.getContext('2d');
-        if (!ctx) return;
+        if (!ctx) {
+          renderingPagesRef.current.delete(pageNumber);
+          return;
+        }
 
         const containerWidth = containerRef.current.clientWidth || 800;
         const unscaledViewport = page.getViewport({ scale: 1.0, rotation });
@@ -419,23 +433,27 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
         const task = page.render(renderContext);
         activePageRendersRef.current.set(pageNumber, task);
         await task.promise;
-        activePageRendersRef.current.delete(pageNumber);
+        renderedPagesRef.current.add(pageNumber);
       } catch (err: any) {
         if (err?.name !== 'RenderingCancelledException') {
-          console.error(`[PdfCanvasViewer] Ralat render muka surat ${pageNumber}:`, err);
+          console.warn(`[PdfCanvasViewer] Render muka surat ${pageNumber}:`, err?.message || err);
         }
+      } finally {
+        renderingPagesRef.current.delete(pageNumber);
+        activePageRendersRef.current.delete(pageNumber);
       }
     },
     [pdfDoc, zoomLevel, rotation]
   );
 
-  // Trigger render on mode/page changes
+  // Trigger render on mode/zoom/rotation changes
   useEffect(() => {
     if (!pdfDoc) return;
 
     if (viewMode === 'single') {
       renderSinglePage(currentPage);
     } else {
+      renderedPagesRef.current.clear();
       pageCanvasesRef.current.forEach((canvas, pageNum) => {
         if (canvas) {
           renderVerticalPage(pageNum, canvas);
@@ -755,7 +773,7 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
                     ref={(el) => {
                       if (el) {
                         pageCanvasesRef.current.set(pageNum, el);
-                        if (!activePageRendersRef.current.has(pageNum)) {
+                        if (!renderedPagesRef.current.has(pageNum) && !renderingPagesRef.current.has(pageNum)) {
                           renderVerticalPage(pageNum, el);
                         }
                       } else {
