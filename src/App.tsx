@@ -27,7 +27,7 @@ import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS, OFFICIAL_PUBLISHED_BOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent, BookmarkEntry } from './types/ebook.ts';
 import { evaluateSecurityAttempt, toggleBookmarkInList, removeBookmarkFromList, isUserBookOwner } from './utils/ebookLogic.ts';
-import { saveManuscriptToIndexedDb, getManuscriptFromIndexedDb } from './utils/indexedDbStorage.ts';
+import { saveManuscriptToIndexedDb, getManuscriptFromIndexedDb, deleteManuscriptFromIndexedDb } from './utils/indexedDbStorage.ts';
 import {
   auth,
   signInWithGoogle,
@@ -49,18 +49,7 @@ function getStoredDeletedBookIds(): Set<string> {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        // Jangan sekat naskhah aktif yang sah daripada katalog
-        const activeSafeIds = new Set([
-          'karya-janda-bukan-akhir',
-          'karya-kembara-bang-karim',
-          'karya-user-1792809354728',
-          'karya-user-1792513665252',
-        ]);
-        const cleaned = parsed.filter((id) => !activeSafeIds.has(id));
-        if (cleaned.length !== parsed.length) {
-          localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(cleaned));
-        }
-        return new Set(cleaned);
+        return new Set(parsed);
       }
     }
   } catch (e) {
@@ -497,20 +486,6 @@ export default function App() {
         const isBangKarim = cleanEmail === 'bangkarim79@gmail.com';
         const profile = await getUserProfileFromFirestore(fbUser.uid);
 
-        if (isBangKarim) {
-          try {
-            const currentMyIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
-            const updated = Array.from(new Set([...currentMyIds, 'karya-janda-bukan-akhir', 'karya-user-1792513665252']));
-            localStorage.setItem('karyadigital_my_author_book_ids', JSON.stringify(updated));
-            localStorage.setItem('karyadigital_user_role', 'author');
-            localStorage.setItem('karyadigital_is_author', 'true');
-
-            const currentOwned: string[] = JSON.parse(localStorage.getItem('karyadigital_owned_books') || '[]');
-            const updatedOwned = Array.from(new Set([...currentOwned, 'karya-janda-bukan-akhir', 'karya-user-1792513665252']));
-            localStorage.setItem('karyadigital_owned_books', JSON.stringify(updatedOwned));
-          } catch (e) {}
-        }
-
         setUser((prev) => {
           const userRole = isSuperAdmin
             ? 'admin'
@@ -519,9 +494,6 @@ export default function App() {
             : profile?.role || prev.role || 'reader';
           const isAuthor = isSuperAdmin || isBangKarim ? true : Boolean(profile?.isAuthor ?? prev.isAuthor);
           const defaultName = isBangKarim ? 'Bang Karim' : (fbUser.email ? fbUser.email.split('@')[0] : prev.name);
-          const updatedOwned = isBangKarim
-            ? Array.from(new Set([...prev.ownedBookIds, 'karya-janda-bukan-akhir', 'karya-user-1792513665252']))
-            : prev.ownedBookIds;
 
           return {
             ...prev,
@@ -532,7 +504,7 @@ export default function App() {
             isLoggedIn: true,
             role: userRole,
             isAuthor,
-            ownedBookIds: updatedOwned,
+            ownedBookIds: prev.ownedBookIds,
             balance: profile?.balance ?? 0.0,
             tier: isSuperAdmin ? 'Super Admin Platform' : (profile?.tier || 'Pembaca Malaysia'),
           };
@@ -885,33 +857,32 @@ export default function App() {
       return;
     }
 
-    // 1. Rekod tombstone secara kekal dalam state dan LocalStorage
-    setDeletedBookIds((prev) => {
-      const updated = new Set(prev);
-      updated.add(bookId);
-      try {
-        localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(Array.from(updated)));
-      } catch (e) {}
-      return updated;
-    });
-
-    // 2. Padam serta-merta daripada state paparan
+    // 1. Padam serta-merta daripada state paparan
     setBooks((prev) => prev.filter((b) => b.id !== bookId));
 
+    // 2. Padam daripada Firestore (Single Source of Truth)
+    deleteBookFromFirestore(bookId).catch(console.warn);
 
+    // 3. Padam fail manuskrip daripada IndexedDB
+    deleteManuscriptFromIndexedDb(bookId).catch(console.warn);
 
-    // 4. Padam daripada senarai id saya jika ada
+    // 4. Padam daripada Pelayan
+    fetch(`/api/books/${bookId}`, { method: 'DELETE' }).catch(console.warn);
+
+    // 5. Bersihkan semua kunci storan tempatan
     try {
       const myIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
       const filtered = myIds.filter((id) => id !== bookId);
       localStorage.setItem('karyadigital_my_author_book_ids', JSON.stringify(filtered));
+
+      const owned: string[] = JSON.parse(localStorage.getItem('karyadigital_owned_books') || '[]');
+      const filteredOwned = owned.filter((id) => id !== bookId);
+      localStorage.setItem('karyadigital_owned_books', JSON.stringify(filteredOwned));
+
+      const pubList: any[] = JSON.parse(localStorage.getItem('karyadigital_published_books') || '[]');
+      const filteredPub = pubList.filter((b) => b.id !== bookId);
+      localStorage.setItem('karyadigital_published_books', JSON.stringify(filteredPub));
     } catch (e) {}
-
-    // 5. Padam daripada Firestore
-    deleteBookFromFirestore(bookId).catch(console.warn);
-
-    // 6. Padam daripada Pelayan secara kekal & rekod tombstone
-    fetch(`/api/books/${bookId}`, { method: 'DELETE' }).catch(console.warn);
 
     triggerSecurityWarning(
       `Naskhah "${targetBook.title}" telah berjaya dipadam secara kekal.`,
