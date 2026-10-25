@@ -983,6 +983,7 @@ export default function App() {
           setReaderInitialPage(undefined);
         }}
         isOwned={activeReadingBook ? (effectiveOwnedBookIds.includes(activeReadingBook.id) || isUserBookOwner(activeReadingBook, user)) : false}
+        isAuthorOrAdmin={activeReadingBook ? (isUserBookOwner(activeReadingBook, user) || user.role === 'admin' || user.email?.trim().toLowerCase() === 'mykaryadigital@gmail.com') : false}
         onAddToCart={handleAddToCart}
         onTriggerSecurityWarning={triggerSecurityWarning}
         buyerEmail={user.email}

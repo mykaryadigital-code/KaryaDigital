@@ -149,6 +149,7 @@ export async function uploadAssetToR2(params: {
   const buffer = Buffer.isBuffer(data) ? data : Buffer.from(data, 'utf-8');
 
   // A. Jika klien Cloudflare R2 sedia ada, hantar ke S3 Bucket R2
+  let isR2Direct = false;
   if (r2Client && R2_BUCKET_NAME) {
     try {
       const command = new PutObjectCommand({
@@ -159,12 +160,7 @@ export async function uploadAssetToR2(params: {
       });
       await r2Client.send(command);
       console.log(`[Cloudflare R2] Fail berjaya dimuat naik ke Bucket R2: ${fileKey}`);
-      return {
-        success: true,
-        fileKey,
-        isR2Direct: true,
-        sizeBytes: buffer.length,
-      };
+      isR2Direct = true;
     } catch (err) {
       console.warn(`[Cloudflare R2] Gagal muat naik terus ke R2, menggunakan sandaran cache:`, err);
     }
@@ -186,7 +182,38 @@ export async function uploadAssetToR2(params: {
   return {
     success: true,
     fileKey,
-    isR2Direct: false,
+    isR2Direct,
     sizeBytes: buffer.length,
   };
+}
+
+/**
+ * 5. Mengambil Aliran Bait (Stream) Terus daripada Cloudflare R2
+ * Membolehkan pembeli menstrim PDF/EPUB dari R2 tanpa bergantung kepada fail tempatan pelayan.
+ */
+export async function getAssetFromR2(fileKey: string): Promise<{
+  stream: NodeJS.ReadableStream;
+  contentLength?: number;
+  contentType?: string;
+} | null> {
+  if (!r2Client || !R2_BUCKET_NAME) return null;
+  try {
+    const command = new GetObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: fileKey,
+    });
+    const response = await r2Client.send(command);
+    if (response.Body) {
+      return {
+        stream: response.Body as any,
+        contentLength: response.ContentLength,
+        contentType: response.ContentType,
+      };
+    }
+  } catch (err: any) {
+    if (err?.name !== 'NoSuchKey') {
+      console.warn(`[Cloudflare R2] Ralat mendapatkan objek ${fileKey}:`, err?.message || err);
+    }
+  }
+  return null;
 }

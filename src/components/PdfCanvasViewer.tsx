@@ -25,6 +25,7 @@ interface PdfCanvasViewerProps {
   onSwitchToTextMode?: () => void;
   hasTextModeFallback?: boolean;
   onPdfReloaded?: (newUrl: string) => void;
+  isAuthorOrAdmin?: boolean;
   className?: string;
 }
 
@@ -101,6 +102,7 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
   onSwitchToTextMode,
   hasTextModeFallback,
   onPdfReloaded,
+  isAuthorOrAdmin = false,
   className = '',
 }) => {
   const [pdfDoc, setPdfDoc] = useState<any>(null);
@@ -219,7 +221,7 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
     }
   }, [pdfUrl, bookId, onPageChange]);
 
-  // Pengendali muat naik manual fail PDF tempatan jika fail di pelayan tiada
+  // Pengendali muat naik fail PDF terus ke Cloudflare R2 (Hanya dipicu oleh Pengarang/Admin)
   const handleLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -231,16 +233,37 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
 
     setIsLoading(true);
     setLoadError(null);
-    setLoadProgress(20);
+    setLoadProgress(15);
 
     try {
-      const pdfjsLib = await loadPdfJsLibrary();
-      setLoadProgress(45);
+      // 1. Muat naik fail binari terus ke Cloudflare R2 Object Storage
+      if (bookId) {
+        setLoadProgress(30);
+        const formData = new FormData();
+        formData.append('bookId', bookId);
+        formData.append('file', file);
 
+        try {
+          const uploadResp = await fetch('/api/books/upload-manuscript', {
+            method: 'POST',
+            body: formData,
+          });
+          const uploadResult = await uploadResp.json();
+          if (uploadResult.success) {
+            console.log('[Cloudflare R2] Fail naskhah disimpan kekal di R2:', uploadResult.fileKey);
+            onPdfReloaded?.(uploadResult.streamUrl || `/api/books/pdf/${bookId}`);
+          }
+        } catch (uploadErr) {
+          console.warn('[R2 Upload Warning]:', uploadErr);
+        }
+      }
+
+      setLoadProgress(55);
       const arrayBuffer = await file.arrayBuffer();
       const uint8 = new Uint8Array(arrayBuffer);
-      setLoadProgress(70);
+      setLoadProgress(75);
 
+      const pdfjsLib = await loadPdfJsLibrary();
       const loadingTask = pdfjsLib.getDocument({
         data: uint8,
         cMapPacked: true,
@@ -253,17 +276,18 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
       setIsLoading(false);
       onPageChange?.(1, doc.numPages);
 
-      // Simpan fail ke IndexedDB peranti pengguna supaya naskhah kekal ada bila dibuka semula
+      // Simpan juga salinan setempat di IndexedDB
       if (bookId) {
         const reader = new FileReader();
         reader.onload = () => {
           if (typeof reader.result === 'string') {
             saveManuscriptToIndexedDb(bookId, reader.result, file.name, 'pdf').catch(console.warn);
-            onPdfReloaded?.(reader.result);
           }
         };
         reader.readAsDataURL(file);
       }
+
+      alert('Berjaya! Fail PDF naskhah ini telah dimuat naik dan disimpan secara kekal di Cloudflare R2. Semua pembeli yang membeli buku ini kini boleh membuka dan membacanya dari mana-mana peranti.');
     } catch (err: any) {
       console.error('[PdfCanvasViewer] Gagal membaca fail PDF tempatan:', err);
       setLoadError(err?.message || 'Gagal membaca fail PDF yang dipilih.');
@@ -614,8 +638,18 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
             <div className="w-12 h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center mx-auto shadow-md">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h4 className="font-bold text-sm text-rose-200">Tidak Dapat Membuka Dokumen PDF</h4>
-            {/* Tersembunyi: Input Pemilihan Fail Tempatan */}
+            <h4 className="font-bold text-sm text-rose-200">
+              {isAuthorOrAdmin
+                ? 'Fail PDF Naskhah Belum Ada di Storan Awan Cloudflare R2'
+                : 'Menunggu Penyelarasan Storan Awan Pelayan'}
+            </h4>
+            <p className="text-xs text-rose-300/80 leading-relaxed">
+              {isAuthorOrAdmin
+                ? 'Sebagai Pengarang atau Admin karya ini, muat naik fail PDF naskhah asal anda ke Cloudflare R2 sekarang supaya SEMUA pembeli boleh membuka dan membaca naskhah penuh ini dari mana-mana peranti.'
+                : 'Fail dokumen PDF naskhah rasmi ini sedang disegerakkan daripada pelayan Cloudflare R2. Sila klik "Cuba Semula" atau baca bab teks yang tersedia.'}
+            </p>
+
+            {/* Tersembunyi: Input Pemilihan Fail Tempatan untuk Pengarang */}
             <input
               ref={fileInputRef}
               type="file"
@@ -628,21 +662,24 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
               <button
                 type="button"
                 onClick={loadDocument}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer shadow-xs"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 <span>Cuba Semula</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors cursor-pointer shadow-xs"
-                title="Pilih fail PDF dari komputer/telefon untuk paparan segera dan simpanan tempatan"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>Pilih Fail PDF Dari Peranti Ini</span>
-              </button>
+              {/* Butang Muat Naik ke Cloudflare R2 HANYA dipaparkan kepada Pengarang/Admin */}
+              {isAuthorOrAdmin && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors cursor-pointer shadow-md"
+                  title="Muat naik fail PDF ke Cloudflare R2 untuk kegunaan semua pembeli"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                  <span>Muat Naik ke Cloudflare R2 (Storan Kekal Pembeli)</span>
+                </button>
+              )}
 
               {hasTextModeFallback && onSwitchToTextMode && (
                 <button
@@ -653,17 +690,6 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
                   <BookOpen className="w-3.5 h-3.5" />
                   <span>Baca Dalam Mod Teks</span>
                 </button>
-              )}
-
-              {(pdfUrl.startsWith('http') || pdfUrl.startsWith('/')) && (
-                <a
-                  href={pdfUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
-                >
-                  Buka Tab Baharu ↗
-                </a>
               )}
             </div>
           </div>

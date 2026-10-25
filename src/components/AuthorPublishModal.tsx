@@ -118,6 +118,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Digital Manuscript File Upload State (.EPUB & .PDF)
+  const [rawManuscriptFile, setRawManuscriptFile] = useState<File | null>(null);
   const [manuscriptFile, setManuscriptFile] = useState<{
     format: 'epub' | 'pdf';
     name: string;
@@ -194,6 +195,8 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
         ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
         : `${Math.round(file.size / 1024)} KB`;
 
+    setRawManuscriptFile(file);
+
     if (isEpub) {
       setIsParsingEpub(true);
       try {
@@ -225,32 +228,35 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       }
     } else {
       // PDF File
+      setManuscriptFile({
+        format: 'pdf',
+        name: file.name,
+        size: sizeFormatted,
+        dataUrl: '',
+      });
+      setParsedEpubChapters(null);
+
+      // Auto-fill title & synopsis if empty
+      const autoTitle = file.name
+        .replace(/\.pdf$/i, '')
+        .replace(/[-_]/g, ' ')
+        .trim();
+      if (!title.trim()) {
+        setTitle(autoTitle);
+      }
+      if (!synopsis.trim()) {
+        setSynopsis(
+          `Naskhah e-buku "${autoTitle}" nukilan ${
+            authorName || currentUserName || 'Penulis Tempatan'
+          }. Disediakan dalam format PDF naskhah penuh.`
+        );
+      }
+
+      // Baca data URL secara ringan untuk pratonton tempatan
       const reader = new FileReader();
       reader.onload = () => {
         if (typeof reader.result === 'string') {
-          setManuscriptFile({
-            format: 'pdf',
-            name: file.name,
-            size: sizeFormatted,
-            dataUrl: reader.result,
-          });
-          setParsedEpubChapters(null);
-
-          // Auto-fill title & synopsis if empty
-          const autoTitle = file.name
-            .replace(/\.pdf$/i, '')
-            .replace(/[-_]/g, ' ')
-            .trim();
-          if (!title.trim()) {
-            setTitle(autoTitle);
-          }
-          if (!synopsis.trim()) {
-            setSynopsis(
-              `Naskhah e-buku "${autoTitle}" nukilan ${
-                authorName || currentUserName || 'Penulis Tempatan'
-              }. Disediakan dalam format PDF naskhah penuh.`
-            );
-          }
+          setManuscriptFile((prev) => (prev ? { ...prev, dataUrl: reader.result as string } : null));
         }
       };
       reader.readAsDataURL(file);
@@ -258,6 +264,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
   };
 
   const handleClearManuscript = () => {
+    setRawManuscriptFile(null);
     setManuscriptFile(null);
     setParsedEpubChapters(null);
     if (manuscriptInputRef.current) {
@@ -265,7 +272,7 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     setIsSubmitting(true);
@@ -282,7 +289,35 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       synopsis.trim() ||
       `Karya digital "${resolvedTitle}" nukilan ${resolvedAuthor}. Naskhah rasmi diterbitkan di platform KaryaDigital Malaysia.`;
 
-    // Simpan fail manuskrip terus ke storan IndexedDB pelayar peranti
+    // 1. Muat naik fail binari sebenar terus ke Cloudflare R2 secara multipart (Sokong fail 50MB-150MB)
+    let uploadedPdfUrl = `/api/books/pdf/${generatedId}`;
+    let uploadedEpubUrl = `/api/books/epub/${generatedId}`;
+
+    if (rawManuscriptFile) {
+      try {
+        const formData = new FormData();
+        formData.append('bookId', generatedId);
+        formData.append('file', rawManuscriptFile);
+
+        const uploadResp = await fetch('/api/books/upload-manuscript', {
+          method: 'POST',
+          body: formData,
+        });
+        const uploadResult = await uploadResp.json();
+        if (uploadResult.success) {
+          console.log('[Cloudflare R2] Fail naskhah berjaya disimpan secara kekal di R2:', uploadResult.fileKey);
+          if (uploadResult.format === 'pdf') {
+            uploadedPdfUrl = uploadResult.streamUrl;
+          } else {
+            uploadedEpubUrl = uploadResult.streamUrl;
+          }
+        }
+      } catch (err) {
+        console.warn('[R2 Upload Error]:', err);
+      }
+    }
+
+    // 2. Simpan fail manuskrip ke IndexedDB pelayar peranti pengarang untuk sandaran luar talian
     if (manuscriptFile?.dataUrl) {
       saveManuscriptToIndexedDb(
         generatedId,
@@ -323,10 +358,10 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       coverGradient: selectedTheme.gradient,
       coverAccent: selectedTheme.accent,
       coverBadge: manuscriptFile?.format === 'epub' ? 'Format EPUB' : manuscriptFile?.format === 'pdf' ? 'E-Buku PDF' : 'Karya Asli',
-      pdfUrl: manuscriptFile?.format === 'pdf' ? manuscriptFile.dataUrl : undefined,
+      pdfUrl: manuscriptFile?.format === 'pdf' ? uploadedPdfUrl : undefined,
       pdfFileName: manuscriptFile?.format === 'pdf' ? manuscriptFile.name : undefined,
       pdfFileSize: manuscriptFile?.format === 'pdf' ? manuscriptFile.size : undefined,
-      epubUrl: manuscriptFile?.format === 'epub' ? manuscriptFile.dataUrl : undefined,
+      epubUrl: manuscriptFile?.format === 'epub' ? uploadedEpubUrl : undefined,
       epubFileName: manuscriptFile?.format === 'epub' ? manuscriptFile.name : undefined,
       epubFileSize: manuscriptFile?.format === 'epub' ? manuscriptFile.size : undefined,
       isSeries,
@@ -347,12 +382,10 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
       },
     };
 
-    setTimeout(() => {
-      onPublishBook(newBook);
-      onBecomeAuthor?.();
-      setSubmittedBook(newBook);
-      setIsSubmitting(false);
-    }, 600);
+    onPublishBook(newBook);
+    onBecomeAuthor?.();
+    setSubmittedBook(newBook);
+    setIsSubmitting(false);
   };
 
   const handleReset = () => {

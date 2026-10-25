@@ -16,10 +16,13 @@ import {
   markOrderPaidAndUnlockBook,
   getUserUnlockedBookIds,
 } from './src/server/orderStore.ts';
+import multer from 'multer';
 import {
   generateR2SignedUrl,
   verifyHmacSignedUrl,
   generateHmacSignedUrl,
+  getAssetFromR2,
+  uploadAssetToR2,
 } from './src/server/cloudflareR2.ts';
 import {
   getAllPublishedBooks,
@@ -37,6 +40,12 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const isProduction = process.env.NODE_ENV === 'production';
+
+// Konfigurasi Multer untuk muat naik naskhah PDF/EPUB besar terus ke storan (hingga 150MB)
+const manuscriptUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 150 * 1024 * 1024 },
+});
 
 // Middleware parsing JSON dan x-www-form-urlencoded (menyokong muat naik PDF grafik resolusi tinggi hingga 150MB)
 app.use(express.json({ limit: '150mb' }));
@@ -426,13 +435,14 @@ app.get(['/homepage.html', '/homepage'], (_req: Request, res: Response) => {
 
 /**
  * GET /api/books/pdf/:id
- * Menstrim fail dokumen PDF naskhah daripada storan dilindungi
+ * Menstrim fail dokumen PDF naskhah daripada storan tempatan ATAU Cloudflare R2 secara langsung
  */
-app.get('/api/books/pdf/:id', (req: Request, res: Response) => {
+app.get('/api/books/pdf/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
   const storageDir = path.resolve(__dirname, 'storage/manuscripts');
 
+  // 1. Semak fail cakera tempatan jika wujud
   if (fs.existsSync(storageDir)) {
     const files = fs.readdirSync(storageDir);
     const targetFile = files.find(
@@ -450,18 +460,55 @@ app.get('/api/books/pdf/:id', (req: Request, res: Response) => {
     }
   }
 
-  return res.status(404).send('Fail PDF naskhah tidak ditemui pada storan.');
+  // 2. Jika tiada di cakera tempatan, ambil strim secara terus daripada Cloudflare R2 Object Storage
+  try {
+    const possibleR2Keys = [
+      `manuscripts/${safeId}.pdf`,
+      `manuscripts_${safeId}.pdf`,
+      `${safeId}.pdf`,
+    ];
+
+    for (const key of possibleR2Keys) {
+      const r2Asset = await getAssetFromR2(key);
+      if (r2Asset && r2Asset.stream) {
+        console.log(`[Cloudflare R2 Strim] Menstrim fail PDF naskhah: ${key} ke pembeli`);
+        res.setHeader('Content-Type', r2Asset.contentType || 'application/pdf');
+        if (r2Asset.contentLength) {
+          res.setHeader('Content-Length', r2Asset.contentLength);
+        }
+        res.setHeader('Content-Disposition', 'inline; filename="karya_digital.pdf"');
+        res.setHeader('Accept-Ranges', 'bytes');
+
+        // Salin ke storan cache tempatan secara serentak untuk akses pantas seterusnya
+        try {
+          if (!fs.existsSync(storageDir)) fs.mkdirSync(storageDir, { recursive: true });
+          const localCachePath = path.join(storageDir, `manuscripts_${safeId}.pdf`);
+          const cacheWriteStream = fs.createWriteStream(localCachePath);
+          (r2Asset.stream as any).pipe(cacheWriteStream);
+        } catch (cacheErr) {
+          console.warn('[Cache Mirror Warning]:', cacheErr);
+        }
+
+        return (r2Asset.stream as any).pipe(res);
+      }
+    }
+  } catch (err: any) {
+    console.error(`[R2 Stream Error]: Gagal mengambil PDF ${safeId} dari R2:`, err);
+  }
+
+  return res.status(404).send('Fail PDF naskhah tidak ditemui pada storan pelayan mahupun Cloudflare R2.');
 });
 
 /**
  * GET /api/books/epub/:id
- * Menstrim fail EPUB naskhah daripada storan dilindungi
+ * Menstrim fail EPUB naskhah daripada storan tempatan ATAU Cloudflare R2
  */
-app.get('/api/books/epub/:id', (req: Request, res: Response) => {
+app.get('/api/books/epub/:id', async (req: Request, res: Response) => {
   const { id } = req.params;
   const safeId = id.replace(/[^a-zA-Z0-9_-]/g, '');
   const storageDir = path.resolve(__dirname, 'storage/manuscripts');
 
+  // 1. Semak fail cakera tempatan
   if (fs.existsSync(storageDir)) {
     const files = fs.readdirSync(storageDir);
     const targetFile = files.find(
@@ -478,7 +525,78 @@ app.get('/api/books/epub/:id', (req: Request, res: Response) => {
     }
   }
 
+  // 2. Ambil strim terus daripada Cloudflare R2
+  try {
+    const possibleR2Keys = [
+      `manuscripts/${safeId}.epub`,
+      `manuscripts_${safeId}.epub`,
+      `${safeId}.epub`,
+    ];
+
+    for (const key of possibleR2Keys) {
+      const r2Asset = await getAssetFromR2(key);
+      if (r2Asset && r2Asset.stream) {
+        console.log(`[Cloudflare R2 Strim] Menstrim fail EPUB: ${key} ke pembeli`);
+        res.setHeader('Content-Type', r2Asset.contentType || 'application/epub+zip');
+        if (r2Asset.contentLength) {
+          res.setHeader('Content-Length', r2Asset.contentLength);
+        }
+        res.setHeader('Content-Disposition', 'inline; filename="karya_digital.epub"');
+        return (r2Asset.stream as any).pipe(res);
+      }
+    }
+  } catch (err: any) {
+    console.error(`[R2 Stream Error]: Gagal mengambil EPUB ${safeId} dari R2:`, err);
+  }
+
   return res.status(404).send('Fail EPUB naskhah tidak ditemui pada storan.');
+});
+
+/**
+ * POST /api/books/upload-manuscript
+ * Endpoint muat naik fail manuskrip besar (PDF / EPUB sehingga 150MB) terus ke Cloudflare R2
+ */
+app.post('/api/books/upload-manuscript', manuscriptUpload.single('file'), async (req: Request, res: Response) => {
+  try {
+    const file = req.file;
+    const { bookId } = req.body;
+    if (!file || !bookId) {
+      return res.status(400).json({ success: false, error: 'Fail manuskrip dan bookId diperlukan.' });
+    }
+
+    const safeId = String(bookId).replace(/[^a-zA-Z0-9_-]/g, '');
+    const isPdf = file.mimetype === 'application/pdf' || file.originalname.toLowerCase().endsWith('.pdf');
+    const isEpub = file.mimetype.includes('epub') || file.originalname.toLowerCase().endsWith('.epub');
+    const ext = isPdf ? 'pdf' : isEpub ? 'epub' : 'bin';
+    const contentType = isPdf ? 'application/pdf' : isEpub ? 'application/epub+zip' : file.mimetype;
+
+    const fileKey = `manuscripts/${safeId}.${ext}`;
+    console.log(`[Muat Naik Manuskrip] Memuat naik "${file.originalname}" (${(file.size / (1024 * 1024)).toFixed(2)} MB) ke R2: ${fileKey}`);
+
+    const result = await uploadAssetToR2({
+      fileKey,
+      data: file.buffer,
+      contentType,
+    });
+
+    const formattedSize = file.size > 1024 * 1024
+      ? `${(file.size / (1024 * 1024)).toFixed(1)} MB`
+      : `${Math.round(file.size / 1024)} KB`;
+
+    return res.json({
+      success: true,
+      message: 'Fail naskhah berjaya dimuat naik dan disimpan secara kekal di Cloudflare R2!',
+      fileKey,
+      isR2Direct: result.isR2Direct,
+      streamUrl: `/api/books/${ext}/${safeId}`,
+      fileName: file.originalname,
+      fileSize: formattedSize,
+      format: ext,
+    });
+  } catch (error: any) {
+    console.error('[Upload Manuscript Error]:', error);
+    return res.status(500).json({ success: false, error: 'Gagal memuat naik manuskrip: ' + error.message });
+  }
 });
 
 // ====================================================================
