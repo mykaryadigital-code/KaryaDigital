@@ -84,21 +84,3 @@ test('verifyHmacSignedUrl rejects tampered tokens or expired timestamps', () => 
   assert.equal(expiredResult.isValid, false);
   assert.match(expiredResult.reason!, /telah tamat tempoh/);
 });
-
-test('synthesizeBookPdf creates valid multi-page PDF buffer with DRM watermark for any book', async () => {
-  const { synthesizeBookPdf } = await import('../server/pdfSynthesizer.ts');
-  const pdfBytes = await synthesizeBookPdf({
-    id: 'kembara-bang-karim',
-    title: 'KEMBARA BANG KARIM',
-    author: 'Bang Karim',
-    genre: 'Misteri & Kembara',
-    synopsis: 'Kembara epik mencari kebenaran di tanah air.',
-    buyerEmail: 'bangkarim79@gmail.com',
-  });
-
-  assert.ok(pdfBytes instanceof Uint8Array);
-  assert.ok(pdfBytes.length > 1000);
-  // Semak format magic byte PDF %PDF-
-  const header = String.fromCharCode(...pdfBytes.slice(0, 5));
-  assert.equal(header, '%PDF-');
-});

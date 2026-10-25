@@ -187,6 +187,63 @@ export async function uploadAssetToR2(params: {
   };
 }
 
+/** Adakah klien R2 sebenar sudah dikonfigurasi (kredensial ada dalam env)? */
+export function isR2Configured(): boolean {
+  return Boolean(r2Client && R2_BUCKET_NAME);
+}
+
+/**
+ * Muat naik ketat ke R2: BERJAYA atau LEMPAR RALAT. Tiada sandaran senyap ke cakera.
+ * Digunakan untuk manuskrip PDF/EPUB supaya "berjaya" bermaksud fail benar-benar ada di R2.
+ */
+export async function putObjectToR2(fileKey: string, data: Buffer, contentType: string): Promise<void> {
+  if (!r2Client || !R2_BUCKET_NAME) {
+    throw new Error('Cloudflare R2 belum dikonfigurasi pada pelayan.');
+  }
+  await r2Client.send(
+    new PutObjectCommand({
+      Bucket: R2_BUCKET_NAME,
+      Key: fileKey,
+      Body: data,
+      ContentType: contentType,
+    })
+  );
+}
+
+export interface R2ObjectStream {
+  stream: NodeJS.ReadableStream;
+  contentLength?: number;
+  contentType?: string;
+  /** Diisi bila R2 membalas permintaan Range (cth. "bytes 0-99/1234"). */
+  contentRange?: string;
+}
+
+/**
+ * Ambil objek daripada R2, dengan Range pilihan.
+ * Pulangkan null HANYA bila objek tidak wujud; ralat lain (rangkaian, kebenaran) dilemparkan
+ * supaya pemanggil tidak tersalah anggap buku "tiada fail".
+ */
+export async function getObjectFromR2(fileKey: string, range?: string): Promise<R2ObjectStream | null> {
+  if (!r2Client || !R2_BUCKET_NAME) return null;
+  try {
+    const response = await r2Client.send(
+      new GetObjectCommand({ Bucket: R2_BUCKET_NAME, Key: fileKey, ...(range ? { Range: range } : {}) })
+    );
+    if (!response.Body) return null;
+    return {
+      stream: response.Body as any,
+      contentLength: response.ContentLength,
+      contentType: response.ContentType,
+      contentRange: response.ContentRange,
+    };
+  } catch (err: any) {
+    if (err?.name === 'NoSuchKey' || err?.name === 'NotFound' || err?.$metadata?.httpStatusCode === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
 /**
  * 5. Mengambil Aliran Bait (Stream) Terus daripada Cloudflare R2
  * Membolehkan pembeli menstrim PDF/EPUB dari R2 tanpa bergantung kepada fail tempatan pelayan.

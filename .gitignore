@@ -6,3 +6,6 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Muat naik manuskrip setempat (bukan sumber kebenaran; jangan di-commit)
+storage/

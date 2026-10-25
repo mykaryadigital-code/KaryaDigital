@@ -220,7 +220,7 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
       };
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Masa memuatkan naskhah melebihi had (Timeout). Sila beralih ke Mod Teks.')), 6000)
+        setTimeout(() => reject(new Error('Masa memuatkan naskhah melebihi had (Timeout). Sila cuba lagi atau beralih ke Mod Teks.')), 30000)
       );
 
       const doc = (await Promise.race([loadingTask.promise, timeoutPromise])) as any;
@@ -261,6 +261,8 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
 
     try {
       // 1. Muat naik fail binari terus ke Cloudflare R2 Object Storage
+      let uploadOutcome: 'none' | 'durable' | 'temporary' = 'none';
+      let uploadError = '';
       if (bookId) {
         setLoadProgress(30);
         const formData = new FormData();
@@ -272,13 +274,16 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
             method: 'POST',
             body: formData,
           });
-          const uploadResult = await uploadResp.json();
-          if (uploadResult.success) {
-            console.log('[Cloudflare R2] Fail naskhah disimpan kekal di R2:', uploadResult.fileKey);
+          const uploadResult = await uploadResp.json().catch(() => null);
+          if (uploadResp.ok && uploadResult?.success) {
+            uploadOutcome = uploadResult.durable === false ? 'temporary' : 'durable';
             onPdfReloaded?.(uploadResult.streamUrl || `/api/books/pdf/${bookId}`);
+          } else {
+            uploadError = uploadResult?.error || `Pelayan membalas ralat (${uploadResp.status}).`;
           }
         } catch (uploadErr) {
-          console.warn('[R2 Upload Warning]:', uploadErr);
+          console.warn('[Muat Naik Manuskrip Ralat]:', uploadErr);
+          uploadError = 'Masalah rangkaian semasa memuat naik.';
         }
       }
 
@@ -311,7 +316,16 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
         reader.readAsDataURL(file);
       }
 
-      alert('Berjaya! Fail PDF naskhah ini telah dimuat naik dan disimpan secara kekal di Cloudflare R2. Semua pembeli yang membeli buku ini kini boleh membuka dan membacanya dari mana-mana peranti.');
+      if (uploadOutcome === 'durable') {
+        alert('Berjaya! Fail PDF naskhah ini telah dimuat naik dan disimpan kekal di Cloudflare R2. Pembeli buku ini kini boleh membukanya dari mana-mana peranti.');
+      } else if (uploadOutcome === 'temporary') {
+        alert('Amaran: fail ini hanya disimpan SEMENTARA di pelayan kerana Cloudflare R2 belum dikonfigurasi. Ia boleh hilang bila pelayan dimulakan semula, dan pembeli mungkin tidak dapat membacanya. Sila maklumkan pentadbir platform.');
+      } else {
+        alert(
+          'Fail PDF dibuka di peranti ini sahaja. Muat naik ke pelayan GAGAL, jadi pembeli BELUM boleh membacanya.' +
+            (uploadError ? `\n\nPunca: ${uploadError}` : '')
+        );
+      }
     } catch (err: any) {
       console.error('[PdfCanvasViewer] Gagal membaca fail PDF tempatan:', err);
       setLoadError(err?.message || 'Gagal membaca fail PDF yang dipilih.');

@@ -303,17 +303,33 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
           method: 'POST',
           body: formData,
         });
-        const uploadResult = await uploadResp.json();
-        if (uploadResult.success) {
-          console.log('[Cloudflare R2] Fail naskhah berjaya disimpan secara kekal di R2:', uploadResult.fileKey);
-          if (uploadResult.format === 'pdf') {
-            uploadedPdfUrl = uploadResult.streamUrl;
-          } else {
-            uploadedEpubUrl = uploadResult.streamUrl;
-          }
+        const uploadResult = await uploadResp.json().catch(() => null);
+        if (!uploadResp.ok || !uploadResult?.success) {
+          // Jangan terbitkan buku tanpa fail: pengarang mesti tahu muat naik gagal.
+          setIsSubmitting(false);
+          alert(
+            'Muat naik fail naskhah GAGAL, jadi buku belum diterbitkan.\n\n' +
+              (uploadResult?.error || `Pelayan membalas ralat (${uploadResp.status}).`) +
+              '\n\nSila cuba lagi.'
+          );
+          return;
+        }
+        if (uploadResult.format === 'pdf') {
+          uploadedPdfUrl = uploadResult.streamUrl;
+        } else {
+          uploadedEpubUrl = uploadResult.streamUrl;
+        }
+        if (uploadResult.durable === false) {
+          alert(
+            'Amaran: fail anda disimpan SEMENTARA di pelayan kerana storan kekal (Cloudflare R2) belum dikonfigurasi. ' +
+              'Ia boleh hilang bila pelayan dimulakan semula. Sila maklumkan pentadbir platform.'
+          );
         }
       } catch (err) {
-        console.warn('[R2 Upload Error]:', err);
+        console.warn('[Muat Naik Manuskrip Ralat]:', err);
+        setIsSubmitting(false);
+        alert('Muat naik fail naskhah GAGAL (masalah rangkaian), jadi buku belum diterbitkan. Sila cuba lagi.');
+        return;
       }
     }
 

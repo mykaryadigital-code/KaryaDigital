@@ -8,6 +8,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { uploadAssetToR2, generateHmacSignedUrl } from './cloudflareR2.ts';
+import { saveManuscript } from './manuscriptStore.ts';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -144,43 +145,21 @@ export async function savePublishedBookToStorage(book: PublishedBookPayload): Pr
 
   // 1. Ekstrak dan pindahkan fail binari besar (PDF & EPUB) ke Cloudflare R2
   // Menukar rentetan Base64 besar (40MB+) kepada fail binari sebenar dan pautan strim pantas
+  // Fail data: URL besar (laluan lama) disimpan ke R2 melalui manuscriptStore. Jika gagal, ralat
+  // dilemparkan supaya buku TIDAK diterbitkan tanpa fail (sebelum ini ralat ditelan senyap).
   let finalPdfUrl = book.pdfUrl;
-  let pdfKey: string | undefined = undefined;
-
-  if (book.pdfUrl && book.pdfUrl.startsWith('data:')) {
-    try {
-      const base64Data = book.pdfUrl.replace(/^data:[^;]*;base64,/, '');
-      const pdfBuffer = Buffer.from(base64Data, 'base64');
-      pdfKey = `manuscripts/${book.id}.pdf`;
-      await uploadAssetToR2({
-        fileKey: pdfKey,
-        data: pdfBuffer,
-        contentType: 'application/pdf',
-      });
-      finalPdfUrl = `/api/books/pdf/${book.id}`;
-      console.log(`[Cloudflare R2] Fail PDF (${(pdfBuffer.length / (1024 * 1024)).toFixed(2)} MB) berjaya dimuat naik ke R2!`);
-    } catch (err) {
-      console.error('[Cloudflare R2] Ralat memproses fail PDF:', err);
-    }
-  }
-
   let finalEpubUrl = book.epubUrl;
-  let epubKey: string | undefined = undefined;
 
-  if (book.epubUrl && book.epubUrl.startsWith('data:')) {
-    try {
-      const base64Data = book.epubUrl.replace(/^data:[^;]*;base64,/, '');
-      const epubBuffer = Buffer.from(base64Data, 'base64');
-      epubKey = `manuscripts/${book.id}.epub`;
-      await uploadAssetToR2({
-        fileKey: epubKey,
-        data: epubBuffer,
-        contentType: 'application/epub+zip',
-      });
-      finalEpubUrl = `/api/books/epub/${book.id}`;
-      console.log(`[Cloudflare R2] Fail EPUB (${(epubBuffer.length / (1024 * 1024)).toFixed(2)} MB) berjaya dimuat naik ke R2!`);
-    } catch (err) {
-      console.error('[Cloudflare R2] Ralat memproses fail EPUB:', err);
+  for (const field of ['pdfUrl', 'epubUrl'] as const) {
+    const value = book[field];
+    if (typeof value === 'string' && value.startsWith('data:')) {
+      const buffer = Buffer.from(value.replace(/^data:[^;]*;base64,/, ''), 'base64');
+      const saved = await saveManuscript({ bookId: book.id, buffer });
+      if (saved.format === 'pdf') finalPdfUrl = `/api/books/pdf/${book.id}`;
+      else finalEpubUrl = `/api/books/epub/${book.id}`;
+      console.log(
+        `[Manuskrip] ${saved.format.toUpperCase()} (${(buffer.length / (1024 * 1024)).toFixed(2)} MB) disimpan: ${saved.storage}${saved.durable ? '' : ' (SEMENTARA)'}`
+      );
     }
   }
 
