@@ -10,6 +10,8 @@ interface BookCardProps {
   onRead: (book: EBook) => void;
   onAddToCart: (book: EBook) => void;
   onViewDetails?: (book: EBook) => void;
+  isAuthorOfBook?: boolean;
+  onEditBook?: (book: EBook) => void;
 }
 
 export const BookCard: React.FC<BookCardProps> = ({
@@ -19,6 +21,8 @@ export const BookCard: React.FC<BookCardProps> = ({
   onRead,
   onAddToCart,
   onViewDetails,
+  isAuthorOfBook = false,
+  onEditBook,
 }) => {
   const [imgError, setImgError] = useState(false);
 
@@ -103,13 +107,17 @@ export const BookCard: React.FC<BookCardProps> = ({
           </div>
         )}
 
-        {/* Owned Status Badge */}
-        {isOwned && (
+        {/* Owned Status / Author Badge */}
+        {isAuthorOfBook ? (
+          <div className="absolute top-2 right-2 bg-amber-500 text-slate-950 text-[9px] font-black px-2 py-0.5 rounded-md shadow-xs flex items-center gap-1 z-10 border border-amber-300">
+            <span>⭐ Karya Anda</span>
+          </div>
+        ) : isOwned ? (
           <div className="absolute top-2 right-2 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-2xs flex items-center gap-1 z-10">
             <Check className="w-3 h-3" />
             <span>Dimiliki</span>
           </div>
-        )}
+        ) : null}
       </div>
 
       {/* Book Card Body */}
@@ -141,15 +149,25 @@ export const BookCard: React.FC<BookCardProps> = ({
           <div className="grid grid-cols-2 gap-1.5">
             {isOwned ? (
               <>
-                {/* Buku Dimiliki - Butang 1: "Butiran" */}
-                <button
-                  onClick={handleCardClick}
-                  className="min-h-[36px] py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95 border border-slate-200"
-                  aria-label={`Lihat butiran ${book.title}`}
-                >
-                  <Info className="w-3 h-3 text-slate-500 mr-1 hidden xs:inline" />
-                  <span>Butiran</span>
-                </button>
+                {/* Buku Dimiliki - Butang 1: "Sunting" jika karya sendiri, atau "Butiran" */}
+                {isAuthorOfBook && onEditBook ? (
+                  <button
+                    onClick={() => onEditBook(book)}
+                    className="min-h-[36px] py-1.5 px-2 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 text-xs font-bold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95"
+                    aria-label={`Sunting ${book.title}`}
+                  >
+                    <span>Sunting</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCardClick}
+                    className="min-h-[36px] py-1.5 px-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-semibold transition-colors cursor-pointer flex items-center justify-center text-center active:scale-95 border border-slate-200"
+                    aria-label={`Lihat butiran ${book.title}`}
+                  >
+                    <Info className="w-3 h-3 text-slate-500 mr-1 hidden xs:inline" />
+                    <span>Butiran</span>
+                  </button>
+                )}
 
                 {/* Buku Dimiliki - Butang 2: "Baca Sekarang" */}
                 <button

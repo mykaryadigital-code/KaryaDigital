@@ -27,6 +27,7 @@ import { Footer } from './components/Footer.tsx';
 import { INITIAL_EBOOKS, OFFICIAL_PUBLISHED_BOOKS } from './data/ebooksData.ts';
 import { EBook, CartItem, UserProfile, BookCategory, SecurityToastEvent, BookmarkEntry } from './types/ebook.ts';
 import { evaluateSecurityAttempt, toggleBookmarkInList, removeBookmarkFromList, isUserBookOwner } from './utils/ebookLogic.ts';
+import { saveManuscriptToIndexedDb, getManuscriptFromIndexedDb } from './utils/indexedDbStorage.ts';
 import {
   auth,
   signInWithGoogle,
@@ -44,13 +45,21 @@ import {
 
 function getStoredDeletedBookIds(): Set<string> {
   try {
-    const raw = localStorage.getItem('karyadigital_deleted_book_ids');
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('karyadigital_deleted_book_ids') : null;
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
         // Jangan sekat naskhah aktif yang sah daripada katalog
-        const activeSafeIds = new Set(['karya-user-1792809354728', 'karya-user-1792513665252']);
+        const activeSafeIds = new Set([
+          'karya-janda-bukan-akhir',
+          'karya-kembara-bang-karim',
+          'karya-user-1792809354728',
+          'karya-user-1792513665252',
+        ]);
         const cleaned = parsed.filter((id) => !activeSafeIds.has(id));
+        if (cleaned.length !== parsed.length) {
+          localStorage.setItem('karyadigital_deleted_book_ids', JSON.stringify(cleaned));
+        }
         return new Set(cleaned);
       }
     }
@@ -60,14 +69,27 @@ function getStoredDeletedBookIds(): Set<string> {
   return new Set();
 }
 
+function getInitialBooks(): EBook[] {
+  const deleted = getStoredDeletedBookIds();
+  let localPublished: EBook[] = [];
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('karyadigital_published_books') : null;
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        localPublished = parsed.filter((b) => b && b.id && !deleted.has(b.id));
+      }
+    }
+  } catch (e) {}
+
+  const localIds = new Set(localPublished.map((b) => b.id));
+  const remainingShowcase = INITIAL_EBOOKS.filter((b) => !deleted.has(b.id) && !localIds.has(b.id));
+  return [...localPublished, ...OFFICIAL_PUBLISHED_BOOKS, ...remainingShowcase];
+}
+
 export default function App() {
   const [deletedBookIds, setDeletedBookIds] = useState<Set<string>>(() => getStoredDeletedBookIds());
-  const [books, setBooks] = useState<EBook[]>(() => {
-    const deleted = getStoredDeletedBookIds();
-    return [...OFFICIAL_PUBLISHED_BOOKS, ...INITIAL_EBOOKS].filter(
-      (b) => !deleted.has(b.id)
-    );
-  });
+  const [books, setBooks] = useState<EBook[]>(() => getInitialBooks());
   const [activeCategory, setActiveCategory] = useState<'semua' | BookCategory | 'percuma' | 'koleksi'>('semua');
   const [selectedGenre, setSelectedGenre] = useState<string>('semua');
   const [searchQuery, setSearchQuery] = useState('');
@@ -293,10 +315,24 @@ export default function App() {
   // TIDAK MENGGUNAKAN LOCALSTORAGE UNTUK BUKU SAMA SEKALI
   // =========================================================================
   useEffect(() => {
-    // 1. Bersihkan sebarang sisa localStorage usang dari peranti untuk mengelakkan pertembungan
+    // 1. Muatkan dan segerakkan naskhah terbitan tempatan yang disimpan di peranti
     try {
-      localStorage.removeItem('karyadigital_published_books');
-      localStorage.removeItem('karyadigital_sync_version');
+      const localPubRaw = localStorage.getItem('karyadigital_published_books');
+      if (localPubRaw) {
+        const localPubBooks: EBook[] = JSON.parse(localPubRaw);
+        if (Array.isArray(localPubBooks) && localPubBooks.length > 0) {
+          const deleted = getStoredDeletedBookIds();
+          const cleanLocal = localPubBooks.filter((b) => b && b.id && !deleted.has(b.id));
+          if (cleanLocal.length > 0) {
+            setBooks((prev) => {
+              const currentIds = new Set(prev.map((b) => b.id));
+              const newLocal = cleanLocal.filter((b) => !currentIds.has(b.id));
+              if (newLocal.length === 0) return prev;
+              return [...newLocal, ...prev];
+            });
+          }
+        }
+      }
     } catch (e) {}
 
     // 2. Langganan Langsung Masa Nyata (Realtime Live Sync) dari Firebase Firestore
@@ -320,11 +356,23 @@ export default function App() {
           return timeB - timeA;
         });
 
-        setBooks(() => {
+        setBooks((prev) => {
           const liveIds = new Set(livePublishedList.map((b) => b.id));
-          const showcaseRemaining = INITIAL_EBOOKS.filter((b) => !liveIds.has(b.id));
-          return [...livePublishedList, ...showcaseRemaining];
+          // Kekalkan juga naskhah terbitan tempatan pengguna yang belum disegerakkan
+          let localMyIds: string[] = [];
+          try {
+            localMyIds = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
+          } catch (e) {}
+          const localMyBooks = prev.filter((b) => localMyIds.includes(b.id) && !liveIds.has(b.id));
+
+          const showcaseRemaining = INITIAL_EBOOKS.filter((b) => !liveIds.has(b.id) && !localMyIds.includes(b.id));
+          return [...localMyBooks, ...livePublishedList, ...showcaseRemaining];
         });
+
+        // Simpan salinan luar talian
+        try {
+          localStorage.setItem('karyadigital_published_books', JSON.stringify(livePublishedList));
+        } catch (e) {}
       }
     });
 
@@ -343,7 +391,6 @@ export default function App() {
           });
 
           setBooks((prev) => {
-            // Hanya masukkan naskhah R2 jika belum ada dalam senarai
             const currentIds = new Set(prev.map((b) => b.id));
             const newR2 = r2Books.filter((b) => !currentIds.has(b.id));
             if (newR2.length === 0) return prev;
@@ -358,12 +405,27 @@ export default function App() {
     };
   }, []);
 
-  // Gabungan naskhah dibeli + naskhah karya sendiri yang sah + SEMUA naskhah percuma (bebas dibaca tanpa perlu bayar)
-  const effectiveOwnedBookIds = useMemo(() => {
-    const authoredIds = books.filter((b) => isUserBookOwner(b, user)).map((b) => b.id);
-    const freeBookIds = books.filter((b) => b.isFree || b.price === 0).map((b) => b.id);
-    return Array.from(new Set([...user.ownedBookIds, ...authoredIds, ...freeBookIds]));
+  // Senarai ID Naskhah Karya Terbitan Sendiri (Sebagai Pengarang)
+  const authorBookIds = useMemo(() => {
+    let localMyIds: string[] = [];
+    try {
+      const raw = localStorage.getItem('karyadigital_my_author_book_ids');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) localMyIds = parsed;
+      }
+    } catch (e) {}
+
+    return books
+      .filter((b) => localMyIds.includes(b.id) || isUserBookOwner(b, user))
+      .map((b) => b.id);
   }, [user, books]);
+
+  // Gabungan naskhah dibeli + naskhah karya sendiri yang sah (100% percuma untuk pengarang asal) + SEMUA naskhah percuma
+  const effectiveOwnedBookIds = useMemo(() => {
+    const freeBookIds = books.filter((b) => b.isFree || b.price === 0).map((b) => b.id);
+    return Array.from(new Set([...user.ownedBookIds, ...authorBookIds, ...freeBookIds]));
+  }, [user.ownedBookIds, authorBookIds, books]);
 
   // Global Security Protection Event Listeners (Sekat right-click dan copy)
   useEffect(() => {
@@ -685,14 +747,79 @@ export default function App() {
       return updated;
     });
 
-    // 1. Simpan rekod kepunyaan pada peranti ini
+    const bookId = bookWithAuthorAndTimestamp.id;
+
+    // 1. Simpan rekod kepunyaan dan fail manuskrip pada peranti ini
     try {
       const myPublishedIds: string[] = JSON.parse(localStorage.getItem('karyadigital_my_author_book_ids') || '[]');
-      if (!myPublishedIds.includes(bookWithAuthorAndTimestamp.id)) {
-        myPublishedIds.push(bookWithAuthorAndTimestamp.id);
+      if (!myPublishedIds.includes(bookId)) {
+        myPublishedIds.push(bookId);
         localStorage.setItem('karyadigital_my_author_book_ids', JSON.stringify(myPublishedIds));
       }
-    } catch (e) {}
+
+      // Pastikan pengarang memiliki naskhah mereka sendiri secara automatik di Rak Perpustakaan
+      const currentOwned: string[] = JSON.parse(localStorage.getItem('karyadigital_owned_books') || '[]');
+      if (!currentOwned.includes(bookId)) {
+        currentOwned.push(bookId);
+        localStorage.setItem('karyadigital_owned_books', JSON.stringify(currentOwned));
+      }
+
+      // Simpan fail manuskrip penuh ke IndexedDB (sangat selamat, tiada had kuota 5MB seperti localStorage)
+      if (bookWithAuthorAndTimestamp.pdfUrl && bookWithAuthorAndTimestamp.pdfUrl.startsWith('data:')) {
+        saveManuscriptToIndexedDb(
+          bookId,
+          bookWithAuthorAndTimestamp.pdfUrl,
+          bookWithAuthorAndTimestamp.pdfFileName || `${bookWithAuthorAndTimestamp.title}.pdf`,
+          'pdf'
+        ).catch(console.warn);
+      } else if (bookWithAuthorAndTimestamp.epubUrl && bookWithAuthorAndTimestamp.epubUrl.startsWith('data:')) {
+        saveManuscriptToIndexedDb(
+          bookId,
+          bookWithAuthorAndTimestamp.epubUrl,
+          bookWithAuthorAndTimestamp.epubFileName || `${bookWithAuthorAndTimestamp.title}.epub`,
+          'epub'
+        ).catch(console.warn);
+      }
+
+      // Simpan salinan naskhah ringan (metadata ~2KB) ke localStorage peranti supaya tidak pernah terkena ralat kuota
+      const cleanBookForLocal: EBook = {
+        ...bookWithAuthorAndTimestamp,
+        pdfUrl: bookWithAuthorAndTimestamp.pdfUrl?.startsWith('data:')
+          ? `/api/books/pdf/${bookId}`
+          : bookWithAuthorAndTimestamp.pdfUrl,
+        epubUrl: bookWithAuthorAndTimestamp.epubUrl?.startsWith('data:')
+          ? `/api/books/epub/${bookId}`
+          : bookWithAuthorAndTimestamp.epubUrl,
+      };
+      const currentPubList: EBook[] = JSON.parse(localStorage.getItem('karyadigital_published_books') || '[]');
+      const updatedPubList = [cleanBookForLocal, ...currentPubList.filter((b) => b.id !== bookId)];
+      localStorage.setItem('karyadigital_published_books', JSON.stringify(updatedPubList));
+    } catch (e) {
+      console.warn('Ralat menyimpan naskhah ke storan tempatan:', e);
+    }
+
+    // Masukkan ke dalam senarai ownedBookIds pengguna serta-merta
+    setUser((prev) => ({
+      ...prev,
+      isAuthor: true,
+      role: 'author',
+      ownedBookIds: Array.from(new Set([...prev.ownedBookIds, bookId])),
+    }));
+
+    // Jika pengguna log masuk, simpan rekod pemilikan ke Firestore akaun pengguna
+    if (user.uid) {
+      savePurchasedBookToFirestore(user.uid, {
+        bookId,
+        title: bookWithAuthorAndTimestamp.title,
+        author: bookWithAuthorAndTimestamp.author,
+        coverImage: bookWithAuthorAndTimestamp.coverImage || bookWithAuthorAndTimestamp.coverBadge,
+        price: bookWithAuthorAndTimestamp.price,
+        purchasedAt: new Date().toISOString(),
+        paymentGateway: 'manual',
+        transactionId: `AUTHOR-${Date.now()}`,
+        format: bookWithAuthorAndTimestamp.category === 'komik' ? 'comic' : 'epub',
+      }).catch(console.warn);
+    }
 
     // 2. Kemas kini segera katalog dalam state - letakkan naskhah TERBARU di bahagian PALING ATAS
     setBooks((prev) => [
@@ -700,7 +827,7 @@ export default function App() {
       ...prev.filter((b) => b.id !== bookWithAuthorAndTimestamp.id),
     ]);
 
-    // 2. Muat naik fail manuskrip ke Cloudflare R2 Object Storage melalui Server API
+    // 3. Muat naik fail manuskrip ke Cloudflare R2 Object Storage melalui Server API
     let bookToBroadcast = bookWithAuthorAndTimestamp;
     try {
       const resp = await fetch('/api/books/publish', {
@@ -717,7 +844,7 @@ export default function App() {
       console.warn('[Server API] Gagal memuat naik naskhah ke Cloudflare R2 pelayan:', err);
     }
 
-    // 3. Simpan naskhah ringan ke Firebase Firestore (Hanya ~2KB tanpa data binari berat)
+    // 4. Simpan naskhah ringan ke Firebase Firestore (Hanya ~2KB tanpa data binari berat)
     try {
       await saveBookToFirestore(bookToBroadcast);
       // Kemas kini state paparan dengan naskhah yang mempunyai pautan strim R2
@@ -729,11 +856,11 @@ export default function App() {
       console.warn('[Firestore] Gagal menyimpan ke pangkalan data Firestore:', err);
     }
 
-    // 4. Kemas kini peranan pengguna secara kekal ke Penulis Sah
+    // 5. Kemas kini peranan pengguna secara kekal ke Penulis Sah
     handleBecomeAuthor();
 
     triggerSecurityWarning(
-      `Karya "${bookToBroadcast.title}" berjaya diterbitkan dan disimpan secara selamat di bawah akaun anda!`,
+      `Karya "${bookToBroadcast.title}" berjaya diterbitkan dan sedia dibaca dalam Rak Perpustakaan & Katalog!`,
       'info'
     );
   };
@@ -961,6 +1088,9 @@ export default function App() {
           onViewDetails={(book) => setSelectedDetailBook(book)}
           searchQuery={searchQuery}
           onClearSearch={() => setSearchQuery('')}
+          authorBookIds={authorBookIds}
+          onOpenAuthorPortal={handleOpenAuthorPortal}
+          onEditBook={handleOpenEditBook}
         />
       </main>
 

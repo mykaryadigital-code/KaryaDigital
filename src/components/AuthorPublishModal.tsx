@@ -27,6 +27,7 @@ import {
 import { EBook, BookCategory, Chapter } from '../types/ebook.ts';
 import { parseEpubFile } from '../utils/epubParser.ts';
 import { isUserBookOwner } from '../utils/ebookLogic.ts';
+import { saveManuscriptToIndexedDb } from '../utils/indexedDbStorage.ts';
 
 export type AuthorPortalTab = 'dashboard' | 'borang' | 'panduan' | 'royalti' | 'guide' | 'royalty' | 'register';
 
@@ -235,13 +236,20 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
           });
           setParsedEpubChapters(null);
 
-          // Auto-fill title if empty
+          // Auto-fill title & synopsis if empty
+          const autoTitle = file.name
+            .replace(/\.pdf$/i, '')
+            .replace(/[-_]/g, ' ')
+            .trim();
           if (!title.trim()) {
-            const autoTitle = file.name
-              .replace(/\.pdf$/i, '')
-              .replace(/[-_]/g, ' ')
-              .trim();
             setTitle(autoTitle);
+          }
+          if (!synopsis.trim()) {
+            setSynopsis(
+              `Naskhah e-buku "${autoTitle}" nukilan ${
+                authorName || currentUserName || 'Penulis Tempatan'
+              }. Disediakan dalam format PDF naskhah penuh.`
+            );
           }
         }
       };
@@ -259,12 +267,30 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !synopsis.trim()) return;
 
     setIsSubmitting(true);
 
     const generatedId = `karya-user-${Date.now()}`;
     const parsedPrice = pricingType === 'percuma' ? 0 : parseFloat(price) || 0;
+
+    const resolvedTitle =
+      title.trim() ||
+      (manuscriptFile?.name ? manuscriptFile.name.replace(/\.[^/.]+$/, '').replace(/[-_]/g, ' ').trim() : '') ||
+      'Karya Terbaharu';
+    const resolvedAuthor = authorName.trim() || currentUserName || 'Penulis Tempatan';
+    const resolvedSynopsis =
+      synopsis.trim() ||
+      `Karya digital "${resolvedTitle}" nukilan ${resolvedAuthor}. Naskhah rasmi diterbitkan di platform KaryaDigital Malaysia.`;
+
+    // Simpan fail manuskrip terus ke storan IndexedDB pelayar peranti
+    if (manuscriptFile?.dataUrl) {
+      saveManuscriptToIndexedDb(
+        generatedId,
+        manuscriptFile.dataUrl,
+        manuscriptFile.name,
+        manuscriptFile.format
+      ).catch((err) => console.warn('[IndexedDB Simpan]:', err));
+    }
 
     const sampleParagraphs = sampleContent.trim()
       ? sampleContent.split('\n\n').filter((p) => p.trim().length > 0)
@@ -275,13 +301,13 @@ export const AuthorPublishModal: React.FC<AuthorPublishModalProps> = ({
 
     const newBook: EBook = {
       id: generatedId,
-      title: title.trim(),
-      author: authorName.trim() || currentUserName || 'Penulis Tempatan',
+      title: resolvedTitle,
+      author: resolvedAuthor,
       authorUid: currentUserUid || undefined,
       authorEmail: currentUserEmail || undefined,
       category: category,
       genre: genre,
-      synopsis: synopsis.trim(),
+      synopsis: resolvedSynopsis,
       rating: 5.0,
       reviewsCount: 1,
       price: parsedPrice,

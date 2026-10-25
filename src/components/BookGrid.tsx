@@ -16,6 +16,9 @@ interface BookGridProps {
   onClearSearch?: () => void;
   selectedGenre?: string;
   onGenreChange?: (genre: string) => void;
+  authorBookIds?: string[];
+  onOpenAuthorPortal?: (tab?: any) => void;
+  onEditBook?: (book: EBook) => void;
 }
 
 // Gabungan Genre Yang Bertindih kepada Kategori Padat & Jelas
@@ -45,6 +48,9 @@ export const BookGrid: React.FC<BookGridProps> = ({
   onClearSearch,
   selectedGenre: propSelectedGenre,
   onGenreChange,
+  authorBookIds = [],
+  onOpenAuthorPortal,
+  onEditBook,
 }) => {
   const [internalGenre, setInternalGenre] = useState<string>('semua');
   const selectedGenre = propSelectedGenre !== undefined ? propSelectedGenre : internalGenre;
@@ -57,8 +63,14 @@ export const BookGrid: React.FC<BookGridProps> = ({
   };
   const [priceFilter, setPriceFilter] = useState<'semua' | 'percuma' | 'berbayar'>('semua');
   const [sortBy, setSortBy] = useState<'default' | 'rating' | 'price-asc' | 'price-desc' | 'newest'>('default');
+  const [shelfSubFilter, setShelfSubFilter] = useState<'semua' | 'karya_saya' | 'dibeli'>('semua');
   const [isFilterPanelOpen, setIsFilterPanelOpen] = useState(false);
   const [isSortPanelOpen, setIsSortPanelOpen] = useState(false);
+
+  // Kiraan khusus untuk Rak Saya
+  const allShelfBooks = books.filter((b) => ownedBookIds.includes(b.id));
+  const authoredShelfBooks = allShelfBooks.filter((b) => authorBookIds.includes(b.id));
+  const purchasedShelfBooks = allShelfBooks.filter((b) => !authorBookIds.includes(b.id));
 
   // Filter pipeline
   let displayedBooks = [...books];
@@ -69,7 +81,13 @@ export const BookGrid: React.FC<BookGridProps> = ({
   } else if (activeCategory === 'komik') {
     displayedBooks = displayedBooks.filter((b) => b.category === 'komik');
   } else if (activeCategory === 'koleksi') {
-    displayedBooks = displayedBooks.filter((b) => ownedBookIds.includes(b.id));
+    if (shelfSubFilter === 'karya_saya') {
+      displayedBooks = authoredShelfBooks;
+    } else if (shelfSubFilter === 'dibeli') {
+      displayedBooks = purchasedShelfBooks;
+    } else {
+      displayedBooks = allShelfBooks;
+    }
   }
 
   // 2. Gabungan Genre (Menggabungkan genre yang bertindih)
@@ -176,11 +194,92 @@ export const BookGrid: React.FC<BookGridProps> = ({
         activeCategory === 'koleksi' ? 'pt-2 sm:pt-3' : 'pt-5 sm:pt-6'
       }`}
     >
+      {/* Banner Khas Rak Perpustakaan Peribadi: Membezakan Karya Terbitan Sendiri vs Naskhah Dibeli */}
+      {activeCategory === 'koleksi' && (
+        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 shadow-sm border border-indigo-500/20 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-wider font-extrabold px-2 py-0.5 rounded-md bg-amber-400 text-slate-950">
+                  Perpustakaan Peribadi
+                </span>
+                {authoredShelfBooks.length > 0 && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    ⭐ {authoredShelfBooks.length} Karya Terbitan Anda
+                  </span>
+                )}
+              </div>
+              <h2 className="text-base sm:text-lg font-black text-white mt-1">
+                Rak Perpustakaan & Terbitan Anda
+              </h2>
+              <p className="text-xs text-indigo-200 mt-0.5 max-w-xl">
+                Karya yang anda terbitkan sebagai Penulis dimasukkan secara automatik di sini bersama naskhah yang anda miliki.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {onOpenAuthorPortal && (
+                <button
+                  onClick={() => onOpenAuthorPortal('register')}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs shadow-xs transition-all cursor-pointer active:scale-95"
+                >
+                  <span>+ Terbit Karya Baharu</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Sub-penapis Tab: Semua / Karya Terbitan Saya / Naskhah Dibeli */}
+          <div className="flex items-center gap-2 pt-2 border-t border-indigo-800/50 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setShelfSubFilter('semua')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                shelfSubFilter === 'semua'
+                  ? 'bg-white text-indigo-950 shadow-xs'
+                  : 'bg-white/10 text-indigo-200 hover:bg-white/20'
+              }`}
+            >
+              Semua Koleksi ({allShelfBooks.length})
+            </button>
+
+            {authoredShelfBooks.length > 0 && (
+              <button
+                onClick={() => setShelfSubFilter('karya_saya')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 flex items-center gap-1 cursor-pointer ${
+                  shelfSubFilter === 'karya_saya'
+                    ? 'bg-amber-400 text-slate-950 shadow-xs'
+                    : 'bg-white/10 text-amber-300 hover:bg-white/20 border border-amber-400/30'
+                }`}
+              >
+                <span>⭐ Karya Terbitan Saya ({authoredShelfBooks.length})</span>
+              </button>
+            )}
+
+            <button
+              onClick={() => setShelfSubFilter('dibeli')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                shelfSubFilter === 'dibeli'
+                  ? 'bg-white text-indigo-950 shadow-xs'
+                  : 'bg-white/10 text-indigo-200 hover:bg-white/20'
+              }`}
+            >
+              Naskhah Dibeli / Dimiliki ({purchasedShelfBooks.length})
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Catalog Header Row: Tajuk, Jumlah Padanan Buku, dan Butang Reset Penapis */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-slate-200">
         <div className="flex items-center gap-2.5">
           <h2 className="text-lg sm:text-xl font-extrabold text-slate-900 tracking-tight">
-            {activeCategory === 'koleksi' ? 'Rak Perpustakaan Saya' : 'Katalog'}
+            {activeCategory === 'koleksi'
+              ? shelfSubFilter === 'karya_saya'
+                ? 'Karya Terbitan Saya'
+                : shelfSubFilter === 'dibeli'
+                ? 'Naskhah Dibeli / Dimiliki'
+                : 'Semua Koleksi Rak Saya'
+              : 'Katalog'}
           </h2>
           {/* Jumlah buku sepadan */}
           <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200">
@@ -476,6 +575,8 @@ export const BookGrid: React.FC<BookGridProps> = ({
               onRead={onRead}
               onAddToCart={onAddToCart}
               onViewDetails={onViewDetails}
+              isAuthorOfBook={authorBookIds.includes(book.id)}
+              onEditBook={onEditBook}
             />
           ))}
         </div>

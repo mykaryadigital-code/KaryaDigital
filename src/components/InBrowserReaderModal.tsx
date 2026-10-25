@@ -24,6 +24,7 @@ import {
 import { EBook, ReaderSettings, BookmarkEntry } from '../types/ebook.ts';
 import { calculateReadingProgress, formatMYR } from '../utils/ebookLogic.ts';
 import { PdfCanvasViewer } from './PdfCanvasViewer.tsx';
+import { getManuscriptFromIndexedDb } from '../utils/indexedDbStorage.ts';
 
 interface InBrowserReaderModalProps {
   book: EBook | null;
@@ -80,12 +81,15 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
 
   // State for bookmarks dropdown popover
   const [showBookmarksList, setShowBookmarksList] = useState(false);
-  // Reader format: 'pdf' if book has pdfUrl, otherwise 'standard'
+  // Reader format: 'pdf' if book has PDF available, otherwise 'standard'
   const [readerFormat, setReaderFormat] = useState<'pdf' | 'standard'>('standard');
+  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(book?.pdfUrl || null);
 
-  // Set initial page from bookmark or parameter
+  // Set initial page from bookmark or parameter and load PDF from IndexedDB / API if needed
   useEffect(() => {
     if (!book || !isOpen) return;
+    let isMounted = true;
+
     const targetPage = initialPageNumber && initialPageNumber >= 1 ? initialPageNumber - 1 : 0;
     if (book.category === 'novel') {
       const maxChap = Math.max(0, (book.sampleContent?.chapters?.length || 1) - 1);
@@ -94,15 +98,47 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
       const maxPanel = Math.max(0, (book.comicSample?.panels?.length || 1) - 1);
       setCurrentComicPageIndex(Math.min(targetPage, maxPanel));
     }
+
     if (book.pdfUrl) {
+      setActivePdfUrl(book.pdfUrl);
       setReaderFormat('pdf');
     } else {
-      setReaderFormat('standard');
+      // Semak sama ada manuskrip disimpan dalam IndexedDB peranti pengguna
+      getManuscriptFromIndexedDb(book.id)
+        .then((stored) => {
+          if (!isMounted) return;
+          if (stored && stored.format === 'pdf') {
+            const url = typeof stored.data === 'string' ? stored.data : URL.createObjectURL(stored.data);
+            setActivePdfUrl(url);
+            setReaderFormat('pdf');
+          } else if (book.pdfFileName) {
+            setActivePdfUrl(`/api/books/pdf/${book.id}`);
+            setReaderFormat('pdf');
+          } else {
+            setActivePdfUrl(null);
+            setReaderFormat('standard');
+          }
+        })
+        .catch(() => {
+          if (!isMounted) return;
+          if (book.pdfFileName) {
+            setActivePdfUrl(`/api/books/pdf/${book.id}`);
+            setReaderFormat('pdf');
+          } else {
+            setActivePdfUrl(null);
+            setReaderFormat('standard');
+          }
+        });
     }
+
     setComicZoom(1);
     setShowBookmarksList(false);
     setShowSettingsMenu(false);
-  }, [book?.id, book?.pdfUrl, isOpen, initialPageNumber]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [book?.id, book?.pdfUrl, book?.pdfFileName, isOpen, initialPageNumber]);
 
   // Security Event Listeners (Sekat right click, copy, and shortcuts)
   useEffect(() => {
@@ -304,7 +340,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
           {/* Right: Consolidated "Aa" Menu, Comic Mode, Bookmark, Fullscreen */}
           <div className="flex items-center gap-1.5 relative">
             {/* Format Switcher (if book has PDF) */}
-            {book.pdfUrl && (
+            {(book.pdfUrl || activePdfUrl || book.pdfFileName) && (
               <button
                 type="button"
                 onClick={() => setReaderFormat((prev) => (prev === 'pdf' ? 'standard' : 'pdf'))}
@@ -680,7 +716,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
           {/* ============================================================== */}
           {/* PDF READER VIEW */}
           {/* ============================================================== */}
-          {readerFormat === 'pdf' && book.pdfUrl && (
+          {readerFormat === 'pdf' && (activePdfUrl || book.pdfUrl) && (
             <div className="max-w-4xl mx-auto space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-current/10">
                 <div className="flex items-center gap-2">
@@ -712,7 +748,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
 
               {isOwned || book.isFree ? (
                 <PdfCanvasViewer
-                  pdfUrl={book.pdfUrl}
+                  pdfUrl={activePdfUrl || book.pdfUrl!}
                   title={book.title}
                   buyerEmail={buyerEmail}
                   initialPage={initialPageNumber || 1}

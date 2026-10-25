@@ -273,6 +273,17 @@ export function isUserBookOwner(
   book: EBook,
   user?: { uid?: string; email?: string; name?: string; isLoggedIn?: boolean } | null
 ): boolean {
+  // 0. Semakan Kepunyaan Tempatan: Jika naskhah diterbitkan oleh peranti/pelayar ini
+  try {
+    const localMyIdsRaw = typeof window !== 'undefined' ? localStorage.getItem('karyadigital_my_author_book_ids') : null;
+    if (localMyIdsRaw) {
+      const localMyIds: string[] = JSON.parse(localMyIdsRaw);
+      if (Array.isArray(localMyIds) && localMyIds.includes(book.id)) {
+        return true;
+      }
+    }
+  } catch (e) {}
+
   if (!user || !user.isLoggedIn) return false;
 
   const userEmail = (user.email || '').trim().toLowerCase();

@@ -367,16 +367,54 @@ export async function updateOrderStatusInFirestore(
   }
 }
 
+/**
+ * Pembersihan data untuk Firestore (Membuang nilai undefined dan mengecilkan muatan)
+ */
+function sanitizeFirestoreData(obj: any): any {
+  if (obj === null || obj === undefined) {
+    return null;
+  }
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeFirestoreData).filter((item) => item !== undefined);
+  }
+  if (typeof obj === 'object') {
+    const cleaned: Record<string, any> = {};
+    for (const [key, value] of Object.entries(obj)) {
+      if (value !== undefined) {
+        cleaned[key] = sanitizeFirestoreData(value);
+      }
+    }
+    return cleaned;
+  }
+  return obj;
+}
+
 // 5. Published Books Collection (Penyimpanan Manuskrip & Karya Penulis)
 export async function saveBookToFirestore(book: any): Promise<void> {
   const path = `published_books/${book.id}`;
   try {
     const bookDocRef = doc(db, 'published_books', book.id);
-    await setDoc(bookDocRef, {
-      ...book,
+
+    // Salin dan pastikan fail data URL besar tidak melebihi had 1MB dokumen Firestore
+    const safeBook = { ...book };
+    if (safeBook.pdfUrl && typeof safeBook.pdfUrl === 'string' && safeBook.pdfUrl.startsWith('data:')) {
+      safeBook.pdfUrl = `/api/books/pdf/${book.id}`;
+    }
+    if (safeBook.epubUrl && typeof safeBook.epubUrl === 'string' && safeBook.epubUrl.startsWith('data:')) {
+      safeBook.epubUrl = `/api/books/epub/${book.id}`;
+    }
+    // Jika saiz data gambar kulit melebihi 200KB, jangan bebankan Firestore
+    if (safeBook.coverImage && typeof safeBook.coverImage === 'string' && safeBook.coverImage.length > 250000) {
+      delete safeBook.coverImage;
+    }
+
+    const cleanedPayload = sanitizeFirestoreData({
+      ...safeBook,
       publishedAt: new Date().toISOString(),
       storageProvider: 'Cloudflare R2 & Firestore',
     });
+
+    await setDoc(bookDocRef, cleanedPayload);
     console.log(`[Firestore] Naskhah "${book.title}" (${book.id}) disimpan ke koleksi published_books`);
   } catch (error) {
     console.warn('[Firestore] Gagal menyimpan ke published_books:', error);
