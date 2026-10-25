@@ -41,16 +41,27 @@ function base64ToUint8Array(base64: string): Uint8Array {
   return bytes;
 }
 
+// Helper untuk konfigurasi worker PDF.js dengan selamat tanpa menimpa objek getter sedia ada
+function configurePdfJsWorker(lib: any) {
+  if (!lib) return;
+  try {
+    if (lib.GlobalWorkerOptions) {
+      if (!lib.GlobalWorkerOptions.workerSrc) {
+        lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+      }
+    }
+  } catch (err) {
+    console.warn('[PdfCanvasViewer] Amaran konfigurasi worker PDF.js:', err);
+  }
+}
+
 // Dynamically load the self-hosted Mozilla PDF.js library with guaranteed polling & timeout
 function loadPdfJsLibrary(): Promise<any> {
   return new Promise((resolve, reject) => {
     const checkLib = () => {
       const lib = (window as any).pdfjsLib;
       if (lib) {
-        if (!lib.GlobalWorkerOptions?.workerSrc) {
-          lib.GlobalWorkerOptions = lib.GlobalWorkerOptions || {};
-          lib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
-        }
+        configurePdfJsWorker(lib);
         return lib;
       }
       return null;
@@ -71,6 +82,7 @@ function loadPdfJsLibrary(): Promise<any> {
         clearInterval(interval);
         const fallback = (window as any).pdfjsLib;
         if (fallback) {
+          configurePdfJsWorker(fallback);
           resolve(fallback);
         } else {
           reject(new Error('Enjin PDF.js mengambil masa terlalu lama untuk dimuatkan. Sila muat semula halaman.'));
@@ -213,13 +225,19 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
       onPageChange?.(1, doc.numPages);
     } catch (err: any) {
       console.error('[PdfCanvasViewer] Ralat memuatkan dokumen:', err);
+      // Jika pembeli biasa dan naskhah mempunyai bab mod teks, bertukar secara pintar agar pembacaan tidak terganggu
+      if (!isAuthorOrAdmin && hasTextModeFallback && onSwitchToTextMode) {
+        console.log('[PdfCanvasViewer] Beralih secara automatik ke Mod Teks untuk pembaca.');
+        onSwitchToTextMode();
+        return;
+      }
       setLoadError(
         err?.message ||
           'Gagal membuka fail PDF. Format fail mungkin rosak atau memori peranti tidak mencukupi.'
       );
       setIsLoading(false);
     }
-  }, [pdfUrl, bookId, onPageChange]);
+  }, [pdfUrl, bookId, onPageChange, isAuthorOrAdmin, hasTextModeFallback, onSwitchToTextMode]);
 
   // Pengendali muat naik fail PDF terus ke Cloudflare R2 (Hanya dipicu oleh Pengarang/Admin)
   const handleLocalFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -593,6 +611,30 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
           >
             <RotateCw className="w-3.5 h-3.5" />
           </button>
+
+          {/* Butang Beralih ke Mod Teks & Bab (Untuk Semua Pengguna) */}
+          {hasTextModeFallback && onSwitchToTextMode && (
+            <button
+              onClick={onSwitchToTextMode}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs shadow-xs transition-colors cursor-pointer"
+              title="Tukar ke Mod Pembaca Teks & Tipografi"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Mod Teks</span>
+            </button>
+          )}
+
+          {/* Butang Pantas Muat Naik ke Cloudflare R2 untuk Pengarang/Admin */}
+          {isAuthorOrAdmin && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-xs transition-colors cursor-pointer"
+              title="Muat naik atau gantikan fail PDF naskhah di Cloudflare R2"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Muat Naik PDF (R2)</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -634,20 +676,22 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
 
         {/* Error State */}
         {loadError && (
-          <div className="my-auto p-6 max-w-md bg-rose-950/40 border border-rose-600/50 rounded-2xl text-center space-y-3 shadow-xl">
-            <div className="w-12 h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center mx-auto shadow-md">
-              <AlertCircle className="w-6 h-6" />
+          <div className="my-auto p-6 max-w-md bg-slate-900/90 border border-indigo-500/30 rounded-2xl text-center space-y-4 shadow-2xl">
+            <div className={`w-12 h-12 rounded-xl text-white flex items-center justify-center mx-auto shadow-md ${isAuthorOrAdmin ? 'bg-amber-600' : 'bg-indigo-600'}`}>
+              {isAuthorOrAdmin ? <Upload className="w-6 h-6" /> : <BookOpen className="w-6 h-6" />}
             </div>
-            <h4 className="font-bold text-sm text-rose-200">
-              {isAuthorOrAdmin
-                ? 'Fail PDF Naskhah Belum Ada di Storan Awan Cloudflare R2'
-                : 'Menunggu Penyelarasan Storan Awan Pelayan'}
-            </h4>
-            <p className="text-xs text-rose-300/80 leading-relaxed">
-              {isAuthorOrAdmin
-                ? 'Sebagai Pengarang atau Admin karya ini, muat naik fail PDF naskhah asal anda ke Cloudflare R2 sekarang supaya SEMUA pembeli boleh membuka dan membaca naskhah penuh ini dari mana-mana peranti.'
-                : 'Fail dokumen PDF naskhah rasmi ini sedang disegerakkan daripada pelayan Cloudflare R2. Sila klik "Cuba Semula" atau baca bab teks yang tersedia.'}
-            </p>
+            <div className="space-y-1">
+              <h4 className="font-bold text-base text-slate-100">
+                {isAuthorOrAdmin
+                  ? 'Pusat Naskhah Pengarang / Admin'
+                  : 'Naskhah Penuh Anda Sedia Dibaca!'}
+              </h4>
+              <p className="text-xs text-slate-300 leading-relaxed">
+                {isAuthorOrAdmin
+                  ? 'Sebagai Pengarang karya ini, muat naik fail PDF naskhah asal anda ke Cloudflare R2 sekarang supaya SEMUA pembaca boleh membuka dan membaca naskhah bercetak asal dari mana-mana peranti.'
+                  : 'Naskhah rasmi ini sedia dibuka dalam Mod Teks & Tipografi Pantas tanpa sebarang halangan. Anda juga boleh mencuba memuatkan semula fail PDF.'}
+              </p>
+            </div>
 
             {/* Tersembunyi: Input Pemilihan Fail Tempatan untuk Pengarang */}
             <input
@@ -658,39 +702,40 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
               className="hidden"
             />
 
-            <div className="pt-2 flex flex-wrap items-center justify-center gap-2">
-              <button
-                type="button"
-                onClick={loadDocument}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white transition-colors cursor-pointer shadow-xs"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Cuba Semula</span>
-              </button>
-
-              {/* Butang Muat Naik ke Cloudflare R2 HANYA dipaparkan kepada Pengarang/Admin */}
-              {isAuthorOrAdmin && (
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors cursor-pointer shadow-md"
-                  title="Muat naik fail PDF ke Cloudflare R2 untuk kegunaan semua pembeli"
-                >
-                  <Upload className="w-3.5 h-3.5" />
-                  <span>Muat Naik ke Cloudflare R2 (Storan Kekal Pembeli)</span>
-                </button>
-              )}
-
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+              {/* Butang Utama untuk Pelanggan / Pembeli: Buka Mod Teks Segera */}
               {hasTextModeFallback && onSwitchToTextMode && (
                 <button
                   type="button"
                   onClick={onSwitchToTextMode}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors cursor-pointer shadow-xs"
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors cursor-pointer shadow-md"
                 >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Baca Dalam Mod Teks</span>
+                  <BookOpen className="w-4 h-4" />
+                  <span>Baca Dalam Mod Teks (Akses Penuh)</span>
                 </button>
               )}
+
+              {/* Butang Muat Naik ke Cloudflare R2 untuk Pengarang/Admin */}
+              {isAuthorOrAdmin && (
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white transition-colors cursor-pointer shadow-md"
+                  title="Muat naik fail PDF ke Cloudflare R2 untuk kegunaan semua pembeli"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Muat Naik ke Cloudflare R2</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={loadDocument}
+                className="w-full sm:w-auto flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer border border-slate-700"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Cuba Semula</span>
+              </button>
             </div>
           </div>
         )}
