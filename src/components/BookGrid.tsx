@@ -72,8 +72,14 @@ export const BookGrid: React.FC<BookGridProps> = ({
   const authoredShelfBooks = allShelfBooks.filter((b) => authorBookIds.includes(b.id));
   const purchasedShelfBooks = allShelfBooks.filter((b) => !authorBookIds.includes(b.id));
 
-  // Filter pipeline
-  let displayedBooks = [...books];
+  // Filter pipeline - pastikan setiap ID buku adalah unik tanpa duplikasi
+  const uniqueBooksMap = new Map<string, EBook>();
+  books.forEach((b) => {
+    if (b && b.id && !uniqueBooksMap.has(b.id)) {
+      uniqueBooksMap.set(b.id, b);
+    }
+  });
+  let displayedBooks = Array.from(uniqueBooksMap.values());
 
   // 1. Jenis Buku (Hanya Novel dan Komik - 'Percuma' dipindahkan ke penapis harga sahaja)
   if (activeCategory === 'novel') {

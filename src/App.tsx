@@ -70,21 +70,11 @@ function getStoredDeletedBookIds(): Set<string> {
 }
 
 function getInitialBooks(): EBook[] {
-  const deleted = getStoredDeletedBookIds();
-  let localPublished: EBook[] = [];
-  try {
-    const raw = typeof window !== 'undefined' ? localStorage.getItem('karyadigital_published_books') : null;
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
-        localPublished = parsed.filter((b) => b && b.id && !deleted.has(b.id));
-      }
-    }
-  } catch (e) {}
-
-  const localIds = new Set(localPublished.map((b) => b.id));
-  const remainingShowcase = INITIAL_EBOOKS.filter((b) => !deleted.has(b.id) && !localIds.has(b.id));
-  return [...localPublished, ...OFFICIAL_PUBLISHED_BOOKS, ...remainingShowcase];
+  const map = new Map<string, EBook>();
+  OFFICIAL_PUBLISHED_BOOKS.forEach((b) => {
+    if (b && b.id) map.set(b.id, b);
+  });
+  return Array.from(map.values());
 }
 
 export default function App() {
