@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { EBook, ReaderSettings, BookmarkEntry } from '../types/ebook.ts';
 import { calculateReadingProgress, formatMYR } from '../utils/ebookLogic.ts';
+import { PdfCanvasViewer } from './PdfCanvasViewer.tsx';
 
 interface InBrowserReaderModalProps {
   book: EBook | null;
@@ -695,16 +696,14 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <a
-                    href={book.pdfUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition flex items-center gap-1 shadow-2xs"
-                    title="Buka fail PDF dalam paparan skrin penuh atau tab baharu"
+                  <button
+                    onClick={() => setIsFullscreen(!isFullscreen)}
+                    className="text-[10px] px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition flex items-center gap-1 shadow-2xs cursor-pointer"
+                    title="Buka paparan pembaca skrin penuh"
                   >
-                    <span>Skrin Penuh</span>
+                    <span>{isFullscreen ? 'Kecilkan Skrin' : 'Skrin Penuh'}</span>
                     <span>↗</span>
-                  </a>
+                  </button>
                   <div className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300 font-bold border border-emerald-300/40">
                     {isOwned || book.isFree ? 'Akses Sah Pembeli' : 'Mod Pratonton'}
                   </div>
@@ -712,23 +711,12 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
               </div>
 
               {isOwned || book.isFree ? (
-                <div className="relative rounded-2xl overflow-hidden border border-slate-300 dark:border-slate-700 bg-white shadow-2xl h-[80vh]">
-                  {/* Floating Security Watermark Tag */}
-                  <div className="absolute top-2 right-4 z-20 pointer-events-none bg-slate-950/85 text-amber-300 text-[10px] font-mono px-2.5 py-1 rounded-md backdrop-blur-xs border border-amber-400/40">
-                    🔒 Dilesenkan kepada: {buyerEmail}
-                  </div>
-                  <object
-                    data={`${book.pdfUrl}#toolbar=1&navpanes=1`}
-                    type="application/pdf"
-                    className="w-full h-full rounded-2xl bg-white"
-                  >
-                    <iframe
-                      src={`${book.pdfUrl}#toolbar=1`}
-                      className="w-full h-full border-0 rounded-2xl bg-white"
-                      title={book.title}
-                    />
-                  </object>
-                </div>
+                <PdfCanvasViewer
+                  pdfUrl={book.pdfUrl}
+                  title={book.title}
+                  buyerEmail={buyerEmail}
+                  initialPage={initialPageNumber || 1}
+                />
               ) : (
                 <div className="p-6 sm:p-8 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-300/70 text-center space-y-4 max-w-lg mx-auto">
                   <div className="w-12 h-12 rounded-xl bg-rose-600 text-white flex items-center justify-center font-black text-sm mx-auto shadow-md">
@@ -1010,16 +998,14 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
               <span className="text-xs font-mono opacity-70 hidden sm:inline">
                 {book.pages ? `${book.pages} Muka Surat` : 'Dokumen PDF Asli'}
               </span>
-              <a
-                href={book.pdfUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors"
-                title="Buka dokumen PDF dalam tab penuh atau tetingkap baharu"
+              <button
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-colors cursor-pointer"
+                title="Togol Paparan Skrin Penuh Pembaca"
               >
-                <span>Buka Skrin Penuh</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
+                <span>{isFullscreen ? 'Kecilkan Skrin' : 'Buka Skrin Penuh'}</span>
+                <Maximize2 className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         ) : (
