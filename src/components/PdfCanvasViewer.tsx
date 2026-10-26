@@ -220,7 +220,7 @@ export const PdfCanvasViewer: React.FC<PdfCanvasViewerProps> = ({
       };
 
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Masa memuatkan naskhah melebihi had (Timeout). Sila beralih ke Mod Teks.')), 6000)
+        setTimeout(() => reject(new Error('Masa memuatkan naskhah melebihi had (Timeout). Sila beralih ke Mod Teks.')), 25000)
       );
 
       const doc = (await Promise.race([loadingTask.promise, timeoutPromise])) as any;

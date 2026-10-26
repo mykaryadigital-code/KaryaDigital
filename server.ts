@@ -39,7 +39,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = 3000;
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Konfigurasi Multer untuk muat naik naskhah PDF/EPUB besar terus ke storan (hingga 150MB)

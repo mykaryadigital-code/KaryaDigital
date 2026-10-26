@@ -83,14 +83,37 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
 
   // State for bookmarks dropdown popover
   const [showBookmarksList, setShowBookmarksList] = useState(false);
-  // Reader format: 'pdf' if book has PDF available, otherwise 'standard'
-  const [readerFormat, setReaderFormat] = useState<'pdf' | 'standard'>('standard');
-  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(book?.pdfUrl || null);
+  // Reader format: 'pdf' if book has PDF available or has no text chapters, otherwise 'standard'
+  const [readerFormat, setReaderFormat] = useState<'pdf' | 'standard'>(() => {
+    const hasText = Boolean(book?.sampleContent?.chapters && book.sampleContent.chapters.length > 0);
+    const hasPanels = Boolean(book?.comicSample?.panels && book.comicSample.panels.length > 0);
+    if (book?.pdfUrl || book?.pdfFileName || (!hasText && !hasPanels)) {
+      return 'pdf';
+    }
+    return 'standard';
+  });
+  const [activePdfUrl, setActivePdfUrl] = useState<string | null>(() => {
+    if (book?.pdfUrl) return book.pdfUrl;
+    if (book?.id) return `/api/books/pdf/${book.id}`;
+    return null;
+  });
 
   // Set initial page from bookmark or parameter and load PDF from IndexedDB / API if needed
   useEffect(() => {
     if (!book || !isOpen) return;
     let isMounted = true;
+
+    const hasTextChapters = Boolean(book.sampleContent?.chapters && book.sampleContent.chapters.length > 0);
+    const hasComicPanels = Boolean(book.comicSample?.panels && book.comicSample.panels.length > 0);
+
+    // Pastikan format dan URL PDF siap sedia serta-merta tanpa menunggu
+    if (book.pdfUrl) {
+      setActivePdfUrl(book.pdfUrl);
+      setReaderFormat('pdf');
+    } else if (book.pdfFileName || (!hasTextChapters && !hasComicPanels)) {
+      setActivePdfUrl(`/api/books/pdf/${book.id}`);
+      setReaderFormat('pdf');
+    }
 
     const targetPage = initialPageNumber && initialPageNumber >= 1 ? initialPageNumber - 1 : 0;
     if (book.category === 'novel') {
@@ -101,7 +124,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
       setCurrentComicPageIndex(Math.min(targetPage, maxPanel));
     }
 
-    // Semak IndexedDB terlebih dahulu untuk naskhah PDF penuh di peranti
+    // Semak IndexedDB terlebih dahulu untuk naskhah PDF penuh di peranti (jika ada cache tempatan)
     getManuscriptFromIndexedDb(book.id)
       .then((stored) => {
         if (!isMounted) return;
@@ -119,12 +142,9 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
         } else if (book.pdfUrl) {
           setActivePdfUrl(book.pdfUrl);
           setReaderFormat('pdf');
-        } else if (book.pdfFileName) {
+        } else if (book.pdfFileName || (!hasTextChapters && !hasComicPanels)) {
           setActivePdfUrl(`/api/books/pdf/${book.id}`);
           setReaderFormat('pdf');
-        } else {
-          setActivePdfUrl(null);
-          setReaderFormat('standard');
         }
       })
       .catch(() => {
@@ -132,12 +152,11 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
         if (book.pdfUrl) {
           setActivePdfUrl(book.pdfUrl);
           setReaderFormat('pdf');
-        } else if (book.pdfFileName) {
-          setActivePdfUrl(`/api/books/pdf/${book.id}`);
-          setReaderFormat('pdf');
         } else {
-          setActivePdfUrl(null);
-          setReaderFormat('standard');
+          setActivePdfUrl(`/api/books/pdf/${book.id}`);
+          if (!hasTextChapters && !hasComicPanels) {
+            setReaderFormat('pdf');
+          }
         }
       });
 
@@ -245,8 +264,22 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
   if (!isOpen || !book) return null;
 
   const isNovel = book.category === 'novel';
-  const chapters = book.sampleContent?.chapters || [];
-  const currentChapter = chapters[currentChapterIndex] || null;
+  const rawChapters = book.sampleContent?.chapters || [];
+  const chapters =
+    rawChapters.length > 0
+      ? rawChapters
+      : [
+          {
+            id: 'ch-intro',
+            title: book.title,
+            subtitle: `Karya: ${book.author}`,
+            paragraphs: [
+              book.synopsis || 'Naskhah ini sedia untuk dibaca oleh pelanggan.',
+              'Dokumen ini disediakan dalam format dokumen digital PDF penuh. Tekan butang "Buka Naskhah PDF" di bawah untuk mula membaca paparan buku penuh.',
+            ],
+          },
+        ];
+  const currentChapter = chapters[currentChapterIndex] || chapters[0];
 
   const comicPanels = book.comicSample?.panels || [];
   const currentComicPanel = comicPanels[currentComicPageIndex] || null;
@@ -726,7 +759,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
           {/* ============================================================== */}
           {/* PDF READER VIEW */}
           {/* ============================================================== */}
-          {readerFormat === 'pdf' && (activePdfUrl || book.pdfUrl) && (
+          {readerFormat === 'pdf' && (
             <div className="max-w-4xl mx-auto space-y-4">
               <div className="flex items-center justify-between pb-2 border-b border-current/10">
                 <div className="flex items-center gap-2">
@@ -759,7 +792,7 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
               {isOwned || book.isFree ? (
                 <PdfCanvasViewer
                   bookId={book.id}
-                  pdfUrl={activePdfUrl || book.pdfUrl!}
+                  pdfUrl={activePdfUrl || book.pdfUrl || `/api/books/pdf/${book.id}`}
                   title={book.title}
                   buyerEmail={buyerEmail}
                   initialPage={initialPageNumber || 1}
@@ -1025,6 +1058,27 @@ export const InBrowserReaderModal: React.FC<InBrowserReaderModalProps> = ({
                   </button>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Safe Fallback: Jika mod standard tiada kandungan, sediakan butang pantas ke mod PDF */}
+          {readerFormat !== 'pdf' && rawChapters.length === 0 && comicPanels.length === 0 && (
+            <div className="text-center py-12 px-4 max-w-md mx-auto space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-amber-500/10 text-amber-600 flex items-center justify-center mx-auto text-2xl font-bold shadow-xs">
+                📖
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">Naskhah Sedia Dibaca</h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300">
+                  Naskhah ini disediakan dalam format dokumen digital penuh PDF.
+                </p>
+              </div>
+              <button
+                onClick={() => setReaderFormat('pdf')}
+                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-md cursor-pointer transition inline-flex items-center gap-2"
+              >
+                <span>Buka Dokumen PDF Rasmi</span>
+              </button>
             </div>
           )}
         </main>
