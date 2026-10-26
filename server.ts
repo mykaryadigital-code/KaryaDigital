@@ -55,6 +55,26 @@ app.use(express.urlencoded({ extended: true, limit: '150mb' }));
 // Sajikan fail statik dari folder public
 app.use(express.static(path.resolve(__dirname, 'public')));
 
+// Intercept sebarang permohonan dev-sw.js untuk mengelakkan ralat MIME text/html
+app.use((req, res, next) => {
+  if (req.path === '/dev-sw.js' || req.path.startsWith('/dev-sw.js')) {
+    res.setHeader('Content-Type', 'application/javascript; charset=UTF-8');
+    return res.send(`
+      self.addEventListener('install', () => { self.skipWaiting(); });
+      self.addEventListener('activate', (event) => {
+        event.waitUntil(
+          self.registration.unregister().then(() => {
+            return self.clients.matchAll();
+          }).then((clients) => {
+            clients.forEach((client) => client.navigate(client.url));
+          })
+        );
+      });
+    `);
+  }
+  next();
+});
+
 // Helper URL Asas Aplikasi
 function getAppBaseUrl(req: Request): string {
   const host = req.get('host') || `localhost:${PORT}`;

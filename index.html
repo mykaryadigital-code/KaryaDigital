@@ -23,26 +23,45 @@
     <script>
       // Abaikan ralat penutupan WebSocket Vite dalam persekitaran iFrame selamat
       window.addEventListener('error', function(e) {
-        if (e && e.message && (e.message.includes('WebSocket') || e.message.includes('@vite/client'))) {
+        if (e && e.message && (
+          e.message.includes('WebSocket') ||
+          e.message.includes('@vite/client') ||
+          e.message.includes('dev-sw.js') ||
+          e.message.includes('ServiceWorker')
+        )) {
           e.stopImmediatePropagation();
           e.preventDefault();
         }
       }, true);
       window.addEventListener('unhandledrejection', function(e) {
         const reason = e ? (e.reason && e.reason.message) || String(e.reason || '') : '';
-        if (reason.includes('WebSocket') || reason.includes('@vite/client')) {
+        if (
+          reason.includes('WebSocket') ||
+          reason.includes('@vite/client') ||
+          reason.includes('dev-sw.js') ||
+          reason.includes('ServiceWorker')
+        ) {
           e.stopImmediatePropagation();
           e.preventDefault();
         }
       }, true);
 
-      // Pastikan Service Worker sentiasa menyemak dan memuatkan kemas kini versi web terkini
+      // Bersihkan dan nyahpasang sebarang ServiceWorker persekitaran pembangunan (dev-sw)
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.getRegistrations().then(function(registrations) {
           for (let reg of registrations) {
-            reg.update();
+            var scriptUrl = (reg.active && reg.active.scriptURL) || '';
+            if (
+              scriptUrl.indexOf('dev-sw') !== -1 ||
+              window.location.hostname.indexOf('ais-dev') !== -1 ||
+              window.location.port === '3000'
+            ) {
+              reg.unregister().catch(function() {});
+            } else {
+              reg.update().catch(function() {});
+            }
           }
-        });
+        }).catch(function() {});
       }
     </script>
     <script src="/vendor/pdfjs/pdf.min.js"></script>
