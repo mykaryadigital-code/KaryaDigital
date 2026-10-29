@@ -1,0 +1,2 @@
+@import "tailwindcss";
+:root{font-family:Arial,Helvetica,sans-serif;color:#17212e;background:#f7f8fb}*{box-sizing:border-box}button{cursor:pointer}button:focus-visible,input:focus-visible{outline:3px solid #fbbf24;outline-offset:2px}.book-shadow{box-shadow:5px 8px 14px #0002}
