@@ -102,7 +102,14 @@ export default function LoginPage() {
               className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:border-indigo-500"
             />
           </div>
-
+          <div className="text-right">
+            <Link
+              href="/lupa-password"
+              className="text-sm font-semibold text-indigo-600 hover:underline"
+            >
+              Lupa Password?
+            </Link>
+          </div>
           {errorMessage && (
             <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
               {errorMessage}
