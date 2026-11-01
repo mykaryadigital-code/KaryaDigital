@@ -25,7 +25,7 @@ export default function LupaPasswordPage() {
       const { error } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         {
-          redirectTo: `${window.location.origin}/reset-password`,
+          redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
         }
       );
 
@@ -34,11 +34,13 @@ export default function LupaPasswordPage() {
       setMessage(
         "Jika alamat emel ini berdaftar, pautan pemulihan password akan dihantar. Sila semak inbox atau spam."
       );
-    } catch {
-      setErrorMessage(
-        "Permintaan tidak dapat diproses sekarang. Sila cuba sebentar lagi."
-      );
-    } finally {
+    } catch (error) {
+  console.error("Reset password error:", error);
+
+  setErrorMessage(
+    "Permintaan tidak dapat diproses sekarang. Sila cuba sebentar lagi."
+  );
+} finally {
       setLoading(false);
     }
   }
