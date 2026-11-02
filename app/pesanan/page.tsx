@@ -45,6 +45,20 @@ async function handlePayment(orderId: string) {
 });
   
   const result = await response.json();
+  console.log("Payment URL diagnostics:", {
+  success: result.success,
+  hasPaymentUrl: typeof result.paymentUrl === "string",
+  paymentHost:
+    typeof result.paymentUrl === "string"
+      ? (() => {
+          try {
+            return new URL(result.paymentUrl).hostname;
+          } catch {
+            return "invalid-url";
+          }
+        })()
+      : null,
+});
   if (!response.ok || result.success !== true) {
   setError(result.error || "Gagal menyediakan pembayaran.");
   return;
