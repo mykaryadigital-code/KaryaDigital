@@ -55,7 +55,10 @@ const callbackBody = await request.text();
 const callbackParams = new URLSearchParams(
   callbackBody
 );
-
+console.log("ToyyibPay callback format:", {
+  contentType: request.headers.get("content-type"),
+  fields: [...callbackParams.keys()],
+});
 const billCode = callbackParams.get("billcode");
 
 if (!billCode || !billCode.trim()) {
