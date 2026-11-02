@@ -62,12 +62,32 @@ console.log("ToyyibPay callback format:", {
   bodyLooksLikeJson: callbackBody.trim().startsWith("{"),
 });
 const callbackUrl = new URL(request.url);
+let callbackJson: Record<string, unknown> = {};
+
+if (callbackBody.trim().startsWith("{")) {
+  try {
+    const parsed: unknown = JSON.parse(callbackBody);
+
+    if (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      !Array.isArray(parsed)
+    ) {
+      callbackJson = parsed as Record<string, unknown>;
+    }
+  } catch {
+    console.error("Format JSON callback tidak sah.");
+  }
+}
+const jsonBillCode =
+  callbackJson["billcode"] ?? callbackJson["billCode"];
 
 const billCode =
   callbackParams.get("billcode") ||
   callbackParams.get("billCode") ||
   callbackUrl.searchParams.get("billcode") ||
-  callbackUrl.searchParams.get("billCode");
+  callbackUrl.searchParams.get("billCode") ||
+  (typeof jsonBillCode === "string" ? jsonBillCode : null);
 
 if (!billCode || !billCode.trim()) {
   return NextResponse.json(
