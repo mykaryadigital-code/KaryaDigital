@@ -152,7 +152,7 @@ export async function POST(request: NextRequest) {
 
     // Jangan cipta bil kedua jika proses
     // sedang berjalan atau sudah selesai.
-    if (payment.status !== "pending") {
+    if (!["pending", "failed"].includes(payment.status)) {
       return NextResponse.json(
         {
           error:
