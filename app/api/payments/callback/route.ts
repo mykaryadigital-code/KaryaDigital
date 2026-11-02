@@ -59,7 +59,13 @@ console.log("ToyyibPay callback format:", {
   contentType: request.headers.get("content-type"),
   fields: [...callbackParams.keys()],
 });
-const billCode = callbackParams.get("billcode");
+const callbackUrl = new URL(request.url);
+
+const billCode =
+  callbackParams.get("billcode") ||
+  callbackParams.get("billCode") ||
+  callbackUrl.searchParams.get("billcode") ||
+  callbackUrl.searchParams.get("billCode");
 
 if (!billCode || !billCode.trim()) {
   return NextResponse.json(
