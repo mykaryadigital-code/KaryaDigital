@@ -57,7 +57,9 @@ const callbackParams = new URLSearchParams(
 );
 console.log("ToyyibPay callback format:", {
   contentType: request.headers.get("content-type"),
-  fields: [...callbackParams.keys()],
+  bodyFields: [...callbackParams.keys()],
+  urlFields: [...new URL(request.url).searchParams.keys()],
+  bodyLooksLikeJson: callbackBody.trim().startsWith("{"),
 });
 const callbackUrl = new URL(request.url);
 
