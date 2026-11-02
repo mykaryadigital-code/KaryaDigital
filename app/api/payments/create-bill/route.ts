@@ -146,7 +146,8 @@ export async function POST(request: NextRequest) {
         message: "Bil pembayaran sudah tersedia.",
         paymentId: payment.id,
         billCode: payment.provider_bill_code,
-        paymentStatus: payment.status,
+paymentUrl: `${process.env.TOYYIBPAY_BASE_URL?.replace(/\/+$/, "")}/${payment.provider_bill_code}`,
+paymentStatus: payment.status,
       });
     }
 
