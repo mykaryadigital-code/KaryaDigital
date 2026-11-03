@@ -211,10 +211,11 @@ export async function POST(request: NextRequest) {
       await loadingTask.destroy();
     }
   } catch (error) {
-    console.error(
-      "Reader page error:",
-      error instanceof Error ? error.name : "unknown"
-    );
+    console.error("Reader page error:", {
+  name: error instanceof Error ? error.name : "unknown",
+  message: error instanceof Error ? error.message : "unknown",
+  stack: error instanceof Error ? error.stack : undefined,
+});
 
     return NextResponse.json(
       { error: "Gagal memaparkan halaman eBook." },
