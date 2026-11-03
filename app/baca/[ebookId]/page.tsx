@@ -1,79 +1,86 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import * as pdfjsLib from "pdfjs-dist";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+  "/pdf.worker.min.mjs";
 
 export default function BacaEbookPage() {
   const params = useParams();
   const ebookId = params.ebookId as string;
 
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const pdfRef =
+    useRef<pdfjsLib.PDFDocumentProxy | null>(null);
+
+  const [pdf, setPdf] =
+    useState<pdfjsLib.PDFDocumentProxy | null>(null);
+
   const [pageNumber, setPageNumber] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [imageUrl, setImageUrl] = useState("");
   const [loading, setLoading] = useState(true);
+  const [rendering, setRendering] = useState(false);
   const [error, setError] = useState("");
 
+  // Muatkan eBook selepas pengesahan pembelian
   useEffect(() => {
     let active = true;
-    let objectUrl = "";
 
-    async function loadPage() {
+    let loadingTask:
+      pdfjsLib.PDFDocumentLoadingTask | null = null;
+
+    async function loadBook() {
       setLoading(true);
       setError("");
-      setImageUrl("");
+      setPdf(null);
+      setTotalPages(0);
+      setPageNumber(1);
 
       try {
-        const response = await fetch("/api/reader/page", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            ebookId,
-            pageNumber,
-          }),
-          cache: "no-store",
-        });
-
-        if (!response.ok) {
-          const result = await response.json().catch(() => null);
-
-          throw new Error(
-            result?.error || "Gagal membuka halaman eBook."
-          );
-        }
-
-        const contentType =
-          response.headers.get("content-type") || "";
-
-        if (!contentType.includes("image/png")) {
-          throw new Error("Format halaman tidak sah.");
-        }
-
-        const pages = Number(
-          response.headers.get("X-Total-Pages")
+        const response = await fetch(
+          "/api/reader/open",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ ebookId }),
+            cache: "no-store",
+          }
         );
 
-        if (!Number.isSafeInteger(pages) || pages < 1) {
-          throw new Error("Jumlah halaman tidak sah.");
-        }
-
-        const blob = await response.blob();
+        const result = await response.json();
 
         if (!active) return;
 
-        objectUrl = URL.createObjectURL(blob);
+        if (!response.ok || !result.url) {
+          throw new Error(
+            result.error || "Gagal membuka eBook."
+          );
+        }
 
-        setTotalPages(pages);
-        setImageUrl(objectUrl);
+        loadingTask = pdfjsLib.getDocument({
+          url: result.url,
+        });
+
+        const document = await loadingTask.promise;
+
+        if (!active) return;
+
+        pdfRef.current = document;
+        setPdf(document);
+        setTotalPages(document.numPages);
       } catch (err) {
         if (active) {
           setError(
             err instanceof Error
               ? err.message
-              : "Gagal memaparkan halaman eBook."
+              : "Gagal membuka eBook."
           );
         }
       } finally {
@@ -81,16 +88,94 @@ export default function BacaEbookPage() {
       }
     }
 
-    void loadPage();
+    void loadBook();
 
     return () => {
       active = false;
+      pdfRef.current = null;
 
-      if (objectUrl) {
-        URL.revokeObjectURL(objectUrl);
+      if (loadingTask) {
+        void loadingTask.destroy();
       }
     };
-  }, [ebookId, pageNumber]);
+  }, [ebookId]);
+
+  // Paparkan satu halaman PDF pada canvas
+  useEffect(() => {
+    if (!pdf || loading || error) return;
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    let cancelled = false;
+    let renderTask:
+      pdfjsLib.RenderTask | null = null;
+
+    async function renderPage() {
+      setRendering(true);
+
+      try {
+        const page = await pdf!.getPage(pageNumber);
+
+        if (cancelled) return;
+
+        const containerWidth =
+          canvas!.parentElement?.clientWidth ?? 800;
+
+        const baseViewport = page.getViewport({
+          scale: 1,
+        });
+
+        const scale = Math.min(
+          2,
+          Math.max(
+            0.5,
+            (containerWidth - 24) / baseViewport.width
+          )
+        );
+
+        const viewport = page.getViewport({
+          scale,
+        });
+
+        const context = canvas!.getContext("2d");
+
+        if (!context) {
+          throw new Error("Canvas tidak tersedia.");
+        }
+
+        canvas!.width = Math.floor(viewport.width);
+        canvas!.height = Math.floor(viewport.height);
+
+        renderTask = page.render({
+          canvas: canvas!,
+          canvasContext: context,
+          viewport,
+        });
+
+        await renderTask.promise;
+      } catch (err) {
+        if (
+          !cancelled &&
+          !(
+            err instanceof Error &&
+            err.name === "RenderingCancelledException"
+          )
+        ) {
+          setError("Gagal memaparkan halaman eBook.");
+        }
+      } finally {
+        if (!cancelled) setRendering(false);
+      }
+    }
+
+    void renderPage();
+
+    return () => {
+      cancelled = true;
+      renderTask?.cancel();
+    };
+  }, [pdf, pageNumber, loading, error]);
 
   return (
     <main className="min-h-screen bg-slate-100 px-4 py-8">
@@ -113,7 +198,7 @@ export default function BacaEbookPage() {
         {loading && (
           <div className="mt-8 rounded-xl bg-white p-8 text-center">
             <p className="text-slate-600">
-              Sedang memaparkan halaman...
+              Sedang membuka eBook...
             </p>
           </div>
         )}
@@ -124,17 +209,18 @@ export default function BacaEbookPage() {
           </div>
         )}
 
-        {!loading && !error && imageUrl && (
+        {!loading && !error && pdf && totalPages > 0 && (
           <div className="mt-6">
             <div className="rounded-xl bg-white p-3 shadow">
-              {/* Imej halaman yang dijana oleh server */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={imageUrl}
-                alt={`Halaman ${pageNumber} eBook`}
-                className="mx-auto h-auto max-w-full select-none"
-                draggable={false}
-                onContextMenu={(event) => event.preventDefault()}
+              {rendering && (
+                <p className="mb-3 text-center text-sm text-slate-500">
+                  Memaparkan halaman...
+                </p>
+              )}
+
+              <canvas
+                ref={canvasRef}
+                className="mx-auto h-auto max-w-full"
               />
             </div>
 
@@ -144,7 +230,7 @@ export default function BacaEbookPage() {
                 onClick={() =>
                   setPageNumber((p) => Math.max(1, p - 1))
                 }
-                disabled={pageNumber <= 1 || loading}
+                disabled={pageNumber <= 1 || rendering}
                 className="rounded-lg bg-orange-500 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 ← Sebelumnya
@@ -161,7 +247,9 @@ export default function BacaEbookPage() {
                     Math.min(totalPages, p + 1)
                   )
                 }
-                disabled={pageNumber >= totalPages || loading}
+                disabled={
+                  pageNumber >= totalPages || rendering
+                }
                 className="rounded-lg bg-orange-500 px-4 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Seterusnya →
