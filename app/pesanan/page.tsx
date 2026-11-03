@@ -11,8 +11,8 @@ type OrderItem = {
   ebook_id: string;
   price_at_purchase: number;
   ebooks: {
-  title: string;
-}[];
+    title: string;
+  }[];
 };
 
 type Order = {
@@ -23,109 +23,228 @@ type Order = {
   order_items: OrderItem[];
 };
 
+type ReconcileResult = {
+  success?: boolean;
+  paymentStatus?: string;
+  message?: string;
+  error?: string;
+};
+
 export default function PesananSaya() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [payingOrderId, setPayingOrderId] = useState<string | null>(null);
+  const [checkingOrderId, setCheckingOrderId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [loggedIn, setLoggedIn] = useState(true);
   const [error, setError] = useState("");
-async function handlePayment(orderId: string) {
-  if (payingOrderId) return;
+  const [notice, setNotice] = useState("");
 
-  setPayingOrderId(orderId);
-  setError("");
+  async function refreshOrders() {
+    const supabase = createClient();
 
-  try {
-    const response = await fetch("/api/payments/create-bill", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json",
-  },
-  body: JSON.stringify({ orderId }),
-});
-  
-  const result = await response.json();
-  console.log("Payment URL diagnostics:", {
-  success: result.success,
-  hasPaymentUrl: typeof result.paymentUrl === "string",
-  paymentHost:
-    typeof result.paymentUrl === "string"
-      ? (() => {
-          try {
-            return new URL(result.paymentUrl).hostname;
-          } catch {
-            return "invalid-url";
-          }
-        })()
-      : null,
-});
-  if (!response.ok || result.success !== true) {
-  setError(result.error || "Gagal menyediakan pembayaran.");
-  return;
-}
-if (
-  typeof result.paymentUrl !== "string" ||
-  !result.paymentUrl.startsWith("https://dev.toyyibpay.com/")
-) {
-  setError("Pautan pembayaran toyyibPay tidak sah.");
-  return;
-}
-  window.location.assign(result.paymentUrl);
-  
-  } catch (error) {
-  console.error("Payment request failed:", error);
-  setError("Sambungan pembayaran gagal. Sila cuba semula.");
-} finally {
-  setPayingOrderId(null);
-}
-}
-  useEffect(() => {
-    async function loadOrders() {
-      const supabase = createClient();
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
 
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser();
+    if (authError || !user) {
+      setLoggedIn(false);
+      return;
+    }
 
-      if (authError || !user) {
-        setLoggedIn(false);
-        setLoading(false);
+    const { data, error: ordersError } = await supabase
+      .from("orders")
+      .select(`
+        id,
+        total_amount,
+        status,
+        created_at,
+        order_items (
+          id,
+          ebook_id,
+          price_at_purchase,
+          ebooks (
+            title
+          )
+        )
+      `)
+      .eq("buyer_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (ordersError) {
+      console.error("Gagal mendapatkan pesanan:", ordersError.code);
+      setError("Gagal mendapatkan senarai pesanan. Sila cuba lagi.");
+      return;
+    }
+
+    setOrders((data ?? []) as Order[]);
+  }
+
+  async function handleReconcile(orderId: string) {
+    if (checkingOrderId || payingOrderId) return;
+
+    setCheckingOrderId(orderId);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/payments/reconcile", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ orderId }),
+        cache: "no-store",
+      });
+
+      const result: ReconcileResult = await response.json();
+
+      if (
+        response.ok &&
+        result.success === true &&
+        result.paymentStatus === "paid"
+      ) {
+        setNotice("Pembayaran berjaya disahkan oleh ToyyibPay.");
+        await refreshOrders();
         return;
       }
 
-      const { data, error: ordersError } = await supabase
-        .from("orders")
-        .select(`
-          id,
-          total_amount,
-          status,
-          created_at,
-          order_items (
-            id,
-            ebook_id,
-            price_at_purchase,
-            ebooks (
-              title
-            )
-          )
-        `)
-        .eq("buyer_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (ordersError) {
-        console.error("Gagal mendapatkan pesanan:", ordersError);
-        setError(
-          "Gagal mendapatkan senarai pesanan. Sila cuba lagi."
+      if (response.status === 409) {
+        setNotice(
+          result.message ||
+            result.error ||
+            "Bayaran belum dapat disahkan. Status pesanan tidak diubah."
         );
-      } else {
-        setOrders((data ?? []) as Order[]);
+        return;
       }
 
-      setLoading(false);
+      setError(
+        result.error ||
+          "Gagal menyemak pembayaran. Sila cuba lagi."
+      );
+    } catch (err) {
+      console.error(
+        "Payment reconciliation failed:",
+        err instanceof Error ? err.name : "unknown"
+      );
+      setError("Sambungan semakan pembayaran gagal.");
+    } finally {
+      setCheckingOrderId(null);
+    }
+  }
+
+  async function handlePayment(orderId: string) {
+    if (payingOrderId || checkingOrderId) return;
+
+    setPayingOrderId(orderId);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/payments/create-bill", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ orderId }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.success !== true) {
+        setError(result.error || "Gagal menyediakan pembayaran.");
+        return;
+      }
+
+      if (
+        typeof result.paymentUrl !== "string" ||
+        !result.paymentUrl.startsWith("https://dev.toyyibpay.com/")
+      ) {
+        setError("Pautan pembayaran toyyibPay tidak sah.");
+        return;
+      }
+
+      window.location.assign(result.paymentUrl);
+    } catch (err) {
+      console.error(
+        "Payment request failed:",
+        err instanceof Error ? err.name : "unknown"
+      );
+      setError("Sambungan pembayaran gagal. Sila cuba semula.");
+    } finally {
+      setPayingOrderId(null);
+    }
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadOrders() {
+      try {
+        const supabase = createClient();
+
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (cancelled) return;
+
+        if (authError || !user) {
+          setLoggedIn(false);
+          return;
+        }
+
+        const { data, error: ordersError } = await supabase
+          .from("orders")
+          .select(`
+            id,
+            total_amount,
+            status,
+            created_at,
+            order_items (
+              id,
+              ebook_id,
+              price_at_purchase,
+              ebooks (
+                title
+              )
+            )
+          `)
+          .eq("buyer_id", user.id)
+          .order("created_at", { ascending: false });
+
+        if (cancelled) return;
+
+        if (ordersError) {
+          console.error(
+            "Gagal mendapatkan pesanan:",
+            ordersError.code
+          );
+          setError("Gagal mendapatkan senarai pesanan.");
+        } else {
+          setOrders((data ?? []) as Order[]);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.error(
+            "Load orders failed:",
+            err instanceof Error ? err.name : "unknown"
+          );
+          setError("Gagal memuatkan pesanan.");
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
     }
 
     loadOrders();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const formatRM = (amount: number) =>
@@ -155,7 +274,6 @@ if (
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-3xl">
-
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600 hover:text-orange-700"
@@ -179,6 +297,18 @@ if (
           </div>
         </div>
 
+        {error && (
+          <div className="mt-6 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {notice && (
+          <div className="mt-6 rounded-xl bg-blue-50 p-4 text-sm text-blue-800">
+            {notice}
+          </div>
+        )}
+
         {loading ? (
           <div className="mt-8 rounded-2xl bg-white p-8 text-center text-slate-500">
             Sedang memuatkan pesanan...
@@ -192,10 +322,6 @@ if (
             >
               Log Masuk
             </Link>
-          </div>
-        ) : error ? (
-          <div className="mt-8 rounded-2xl bg-red-50 p-6 text-red-600">
-            {error}
           </div>
         ) : orders.length === 0 ? (
           <div className="mt-8 rounded-2xl bg-white p-8 text-center">
@@ -256,9 +382,14 @@ if (
                         <div className="min-w-0 flex-1">
                           <p className="font-bold text-slate-800">
                             {Array.isArray(item.ebooks)
-                            ? item.ebooks[0]?.title ?? "Maklumat eBook tidak tersedia"
-                            : (item.ebooks as { title: string } | null)?.title ??
-                            "Maklumat eBook tidak tersedia"}
+                              ? item.ebooks[0]?.title ??
+                                "Maklumat eBook tidak tersedia"
+                              : (
+                                  item.ebooks as {
+                                    title: string;
+                                  } | null
+                                )?.title ??
+                                "Maklumat eBook tidak tersedia"}
                           </p>
                           <p className="mt-1 text-xs text-slate-500">
                             eBook Digital
@@ -282,22 +413,44 @@ if (
                     </span>
                   </div>
 
-                 {order.status === "pending" && (
-  <div className="mt-3">
-    <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
-      Pesanan telah direkodkan. Pembayaran masih belum dibuat atau disahkan.
-    </p>
+                  {order.status === "pending" && (
+                    <div className="mt-3">
+                      <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+                        Pesanan telah direkodkan. Pembayaran masih belum
+                        dibuat atau disahkan.
+                      </p>
 
-    <button
-  type="button"
-  onClick={() => handlePayment(order.id)}
-  disabled={payingOrderId === order.id}
-  className="mt-3 rounded-xl bg-orange-600 px-5 py-3 text-sm font-bold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
->
-  {payingOrderId === order.id ? "Sedang Diproses..." : "Bayar Sekarang"}
-</button>
-  </div>
-)}
+                      <div className="mt-3 flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handlePayment(order.id)}
+                          disabled={
+                            payingOrderId !== null ||
+                            checkingOrderId !== null
+                          }
+                          className="rounded-xl bg-orange-600 px-5 py-3 text-sm font-bold text-white hover:bg-orange-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {payingOrderId === order.id
+                            ? "Sedang Diproses..."
+                            : "Bayar Sekarang"}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleReconcile(order.id)}
+                          disabled={
+                            checkingOrderId !== null ||
+                            payingOrderId !== null
+                          }
+                          className="rounded-xl border border-slate-300 bg-white px-5 py-3 text-sm font-bold text-slate-700 hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          {checkingOrderId === order.id
+                            ? "Sedang Menyemak..."
+                            : "Semak Status Bayaran"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
