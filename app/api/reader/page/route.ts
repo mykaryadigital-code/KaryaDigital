@@ -141,7 +141,8 @@ export async function POST(request: NextRequest) {
 
     const loadingTask = getDocument({
   data: pdfBytes,
-  useSystemFonts: true,
+  useSystemFonts: false,
+  disableFontFace: true,
 });
 
     let pdf;
