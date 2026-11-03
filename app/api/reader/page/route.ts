@@ -186,7 +186,11 @@ export async function POST(request: NextRequest) {
       }
 
       const canvas = createCanvas(width, height);
-      const context = canvas.getContext("2d");
+const context = canvas.getContext("2d");
+
+// Tetapkan latar belakang halaman kepada putih
+context.fillStyle = "#ffffff";
+context.fillRect(0, 0, width, height);
 
       await page.render({
   canvas: canvas as unknown as HTMLCanvasElement,
