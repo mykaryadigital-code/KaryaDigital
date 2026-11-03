@@ -159,7 +159,15 @@ export async function POST(request: NextRequest) {
 
       // 8. Tukarkan satu halaman kepada PNG
       const page = await pdf.getPage(pageNumber);
+const textContent = await page.getTextContent();
 
+console.log("PDF Reader Diagnostics:", {
+  pageNumber,
+  textItems: textContent.items.length,
+  sampleText: textContent.items
+    .slice(0, 5)
+    .map((item) => ("str" in item ? item.str : "")),
+});
       const baseViewport = page.getViewport({ scale: 1 });
 
       const scale = Math.min(
