@@ -241,9 +241,25 @@ export async function POST(request: NextRequest) {
     );
 
     if (!verified) {
-      console.warn(
-        "Reconcile: Tiada transaksi yang memenuhi semua syarat."
-      );
+      console.warn("Reconcile: Semakan transaksi gagal.", {
+  totalTransactions: Array.isArray(result) ? result.length : 0,
+  successfulStatusCount: (result as ToyyibPayTransaction[]).filter(
+    (t) => String(t?.billpaymentStatus) === "1"
+  ).length,
+  matchingBillCount: (result as ToyyibPayTransaction[]).filter(
+    (t) =>
+      typeof t?.billCode === "string" &&
+      t.billCode.trim() === payment.provider_bill_code.trim()
+  ).length,
+  matchingAmountCount: (result as ToyyibPayTransaction[]).filter(
+    (t) => toSen(t?.billpaymentAmount) === expectedSen
+  ).length,
+  matchingReferenceCount: (result as ToyyibPayTransaction[]).filter(
+    (t) =>
+      typeof t?.billExternalReferenceNo === "string" &&
+      t.billExternalReferenceNo.trim() === payment.external_reference.trim()
+  ).length,
+});
 
       return NextResponse.json(
         {
