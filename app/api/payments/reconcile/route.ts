@@ -230,27 +230,27 @@ console.log("Reconcile: Struktur respons toyyibPay", {
     .slice(0, 2)
     .map((item) => Object.keys(item)),
 });
-    // 7. Cari transaksi berjaya yang sepadan
-    const matching = (result as ToyyibPayTransaction[])
-      .filter(
-        (transaction) =>
-          transaction !== null &&
-          typeof transaction === "object" &&
-          String(transaction.billpaymentStatus) === "1" &&
-          typeof transaction.billCode === "string" &&
-          transaction.billCode.trim() ===
-            payment.provider_bill_code.trim() &&
-          toSen(transaction.billpaymentAmount) === expectedSen
-      );
+    
+    // 7. Sahkan transaksi daripada API untuk Bill Code yang diminta.
+    // Respons getBillTransactions tidak mengandungi medan billCode.
+    // Jangan bergantung pada respons sahaja tanpa semakan lain.
+    const matching = (result as ToyyibPayTransaction[]).filter(
+      (transaction) =>
+        transaction !== null &&
+        typeof transaction === "object" &&
+        String(transaction.billpaymentStatus) === "1" &&
+        toSen(transaction.billpaymentAmount) === expectedSen
+    );
 
-    // Rujukan transaksi mesti sepadan dengan rekod asal
+    // Rujukan asal mesti sama dengan rekod pembayaran dalam Supabase.
     const verified = matching.find(
       (transaction) =>
-        typeof transaction.billExternalReferenceNo ===
-          "string" &&
+        typeof transaction.billExternalReferenceNo === "string" &&
         transaction.billExternalReferenceNo.trim() ===
           payment.external_reference.trim()
     );
+
+
 
     if (!verified) {
       console.warn("Reconcile: Semakan transaksi gagal.", {
