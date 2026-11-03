@@ -217,7 +217,19 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       );
     }
-
+// Diagnostik selamat: nama medan sahaja, bukan nilai transaksi
+console.log("Reconcile: Struktur respons toyyibPay", {
+  transactionCount: result.length,
+  transactionFields: result
+    .filter(
+      (item) =>
+        item !== null &&
+        typeof item === "object" &&
+        !Array.isArray(item)
+    )
+    .slice(0, 2)
+    .map((item) => Object.keys(item)),
+});
     // 7. Cari transaksi berjaya yang sepadan
     const matching = (result as ToyyibPayTransaction[])
       .filter(
