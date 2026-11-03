@@ -12,7 +12,7 @@ type LibraryBook = {
 
 type PurchasedItem = {
   ebook_id: string;
-  ebooks: { title: string }[] | null;
+  ebooks: { title: string } | null;
 };
 
 type PaidOrder = {
@@ -68,12 +68,12 @@ export default function PerpustakaanPage() {
           return;
         }
 
-        const orders = (data ?? []) as PaidOrder[];
+        const orders = (data ?? []) as unknown as PaidOrder[];
         const uniqueBooks = new Map<string, LibraryBook>();
 
         for (const order of orders) {
           for (const item of order.order_items ?? []) {
-            const title = item.ebooks?.[0]?.title;
+            const title = item.ebooks?.title;
 
             if (item.ebook_id && title) {
               uniqueBooks.set(item.ebook_id, {
