@@ -164,13 +164,14 @@ export default function PerpustakaanPage() {
                   Telah dibeli
                 </p>
 
-                <button
-                  type="button"
-                  disabled
-                  className="mt-5 w-full cursor-not-allowed rounded-lg bg-gray-200 px-4 py-3 font-semibold text-gray-500"
-                >
-                  Baca eBook — Akan Datang
-                </button>
+                
+<Link
+  href={`/baca/${book.id}`}
+  className="mt-5 block w-full rounded-lg bg-orange-500 px-4 py-3 text-center text-sm font-semibold text-white transition hover:bg-orange-600"
+>
+  📖 Baca eBook
+</Link>
+
               </div>
             ))}
           </div>
