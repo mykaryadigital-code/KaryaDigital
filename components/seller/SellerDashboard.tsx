@@ -56,6 +56,11 @@ const statusStyles: Record<EbookStatus, string> = {
 
 export default function SellerDashboard() {
   const [books, setBooks] = useState<Ebook[]>([]);
+  const [salesStats, setSalesStats] = useState({
+  paid_orders: 0,
+  ebooks_sold: 0,
+  gross_sales: 0,
+});
   const [search, setSearch] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -104,6 +109,18 @@ const [successMessage, setSuccessMessage] = useState("");
         if (active) {
           setBooks((data ?? []) as Ebook[]);
         }
+        const { data: salesData, error: salesError } =
+  await supabase.rpc("get_seller_sales_stats");
+
+if (salesError) {
+  console.error("Gagal mendapatkan statistik jualan:", salesError);
+} else if (active && salesData?.[0]) {
+  setSalesStats({
+    paid_orders: Number(salesData[0].paid_orders ?? 0),
+    ebooks_sold: Number(salesData[0].ebooks_sold ?? 0),
+    gross_sales: Number(salesData[0].gross_sales ?? 0),
+  });
+}
       } catch (err) {
         if (active) {
           setError(
@@ -212,15 +229,15 @@ async function submitForReview(ebookId: string) {
 
   const stats = [
     {
-      label: "Jumlah Jualan",
-      value: rm(0),
-      icon: CircleDollarSign,
-    },
-    {
-      label: "eBook Terjual",
-      value: "0",
-      icon: ShoppingBag,
-    },
+  label: "Jumlah Jualan",
+  value: rm(salesStats.gross_sales),
+  icon: CircleDollarSign,
+},
+{
+  label: "eBook Terjual",
+  value: String(salesStats.ebooks_sold),
+  icon: ShoppingBag,
+},
     {
       label: "Jumlah eBook",
       value: String(books.length),
