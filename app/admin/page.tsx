@@ -80,14 +80,12 @@ export default async function AdminPage() {
   ];
 
   const managementItems = [
-    
-{
-  title: "Pengurusan Pengguna",
-  description: "Urus pembeli dan penjual.",
-  icon: "👥",
-  href: "/admin/pengguna",
-},
-
+    {
+      title: "Pengurusan Pengguna",
+      description: "Urus pembeli dan penjual.",
+      icon: "👥",
+      href: "/admin/pengguna",
+    },
     {
       title: "Permohonan Penjual",
       description: "Semak permohonan menjadi penjual.",
@@ -107,15 +105,16 @@ export default async function AdminPage() {
       href: "/admin/ebooks",
     },
     {
-  title: "Laporan Jualan",
-  description: "Pantau prestasi marketplace.",
-  icon: "📊",
-  href: "/admin/jualan",
-},
+      title: "Laporan Jualan",
+      description: "Pantau prestasi marketplace.",
+      icon: "📊",
+      href: "/admin/jualan",
+    },
     {
       title: "Tetapan Platform",
       description: "Urus tetapan KaryaDigital.",
       icon: "⚙️",
+      href: "/admin/tetapan",
     },
   ];
 
@@ -154,6 +153,7 @@ export default async function AdminPage() {
           <h3 className="text-xl font-bold text-gray-900">
             Ringkasan Marketplace
           </h3>
+
           <p className="mt-1 text-sm text-gray-500">
             Statistik jualan berbayar seluruh KaryaDigital.
           </p>
@@ -183,10 +183,14 @@ export default async function AdminPage() {
                 key={item.title}
                 className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm"
               >
-                <div className="text-3xl">{item.icon}</div>
+                <div className="text-3xl">
+                  {item.icon}
+                </div>
+
                 <p className="mt-4 text-2xl font-extrabold text-gray-900">
                   {item.value}
                 </p>
+
                 <p className="mt-1 text-sm text-gray-500">
                   {item.title}
                 </p>
@@ -204,10 +208,14 @@ export default async function AdminPage() {
             {managementItems.map((item) => {
               const content = (
                 <>
-                  <div className="text-3xl">{item.icon}</div>
+                  <div className="text-3xl">
+                    {item.icon}
+                  </div>
+
                   <h4 className="mt-4 text-lg font-bold text-gray-900">
                     {item.title}
                   </h4>
+
                   <p className="mt-2 text-sm text-gray-500">
                     {item.description}
                   </p>
@@ -238,6 +246,7 @@ export default async function AdminPage() {
           <p className="font-semibold text-indigo-800">
             Status: Super Admin Aktif
           </p>
+
           <p className="mt-1 text-sm text-indigo-700">
             Halaman ini hanya dipaparkan kepada akaun
             dengan peranan admin.
