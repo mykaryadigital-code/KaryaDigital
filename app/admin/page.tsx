@@ -104,10 +104,11 @@ export default async function AdminPage() {
       href: "/admin/ebooks",
     },
     {
-      title: "Laporan Jualan",
-      description: "Pantau prestasi marketplace.",
-      icon: "📊",
-    },
+  title: "Laporan Jualan",
+  description: "Pantau prestasi marketplace.",
+  icon: "📊",
+  href: "/admin/jualan",
+},
     {
       title: "Tetapan Platform",
       description: "Urus tetapan KaryaDigital.",
