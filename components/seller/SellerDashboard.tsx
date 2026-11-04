@@ -10,7 +10,6 @@ import {
   Menu,
   Plus,
   Search,
-  Send,
   ShoppingBag,
   Store,
   TrendingUp,
@@ -54,13 +53,25 @@ const statusStyles: Record<EbookStatus, string> = {
   rejected: "bg-red-100 text-red-700",
 };
 
+type SaleRecord = {
+  order_id: string;
+  ebook_id: string;
+  ebook_title: string;
+  sale_amount: number;
+  payment_status: string;
+  sold_at: string;
+};
+
 export default function SellerDashboard() {
   const [books, setBooks] = useState<Ebook[]>([]);
   const [salesStats, setSalesStats] = useState({
-  paid_orders: 0,
-  ebooks_sold: 0,
-  gross_sales: 0,
-});
+    paid_orders: 0,
+    ebooks_sold: 0,
+    gross_sales: 0,
+  });
+  const [salesHistory, setSalesHistory] = useState<SaleRecord[]>([]);
+  const [salesLoading, setSalesLoading] = useState(true);
+  const [salesError, setSalesError] = useState("");
   const [search, setSearch] = useState("");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -78,6 +89,8 @@ const [successMessage, setSuccessMessage] = useState("");
     async function loadBooks() {
       setLoading(true);
       setError("");
+      setSalesLoading(true);
+      setSalesError("");
 
       try {
         const {
@@ -109,18 +122,35 @@ const [successMessage, setSuccessMessage] = useState("");
         if (active) {
           setBooks((data ?? []) as Ebook[]);
         }
-        const { data: salesData, error: salesError } =
-  await supabase.rpc("get_seller_sales_stats");
 
-if (salesError) {
-  console.error("Gagal mendapatkan statistik jualan:", salesError);
-} else if (active && salesData?.[0]) {
-  setSalesStats({
-    paid_orders: Number(salesData[0].paid_orders ?? 0),
-    ebooks_sold: Number(salesData[0].ebooks_sold ?? 0),
-    gross_sales: Number(salesData[0].gross_sales ?? 0),
-  });
-}
+        // Kedua-dua RPC menghadkan rekod kepada penjual yang sedang login.
+        const [statsResult, historyResult] = await Promise.all([
+          supabase.rpc("get_seller_sales_stats"),
+          supabase.rpc("get_seller_sales_history"),
+        ]);
+
+        if (active) {
+          if (statsResult.error) {
+            setSalesError("Statistik jualan gagal dimuatkan: " + statsResult.error.message);
+          } else {
+            const row = statsResult.data?.[0];
+            setSalesStats({
+              paid_orders: Number(row?.paid_orders ?? 0),
+              ebooks_sold: Number(row?.ebooks_sold ?? 0),
+              gross_sales: Number(row?.gross_sales ?? 0),
+            });
+          }
+
+          if (historyResult.error) {
+            setSalesError((current) =>
+              [current, "Sejarah jualan gagal dimuatkan: " + historyResult.error.message]
+                .filter(Boolean)
+                .join(" ")
+            );
+          } else {
+            setSalesHistory((historyResult.data ?? []) as SaleRecord[]);
+          }
+        }
       } catch (err) {
         if (active) {
           setError(
@@ -128,10 +158,12 @@ if (salesError) {
               ? err.message
               : "Gagal mendapatkan senarai eBook."
           );
+          setSalesError("Statistik dan sejarah jualan tidak dapat dimuatkan.");
         }
       } finally {
         if (active) {
           setLoading(false);
+          setSalesLoading(false);
         }
       }
     }
@@ -229,15 +261,15 @@ async function submitForReview(ebookId: string) {
 
   const stats = [
     {
-  label: "Jumlah Jualan",
-  value: rm(salesStats.gross_sales),
-  icon: CircleDollarSign,
-},
-{
-  label: "eBook Terjual",
-  value: String(salesStats.ebooks_sold),
-  icon: ShoppingBag,
-},
+      label: "Jumlah Jualan",
+      value: rm(salesStats.gross_sales),
+      icon: CircleDollarSign,
+    },
+    {
+      label: "eBook Terjual",
+      value: String(salesStats.ebooks_sold),
+      icon: ShoppingBag,
+    },
     {
       label: "Jumlah eBook",
       value: String(books.length),
@@ -320,9 +352,9 @@ async function submitForReview(ebookId: string) {
           <div className="mt-10 rounded-xl bg-indigo-50 p-4 text-xs leading-relaxed text-indigo-900">
             <strong>Disambungkan ke Supabase</strong>
             <p className="mt-1">
-              Senarai eBook diambil daripada database
-              KaryaDigital. Statistik jualan akan
-              diaktifkan selepas sistem pembelian siap.
+              Senarai eBook, statistik dan sejarah jualan
+              disambungkan ke Supabase. Hanya jualan berbayar
+              milik kedai anda dipaparkan.
             </p>
           </div>
         </aside>
@@ -385,7 +417,11 @@ async function submitForReview(ebookId: string) {
                 />
 
                 <p className="text-xl font-extrabold sm:text-2xl">
-                  {loading ? "..." : stat.value}
+                  {loading || salesLoading
+                    ? "..."
+                    : salesError && (stat.label === "Jumlah Jualan" || stat.label === "eBook Terjual") && salesStats.gross_sales === 0 && salesStats.ebooks_sold === 0
+                      ? "—"
+                      : stat.value}
                 </p>
 
                 <p className="mt-1 text-xs text-slate-500 sm:text-sm">
@@ -393,6 +429,59 @@ async function submitForReview(ebookId: string) {
                 </p>
               </div>
             ))}
+          </section>
+
+          {/* SEJARAH JUALAN */}
+          <section className="mt-8 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="sales-history-title">
+            <div className="mb-5">
+              <h2 id="sales-history-title" className="text-xl font-bold">Sejarah Jualan</h2>
+              <p className="mt-1 text-sm text-slate-500">Rekod eBook terjual yang telah dibayar. Tarikh ialah tarikh pesanan dibuat.</p>
+            </div>
+
+            {salesError && (
+              <p role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                {salesError}
+              </p>
+            )}
+
+            {salesLoading ? (
+              <p className="py-6 text-sm text-slate-500">Sedang memuatkan sejarah jualan...</p>
+            ) : salesHistory.length === 0 && !salesError ? (
+              <p className="py-6 text-sm text-slate-500">Belum ada rekod jualan berbayar.</p>
+            ) : salesHistory.length > 0 ? (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[650px] text-left text-sm">
+                  <thead>
+                    <tr className="border-b text-slate-500">
+                      <th className="py-3 pr-4 font-medium">eBook</th>
+                      <th className="py-3 pr-4 font-medium">Tarikh Pesanan</th>
+                      <th className="py-3 pr-4 font-medium">Harga Jualan</th>
+                      <th className="py-3 font-medium">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {salesHistory.map((sale) => (
+                      <tr key={`${sale.order_id}-${sale.ebook_id}`} className="border-b border-slate-100 last:border-0">
+                        <td className="py-4 pr-4 font-semibold">{sale.ebook_title}</td>
+                        <td className="py-4 pr-4 text-slate-600">
+                          {new Date(sale.sold_at).toLocaleString("ms-MY", {
+                            timeZone: "Asia/Kuala_Lumpur",
+                            dateStyle: "medium",
+                            timeStyle: "short",
+                          })}
+                        </td>
+                        <td className="py-4 pr-4">{rm(Number(sale.sale_amount))}</td>
+                        <td className="py-4">
+                          <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+                            {sale.payment_status === "paid" ? "Dibayar" : sale.payment_status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : null}
           </section>
 
           {/* SENARAI EBOOK */}
