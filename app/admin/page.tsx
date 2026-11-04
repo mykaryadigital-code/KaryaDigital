@@ -80,11 +80,14 @@ export default async function AdminPage() {
   ];
 
   const managementItems = [
-    {
-      title: "Pengurusan Pengguna",
-      description: "Urus pembeli dan penjual.",
-      icon: "👥",
-    },
+    
+{
+  title: "Pengurusan Pengguna",
+  description: "Urus pembeli dan penjual.",
+  icon: "👥",
+  href: "/admin/pengguna",
+},
+
     {
       title: "Permohonan Penjual",
       description: "Semak permohonan menjadi penjual.",
