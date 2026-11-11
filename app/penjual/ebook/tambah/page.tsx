@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, type FormEvent } from "react";
@@ -27,14 +26,9 @@ export default function TambahEbookPage() {
   const [category, setCategory] = useState("");
   const [price, setPrice] = useState("");
   const [description, setDescription] = useState("");
-
-  const [coverFile, setCoverFile] = useState<File | null>(
-    null
-  );
-  const [pdfFile, setPdfFile] = useState<File | null>(
-    null
-  );
-
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [fileResetKey, setFileResetKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
@@ -58,17 +52,14 @@ export default function TambahEbookPage() {
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        throw new Error(
-          "Sesi login tamat. Sila login semula."
-        );
+        throw new Error("Sesi login tamat. Sila login semula.");
       }
 
-      const { data: profile, error: profileError } =
-        await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single();
+      const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
       if (profileError || profile?.role !== "seller") {
         throw new Error(
@@ -86,7 +77,7 @@ export default function TambahEbookPage() {
         );
       }
 
-      if (!cleanCategory || cleanCategory.length > 100) {
+      if (!categories.includes(cleanCategory)) {
         throw new Error("Sila pilih kategori.");
       }
 
@@ -96,15 +87,11 @@ export default function TambahEbookPage() {
         numericPrice < 0 ||
         !/^\d+(\.\d{1,2})?$/.test(price)
       ) {
-        throw new Error(
-          "Harga tidak sah. Contoh: 29.90"
-        );
+        throw new Error("Harga tidak sah. Contoh: 29.90");
       }
 
       if (!coverFile || !pdfFile) {
-        throw new Error(
-          "Sila pilih gambar kulit dan fail PDF."
-        );
+        throw new Error("Sila pilih gambar kulit dan fail PDF.");
       }
 
       const allowedCoverTypes = [
@@ -114,30 +101,22 @@ export default function TambahEbookPage() {
       ];
 
       if (!allowedCoverTypes.includes(coverFile.type)) {
-        throw new Error(
-          "Gambar kulit mesti JPG, PNG atau WebP."
-        );
+        throw new Error("Gambar kulit mesti JPG, PNG atau WebP.");
       }
 
       if (coverFile.size > 5 * 1024 * 1024) {
-        throw new Error(
-          "Gambar kulit tidak boleh melebihi 5 MB."
-        );
+        throw new Error("Gambar kulit tidak boleh melebihi 5 MB.");
       }
 
       if (
         pdfFile.type !== "application/pdf" ||
         !pdfFile.name.toLowerCase().endsWith(".pdf")
       ) {
-        throw new Error(
-          "Fail eBook mesti dalam format PDF."
-        );
+        throw new Error("Fail eBook mesti dalam format PDF.");
       }
 
       if (pdfFile.size > 20 * 1024 * 1024) {
-        throw new Error(
-          "Fail PDF tidak boleh melebihi 20 MB."
-        );
+        throw new Error("Fail PDF tidak boleh melebihi 20 MB.");
       }
 
       const coverExtension =
@@ -148,52 +127,40 @@ export default function TambahEbookPage() {
           : "webp";
 
       const uniqueId = crypto.randomUUID();
+      const coverPath = `${user.id}/${uniqueId}.${coverExtension}`;
+      const pdfPath = `${user.id}/${uniqueId}.pdf`;
 
-      const coverPath =
-        `${user.id}/${uniqueId}.${coverExtension}`;
-
-      const pdfPath =
-        `${user.id}/${uniqueId}.pdf`;
-
-      // Muat naik gambar kulit
-      const { error: coverError } =
-        await supabase.storage
-          .from("ebook-covers")
-          .upload(coverPath, coverFile, {
-            contentType: coverFile.type,
-            upsert: false,
-          });
+      const { error: coverError } = await supabase.storage
+        .from("ebook-covers")
+        .upload(coverPath, coverFile, {
+          contentType: coverFile.type,
+          upsert: false,
+        });
 
       if (coverError) {
         throw new Error(
-          "Gagal muat naik gambar kulit: " +
-            coverError.message
+          "Gagal muat naik gambar kulit: " + coverError.message
         );
       }
 
       uploadedCoverPath = coverPath;
 
-      // Muat naik fail PDF peribadi
-      const { error: pdfError } =
-        await supabase.storage
-          .from("ebook-pdfs")
-          .upload(pdfPath, pdfFile, {
-            contentType: "application/pdf",
-            upsert: false,
-          });
+      const { error: pdfError } = await supabase.storage
+        .from("ebook-pdfs")
+        .upload(pdfPath, pdfFile, {
+          contentType: "application/pdf",
+          upsert: false,
+        });
 
       if (pdfError) {
-        throw new Error(
-          "Gagal muat naik PDF: " +
-            pdfError.message
-        );
+        throw new Error("Gagal muat naik PDF: " + pdfError.message);
       }
 
       uploadedPdfPath = pdfPath;
 
-      // Simpan maklumat eBook ke database
-      const { error: insertError } =
-        await supabase.from("ebooks").insert({
+      const { error: insertError } = await supabase
+        .from("ebooks")
+        .insert({
           seller_id: user.id,
           title: cleanTitle,
           description: description.trim(),
@@ -201,6 +168,7 @@ export default function TambahEbookPage() {
           price: numericPrice,
           cover_path: coverPath,
           pdf_path: pdfPath,
+          access_type: "downloadable",
           status: "draft",
         });
 
@@ -211,31 +179,24 @@ export default function TambahEbookPage() {
       }
 
       setMessage("eBook berjaya disimpan sebagai draf!");
-
       setTitle("");
       setCategory("");
       setPrice("");
       setDescription("");
       setCoverFile(null);
       setPdfFile(null);
+      setFileResetKey((previous) => previous + 1);
 
       router.refresh();
     } catch (err) {
-      const errorMessage =
+      setError(
         err instanceof Error
           ? err.message
-          : "Ralat tidak diketahui.";
+          : "Ralat tidak diketahui."
+      );
 
-      setError(errorMessage);
-
-      // Nota:
-      // Fail yang sudah dimuat naik mungkin kekal
-      // jika langkah berikutnya gagal.
-      // Polisi DELETE belum disediakan,
-      // jadi pembersihan akan dibuat melalui
-      // proses server yang selamat kemudian.
       if (uploadedCoverPath || uploadedPdfPath) {
-        console.warn("Fail belum dipautkan:", {
+        console.warn("Semak fail muat naik selepas kegagalan:", {
           uploadedCoverPath,
           uploadedPdfPath,
         });
@@ -255,82 +216,57 @@ export default function TambahEbookPage() {
           href="/penjual/dashboard"
           className="mb-6 inline-block text-sm font-medium text-indigo-600 hover:underline"
         >
-          ← Kembali ke Dashboard Penjual
+          Kembali ke Dashboard
         </Link>
 
-        <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm md:p-8">
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-gray-900">
-              Tambah eBook Baharu
-            </h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Tambah eBook
+        </h1>
 
-            <p className="mt-2 text-sm text-gray-500">
-              Lengkapkan maklumat eBook anda dan
-              simpan sebagai draf.
-            </p>
-          </div>
+        <p className="mt-2 text-gray-600">
+          Simpan eBook sebagai draf sebelum menghantarnya untuk
+          semakan Admin.
+        </p>
 
-          {error && (
-            <div
-              role="alert"
-              className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"
-            >
-              {error}
-            </div>
-          )}
-
-          {message && (
-            <div
-              role="status"
-              className="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-700"
-            >
-              {message}
-            </div>
-          )}
-
-          <form
-            onSubmit={handleSubmit}
-            className="space-y-6"
-          >
+        <form
+          onSubmit={handleSubmit}
+          className="mt-8 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+        >
+          <fieldset disabled={loading} className="space-y-6">
             <div>
               <label
-                htmlFor="title"
-                className="mb-2 block text-sm font-semibold text-gray-700"
+                htmlFor="ebook-title"
+                className="mb-2 block text-sm font-semibold text-gray-800"
               >
-                Tajuk eBook *
+                Tajuk eBook
               </label>
-
               <input
-                id="title"
+                id="ebook-title"
                 type="text"
-                required
-                maxLength={200}
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder="Contoh: Panduan Bisnes Online"
+                maxLength={200}
+                required
                 className={inputStyle}
+                placeholder="Masukkan tajuk eBook"
               />
             </div>
 
             <div>
               <label
-                htmlFor="category"
-                className="mb-2 block text-sm font-semibold text-gray-700"
+                htmlFor="ebook-category"
+                className="mb-2 block text-sm font-semibold text-gray-800"
               >
-                Kategori *
+                Kategori
               </label>
-
               <select
-                id="category"
-                required
+                id="ebook-category"
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
+                required
                 className={inputStyle}
               >
-                <option value="">
-                  -- Pilih kategori --
-                </option>
-
+                <option value="">Pilih kategori</option>
                 {categories.map((item) => (
                   <option key={item} value={item}>
                     {item}
@@ -341,112 +277,126 @@ export default function TambahEbookPage() {
 
             <div>
               <label
-                htmlFor="price"
-                className="mb-2 block text-sm font-semibold text-gray-700"
+                htmlFor="ebook-price"
+                className="mb-2 block text-sm font-semibold text-gray-800"
               >
-                Harga (RM) *
+                Harga (RM)
               </label>
-
               <input
-                id="price"
+                id="ebook-price"
                 type="number"
+                inputMode="decimal"
                 min="0"
                 step="0.01"
-                required
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                placeholder="29.90"
+                required
                 className={inputStyle}
+                placeholder="Contoh: 29.90"
               />
             </div>
 
             <div>
               <label
-                htmlFor="description"
-                className="mb-2 block text-sm font-semibold text-gray-700"
+                htmlFor="ebook-description"
+                className="mb-2 block text-sm font-semibold text-gray-800"
               >
                 Penerangan eBook
               </label>
-
               <textarea
-                id="description"
-                rows={5}
+                id="ebook-description"
                 value={description}
-                onChange={(e) =>
-                  setDescription(e.target.value)
-                }
-                placeholder="Terangkan kandungan dan manfaat eBook..."
+                onChange={(e) => setDescription(e.target.value)}
+                rows={5}
                 className={inputStyle}
+                placeholder="Terangkan kandungan dan manfaat eBook"
               />
+            </div>
+
+            <div className="rounded-xl bg-indigo-50 p-4 text-sm text-indigo-900">
+              Pembeli boleh membaca eBook secara online dan
+              memuat turun PDF selepas pembayaran disahkan.
             </div>
 
             <div>
               <label
-                htmlFor="cover"
-                className="mb-2 block text-sm font-semibold text-gray-700"
+                htmlFor="ebook-cover"
+                className="mb-2 block text-sm font-semibold text-gray-800"
               >
-                Gambar Kulit eBook *
+                Gambar Kulit
               </label>
-
               <input
-                key={message ? "cover-reset" : "cover"}
-                id="cover"
+                key={`cover-${fileResetKey}`}
+                id="ebook-cover"
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                required
                 onChange={(e) =>
-                  setCoverFile(
-                    e.target.files?.[0] ?? null
-                  )
+                  setCoverFile(e.target.files?.[0] ?? null)
                 }
+                required
                 className={inputStyle}
               />
-
               <p className="mt-2 text-xs text-gray-500">
-                JPG, PNG atau WebP. Maksimum 5 MB.
+                Format JPG, PNG atau WebP. Maksimum 5 MB.
               </p>
             </div>
 
             <div>
               <label
-                htmlFor="pdf"
-                className="mb-2 block text-sm font-semibold text-gray-700"
+                htmlFor="ebook-pdf"
+                className="mb-2 block text-sm font-semibold text-gray-800"
               >
-                Fail eBook (PDF) *
+                Fail PDF eBook
               </label>
-
               <input
-                key={message ? "pdf-reset" : "pdf"}
-                id="pdf"
+                key={`pdf-${fileResetKey}`}
+                id="ebook-pdf"
                 type="file"
                 accept="application/pdf,.pdf"
-                required
                 onChange={(e) =>
-                  setPdfFile(
-                    e.target.files?.[0] ?? null
-                  )
+                  setPdfFile(e.target.files?.[0] ?? null)
                 }
+                required
                 className={inputStyle}
               />
-
               <p className="mt-2 text-xs text-gray-500">
-                PDF sahaja. Maksimum 20 MB.
+                Format PDF. Maksimum 20 MB.
               </p>
             </div>
 
-            <div className="border-t border-gray-200 pt-6">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-xl bg-indigo-600 px-6 py-3 font-semibold text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-60"
+            {error && (
+              <p
+                role="alert"
+                className="rounded-xl bg-red-50 p-4 text-sm text-red-700"
               >
-                {loading
-                  ? "Sedang menyimpan..."
-                  : "Simpan sebagai Draf"}
-              </button>
-            </div>
-          </form>
-        </div>
+                {error}
+              </p>
+            )}
+
+            {message && (
+              <div
+                role="status"
+                className="rounded-xl bg-green-50 p-4 text-sm text-green-800"
+              >
+                <p>{message}</p>
+                <Link
+                  href="/penjual/dashboard"
+                  className="mt-2 inline-block font-semibold underline"
+                >
+                  Lihat eBook di Dashboard
+                </Link>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-indigo-600 px-5 py-3 font-bold text-white hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loading ? "Sedang Menyimpan..." : "Simpan Sebagai Draf"}
+            </button>
+          </fieldset>
+        </form>
       </div>
     </main>
   );

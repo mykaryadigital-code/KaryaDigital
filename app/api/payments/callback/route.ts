@@ -50,44 +50,53 @@ if (
     // Baca data callback sebagai teks.
     // Pengesahan dengan toyyibPay belum dibuat.
     
-const callbackBody = await request.text();
+const contentType = (
+  request.headers.get("content-type") ?? ""
+).toLowerCase();
 
-const callbackParams = new URLSearchParams(
-  callbackBody
-);
-console.log("ToyyibPay callback format:", {
-  contentType: request.headers.get("content-type"),
-  bodyFields: [...callbackParams.keys()],
-  urlFields: [...new URL(request.url).searchParams.keys()],
-  bodyLooksLikeJson: callbackBody.trim().startsWith("{"),
-});
 const callbackUrl = new URL(request.url);
-let callbackJson: Record<string, unknown> = {};
+let bodyBillCode: string | null = null;
 
-if (callbackBody.trim().startsWith("{")) {
-  try {
-    const parsed: unknown = JSON.parse(callbackBody);
+if (
+  contentType.includes("multipart/form-data") ||
+  contentType.includes("application/x-www-form-urlencoded")
+) {
+  const form = await request.formData();
+  const value = form.get("billcode") ?? form.get("billCode");
 
-    if (
-      parsed !== null &&
-      typeof parsed === "object" &&
-      !Array.isArray(parsed)
-    ) {
-      callbackJson = parsed as Record<string, unknown>;
-    }
-  } catch {
-    console.error("Format JSON callback tidak sah.");
+  if (typeof value === "string") {
+    bodyBillCode = value;
   }
+} else if (contentType.includes("application/json")) {
+  const parsed: unknown = await request.json();
+
+  if (
+    parsed !== null &&
+    typeof parsed === "object" &&
+    !Array.isArray(parsed)
+  ) {
+    const data = parsed as Record<string, unknown>;
+    const value = data.billcode ?? data.billCode;
+
+    if (typeof value === "string") {
+      bodyBillCode = value;
+    }
+  }
+} else {
+  const params = new URLSearchParams(await request.text());
+  bodyBillCode = params.get("billcode") ?? params.get("billCode");
 }
-const jsonBillCode =
-  callbackJson["billcode"] ?? callbackJson["billCode"];
 
 const billCode =
-  callbackParams.get("billcode") ||
-  callbackParams.get("billCode") ||
-  callbackUrl.searchParams.get("billcode") ||
-  callbackUrl.searchParams.get("billCode") ||
-  (typeof jsonBillCode === "string" ? jsonBillCode : null);
+  bodyBillCode?.trim() ||
+  callbackUrl.searchParams.get("billcode")?.trim() ||
+  callbackUrl.searchParams.get("billCode")?.trim() ||
+  null;
+
+console.log("ToyyibPay callback diterima:", {
+  contentType,
+  hasBillCode: Boolean(billCode),
+});
 
 if (!billCode || !billCode.trim()) {
   return NextResponse.json(

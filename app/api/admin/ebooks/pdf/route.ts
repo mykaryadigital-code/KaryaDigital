@@ -86,12 +86,17 @@ export async function POST(request: NextRequest) {
         .createSignedUrl(ebook.pdf_path, 60);
 
     if (signedError || !signedData?.signedUrl) {
+      console.error("Admin PDF signed URL error:", {
+        message: signedError?.message,
+        statusCode: signedError?.statusCode,
+        name: signedError?.name,
+      });
+
       return NextResponse.json(
         { error: "Gagal menyediakan pautan PDF." },
         { status: 500 }
       );
     }
-
     // 6. Hantar pautan kepada Admin
     return NextResponse.json(
       { url: signedData.signedUrl },

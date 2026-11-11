@@ -1,4 +1,6 @@
 
+import { createAdminClient } from "@/lib/supabase/admin";
+
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
@@ -101,12 +103,15 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
+// 6. Sediakan pautan bacaan sementara
+// Hanya selepas hak pembelian pengguna disahkan.
+const admin = createAdminClient();
 
-    // 6. Sediakan pautan bacaan sementara
-    const { data: signedData, error: signedError } =
-      await supabase.storage
-        .from("ebook-pdfs")
-        .createSignedUrl(ebook.pdf_path, 60);
+const { data: signedData, error: signedError } =
+  await admin.storage
+    .from("ebook-pdfs")
+    .createSignedUrl(ebook.pdf_path, 60);
+
 
     if (signedError || !signedData?.signedUrl) {
       return NextResponse.json(

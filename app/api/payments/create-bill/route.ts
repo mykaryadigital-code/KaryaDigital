@@ -117,6 +117,50 @@ export async function POST(request: NextRequest) {
     // Semakan sahaja, belum cipta bil
     
     // Simpan atau dapatkan rekod pembayaran
+    const toyyibPayBaseUrl =
+  process.env.TOYYIBPAY_BASE_URL?.replace(/\/+$/, "");
+
+const toyyibPayCreateBillUrl =
+  `${toyyibPayBaseUrl}/index.php/api/createBill`;
+
+const toyyibPaySecretKey =
+  process.env.TOYYIBPAY_SECRET_KEY;
+
+const toyyibPayCategoryCode =
+  process.env.TOYYIBPAY_CATEGORY_CODE;
+
+const toyyibPayAppUrl =
+  process.env.TOYYIBPAY_APP_URL?.trim().replace(/\/+$/, "");
+
+if (
+  !toyyibPayAppUrl ||
+  !/^https:\/\/[^/\s]+$/i.test(toyyibPayAppUrl)
+) {
+  console.error("TOYYIBPAY_APP_URL tidak sah atau belum ditetapkan.");
+
+  return NextResponse.json(
+    { error: "Konfigurasi URL pembayaran belum lengkap." },
+    { status: 500 }
+  );
+}
+
+if (
+  !toyyibPayBaseUrl ||
+  !toyyibPaySecretKey ||
+  !toyyibPayCategoryCode
+) {
+  console.error(
+    "Konfigurasi toyyibPay tidak lengkap."
+  );
+
+  return NextResponse.json(
+    {
+      error:
+        "Konfigurasi pembayaran belum lengkap.",
+    },
+    { status: 500 }
+  );
+}
     // menggunakan fungsi Supabase yang dilindungi.
     const admin = createAdminClient();
 
@@ -146,7 +190,7 @@ export async function POST(request: NextRequest) {
         message: "Bil pembayaran sudah tersedia.",
         paymentId: payment.id,
         billCode: payment.provider_bill_code,
-paymentUrl: `${process.env.TOYYIBPAY_BASE_URL?.replace(/\/+$/, "")}/${payment.provider_bill_code}`,
+paymentUrl: `${toyyibPayBaseUrl}/${payment.provider_bill_code}`,
 paymentStatus: payment.status,
       });
     }
@@ -205,35 +249,6 @@ paymentStatus: payment.status,
       );
     }
 
-const toyyibPayBaseUrl =
-  process.env.TOYYIBPAY_BASE_URL?.replace(/\/+$/, "");
-
-const toyyibPayCreateBillUrl =
-  `${toyyibPayBaseUrl}/index.php/api/createBill`;
-
-const toyyibPaySecretKey =
-  process.env.TOYYIBPAY_SECRET_KEY;
-
-const toyyibPayCategoryCode =
-  process.env.TOYYIBPAY_CATEGORY_CODE;
-
-if (
-  !toyyibPayBaseUrl ||
-  !toyyibPaySecretKey ||
-  !toyyibPayCategoryCode
-) {
-  console.error(
-    "Konfigurasi toyyibPay tidak lengkap."
-  );
-
-  return NextResponse.json(
-    {
-      error:
-        "Konfigurasi pembayaran belum lengkap.",
-    },
-    { status: 500 }
-  );
-}
 
 const toyyibPayBillData = new URLSearchParams({
   userSecretKey: toyyibPaySecretKey,
@@ -244,8 +259,12 @@ const toyyibPayBillData = new URLSearchParams({
   billPayorInfo: "1",
   billAmount: String(Math.round(amount * 100)),
   
-billReturnUrl: "https://mykarya.digital/pesanan",
-billCallbackUrl: "https://mykarya.digital/api/payments/callback",
+
+
+billReturnUrl: `${toyyibPayAppUrl}/pesanan`,
+billCallbackUrl: `${toyyibPayAppUrl}/api/payments/callback`,
+
+
 
   billExternalReferenceNo: payment.external_reference,
   billTo: buyerName,
