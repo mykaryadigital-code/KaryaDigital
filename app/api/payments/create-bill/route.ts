@@ -1,102 +1,130 @@
-
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+const uuidPattern =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function reply(body: Record<string, unknown>, status = 200) {
+  return NextResponse.json(body, {
+    status,
+    headers: { "Cache-Control": "private, no-store" },
+  });
+}
+
+function validAppUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+
+    return (
+      url.protocol === "https:" &&
+      !url.username &&
+      !url.password &&
+      url.pathname === "/" &&
+      !url.search &&
+      !url.hash
+    );
+  } catch {
+    return false;
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient();
 
-    // Semak pengguna yang sedang log masuk
     const {
       data: { user },
       error: authError,
     } = await supabase.auth.getUser();
 
     if (authError || !user) {
-      return NextResponse.json(
-        { error: "Sila log masuk dahulu." },
-        { status: 401 }
-      );
+      return reply({ error: "Sila log masuk dahulu." }, 401);
     }
 
-    // Ambil ID pesanan daripada permintaan
     const body = await request.json().catch(() => null);
     const orderId = body?.orderId;
-
-    const uuidPattern =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
     if (
       typeof orderId !== "string" ||
       !uuidPattern.test(orderId)
     ) {
-      return NextResponse.json(
-        { error: "ID pesanan tidak sah." },
-        { status: 400 }
-      );
+      return reply({ error: "ID pesanan tidak sah." }, 400);
     }
 
-    // Cari pesanan milik pembeli ini sahaja
-    const { data: order, error: orderError } =
-      await supabase
-        .from("orders")
-        .select("id, buyer_id, total_amount, status")
-        .eq("id", orderId)
-        .eq("buyer_id", user.id)
-        .maybeSingle();
+    const { data: order, error: orderError } = await supabase
+      .from("orders")
+      .select("id, buyer_id, total_amount, status")
+      .eq("id", orderId)
+      .eq("buyer_id", user.id)
+      .maybeSingle();
 
     if (orderError) {
-      console.error("Order lookup error:", orderError);
-
-      return NextResponse.json(
-        { error: "Gagal menyemak pesanan." },
-        { status: 500 }
-      );
+      return reply({ error: "Gagal menyemak pesanan." }, 500);
     }
 
     if (!order) {
-      return NextResponse.json(
-        { error: "Pesanan tidak dijumpai." },
-        { status: 404 }
-      );
+      return reply({ error: "Pesanan tidak dijumpai." }, 404);
     }
 
     if (order.status !== "pending") {
-      return NextResponse.json(
-        { error: "Pesanan ini bukan lagi pending." },
-        { status: 409 }
+      return reply(
+        { error: "Pesanan ini bukan lagi menunggu pembayaran." },
+        409
       );
     }
 
     const amount = Number(order.total_amount);
+    const amountInSen = Math.round(amount * 100);
 
-    if (!Number.isFinite(amount) || amount <= 0) {
-      return NextResponse.json(
-        { error: "Jumlah pesanan tidak sah." },
-        { status: 400 }
+    if (
+      !Number.isFinite(amount) ||
+      amount <= 0 ||
+      !Number.isSafeInteger(amountInSen) ||
+      amountInSen <= 0 ||
+      Math.abs(amount * 100 - amountInSen) > 0.000001
+    ) {
+      return reply({ error: "Jumlah pesanan tidak sah." }, 400);
+    }
+
+    // Semak konfigurasi sebelum menyediakan atau mengunci pembayaran.
+    const baseUrl = process.env.TOYYIBPAY_BASE_URL
+      ?.trim()
+      .replace(/\/+$/, "");
+
+    const secretKey = process.env.TOYYIBPAY_SECRET_KEY?.trim();
+    const categoryCode = process.env.TOYYIBPAY_CATEGORY_CODE?.trim();
+
+    const appUrl = process.env.TOYYIBPAY_APP_URL
+      ?.trim()
+      .replace(/\/+$/, "");
+
+    if (
+      !baseUrl ||
+      !["https://dev.toyyibpay.com", "https://toyyibpay.com"].includes(
+        baseUrl
+      ) ||
+      !secretKey ||
+      !categoryCode ||
+      !appUrl ||
+      !validAppUrl(appUrl)
+    ) {
+      return reply(
+        { error: "Konfigurasi pembayaran belum lengkap atau tidak sah." },
+        500
       );
     }
 
-    // Belum mencipta bil toyyibPay
-    
-    // Dapatkan maklumat pembeli
-    const { data: profile, error: profileError } =
-      await supabase
-        .from("profiles")
-        .select("full_name, phone")
-        .eq("id", user.id)
-        .maybeSingle();
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("full_name, phone")
+      .eq("id", user.id)
+      .maybeSingle();
 
     if (profileError) {
-      console.error(
-        "Buyer profile error:",
-        profileError
-      );
-
-      return NextResponse.json(
+      return reply(
         { error: "Gagal mendapatkan maklumat pembeli." },
-        { status: 500 }
+        500
       );
     }
 
@@ -105,265 +133,284 @@ export async function POST(request: NextRequest) {
     const buyerPhone = profile?.phone?.trim();
 
     if (!buyerName || !buyerEmail || !buyerPhone) {
-      return NextResponse.json(
+      return reply(
         {
           error:
             "Maklumat pembeli belum lengkap. Sila lengkapkan nama, email dan nombor telefon.",
         },
-        { status: 400 }
+        400
       );
     }
 
-    // Semakan sahaja, belum cipta bil
-    
-    // Simpan atau dapatkan rekod pembayaran
-    const toyyibPayBaseUrl =
-  process.env.TOYYIBPAY_BASE_URL?.replace(/\/+$/, "");
-
-const toyyibPayCreateBillUrl =
-  `${toyyibPayBaseUrl}/index.php/api/createBill`;
-
-const toyyibPaySecretKey =
-  process.env.TOYYIBPAY_SECRET_KEY;
-
-const toyyibPayCategoryCode =
-  process.env.TOYYIBPAY_CATEGORY_CODE;
-
-const toyyibPayAppUrl =
-  process.env.TOYYIBPAY_APP_URL?.trim().replace(/\/+$/, "");
-
-if (
-  !toyyibPayAppUrl ||
-  !/^https:\/\/[^/\s]+$/i.test(toyyibPayAppUrl)
-) {
-  console.error("TOYYIBPAY_APP_URL tidak sah atau belum ditetapkan.");
-
-  return NextResponse.json(
-    { error: "Konfigurasi URL pembayaran belum lengkap." },
-    { status: 500 }
-  );
-}
-
-if (
-  !toyyibPayBaseUrl ||
-  !toyyibPaySecretKey ||
-  !toyyibPayCategoryCode
-) {
-  console.error(
-    "Konfigurasi toyyibPay tidak lengkap."
-  );
-
-  return NextResponse.json(
-    {
-      error:
-        "Konfigurasi pembayaran belum lengkap.",
-    },
-    { status: 500 }
-  );
-}
-    // menggunakan fungsi Supabase yang dilindungi.
     const admin = createAdminClient();
 
-    const { data: payment, error: paymentError } =
-      await admin.rpc("reserve_order_payment", {
-        p_order_id: order.id,
-      });
+    const { data: payment, error: paymentError } = await admin.rpc(
+      "reserve_order_payment",
+      { p_order_id: order.id }
+    );
 
     if (paymentError || !payment) {
-      console.error(
-        "Payment reservation error:",
-        paymentError
-      );
-
-      return NextResponse.json(
-        {
-          error: "Gagal menyediakan rekod pembayaran.",
-        },
-        { status: 500 }
+      return reply(
+        { error: "Gagal menyediakan rekod pembayaran." },
+        500
       );
     }
 
-    // Semak sama ada bil sudah wujud
+    const paymentAmount = Number(payment.amount);
+
+    if (
+      !Number.isFinite(paymentAmount) ||
+      Math.abs(paymentAmount - amount) > 0.000001
+    ) {
+      return reply(
+        { error: "Jumlah rekod pembayaran tidak sepadan dengan pesanan." },
+        409
+      );
+    }
+
+    if (payment.status === "paid") {
+      return reply(
+        {
+          error:
+            "Rekod pembayaran sudah dibayar. Sila semak status pesanan.",
+        },
+        409
+      );
+    }
+
+    if (!["pending", "failed", "creating"].includes(payment.status)) {
+      return reply(
+        { error: "Status pembayaran memerlukan semakan." },
+        409
+      );
+    }
+
+    // Gunakan bil sedia ada. Jangan cipta bil kedua.
     if (payment.provider_bill_code) {
-      return NextResponse.json({
+      const savedBillCode = payment.provider_bill_code;
+
+      if (
+        typeof savedBillCode !== "string" ||
+        !/^[a-zA-Z0-9]+$/.test(savedBillCode)
+      ) {
+        return reply(
+          { error: "Kod bil tersimpan memerlukan semakan." },
+          500
+        );
+      }
+
+      return reply({
         success: true,
         message: "Bil pembayaran sudah tersedia.",
+        orderId: order.id,
         paymentId: payment.id,
-        billCode: payment.provider_bill_code,
-paymentUrl: `${toyyibPayBaseUrl}/${payment.provider_bill_code}`,
-paymentStatus: payment.status,
+        billCode: savedBillCode,
+        paymentUrl: `${baseUrl}/${savedBillCode}`,
+        paymentStatus: payment.status,
       });
     }
 
-    // Jangan cipta bil kedua jika proses
-    // sedang berjalan atau sudah selesai.
-    if (!["pending", "failed"].includes(payment.status)) {
-      return NextResponse.json(
+    // Status creating tanpa kod bil ialah keputusan yang belum pasti.
+    // Jangan reset atau cuba mencipta bil baharu secara automatik.
+    if (payment.status === "creating") {
+      return reply(
         {
           error:
-            "Pembayaran sedang diproses atau memerlukan semakan.",
+            "Penciptaan bil telah dimulakan tetapi kod bil belum tersedia. Jangan buat bayaran atau pesanan baharu untuk pembelian ini. Hubungi sokongan dengan ID pesanan.",
+          orderId: order.id,
           paymentStatus: payment.status,
+          requiresReview: true,
         },
-        { status: 409 }
+        409
       );
     }
 
-    // Belum mencipta bil toyyibPay
-    
-    // Pastikan rujukan pembayaran tersedia
-    if (!payment.external_reference) {
-      return NextResponse.json(
-        {
-          error: "Rujukan pembayaran tidak tersedia.",
-        },
-        { status: 500 }
+    if (
+      typeof payment.external_reference !== "string" ||
+      !payment.external_reference.trim()
+    ) {
+      return reply(
+        { error: "Rujukan pembayaran tidak tersedia." },
+        500
       );
     }
 
-    // Kunci proses penciptaan bil supaya
-    // hanya satu permintaan boleh meneruskannya.
-    const { data: claimed, error: claimError } =
-      await admin.rpc("claim_payment_creation", {
-        p_payment_id: payment.id,
-      });
+    // Sediakan data sebelum mengambil kunci pembayaran.
+    const billData = new URLSearchParams({
+      userSecretKey: secretKey,
+      categoryCode,
+      billName: `KaryaDigital - ${order.id.slice(0, 8)}`,
+      billDescription: "Pembelian eBook KaryaDigital",
+      billPriceSetting: "1",
+      billPayorInfo: "1",
+      billAmount: String(amountInSen),
+      billReturnUrl: `${appUrl}/pesanan`,
+      billCallbackUrl: `${appUrl}/api/payments/callback`,
+      billExternalReferenceNo: payment.external_reference,
+      billTo: buyerName,
+      billEmail: buyerEmail,
+      billPhone: buyerPhone,
+      billSplitPayment: "0",
+      billPaymentChannel: "0",
+      billContentEmail: "Terima kasih kerana membeli di KaryaDigital.",
+      billChargeToCustomer: "1",
+    });
 
-    if (claimError) {
-      console.error(
-        "Payment claim error:",
-        claimError
-      );
+    const { data: claimed, error: claimError } = await admin.rpc(
+      "claim_payment_creation",
+      { p_payment_id: payment.id }
+    );
 
-      return NextResponse.json(
-        { error: "Gagal mengunci proses pembayaran." },
-        { status: 500 }
-      );
-    }
-
-    if (claimed !== true) {
-      return NextResponse.json(
+    if (claimError || claimed !== true) {
+      return reply(
         {
           error:
-            "Proses pembayaran sudah dimulakan.",
+            "Proses pembayaran belum dapat dimulakan atau sedang diproses. Sila semak semula pesanan.",
         },
-        { status: 409 }
+        claimError ? 503 : 409
+      );
+    }
+        const confirmedOrderId = order.id;
+
+    function needsReview(message: string) {
+      return reply(
+        {
+          error: message,
+          orderId: confirmedOrderId,
+          requiresReview: true,
+        },
+        503
       );
     }
 
+    let billCode = "";
 
-const toyyibPayBillData = new URLSearchParams({
-  userSecretKey: toyyibPaySecretKey,
-  categoryCode: toyyibPayCategoryCode,
-  billName: `KaryaDigital - ${order.id.slice(0, 8)}`,
-  billDescription: "Pembelian eBook KaryaDigital",
-  billPriceSetting: "1",
-  billPayorInfo: "1",
-  billAmount: String(Math.round(amount * 100)),
-  
+    try {
+      // Hanya satu permintaan Create Bill. Tiada retry automatik.
+      const response = await fetch(
+        `${baseUrl}/index.php/api/createBill`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+          },
+          body: billData.toString(),
+          cache: "no-store",
+          signal: AbortSignal.timeout(10000),
+        }
+      );
 
+      if (!response.ok) {
+        console.error("Create Bill HTTP error:", {
+          paymentId: payment.id,
+          status: response.status,
+        });
 
-billReturnUrl: `${toyyibPayAppUrl}/pesanan`,
-billCallbackUrl: `${toyyibPayAppUrl}/api/payments/callback`,
+        return needsReview(
+          "Jawapan penciptaan bil belum dapat dipastikan. Jangan bayar semula. Hubungi sokongan dengan ID pesanan."
+        );
+      }
 
+      const result: unknown = await response.json();
 
+      if (Array.isArray(result) && result.length > 0) {
+        const first: unknown = result[0];
 
-  billExternalReferenceNo: payment.external_reference,
-  billTo: buyerName,
-  billEmail: buyerEmail,
-  billPhone: buyerPhone,
-  billSplitPayment: "0",
-  billPaymentChannel: "0",
-  billContentEmail: "Terima kasih kerana membeli di KaryaDigital.",
-  billChargeToCustomer: "1",
-});
-const createBillRequestOptions: RequestInit = {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/x-www-form-urlencoded",
-  },
-  body: toyyibPayBillData.toString(),
-  cache: "no-store",
-};
+        if (
+          first !== null &&
+          typeof first === "object" &&
+          "BillCode" in first &&
+          typeof first.BillCode === "string"
+        ) {
+          billCode = first.BillCode.trim();
+        }
+      }
 
-const createBillResponse = await fetch(
-  toyyibPayCreateBillUrl,
-  {
-    ...createBillRequestOptions,
-    signal: AbortSignal.timeout(10000),
-  }
-);
-   if (!createBillResponse.ok) {
-  console.error(
-    "Permintaan Create Bill toyyibPay gagal:",
-    createBillResponse.status
-  );
+      if (!/^[a-zA-Z0-9]+$/.test(billCode)) {
+        console.error("Create Bill returned no valid code:", {
+          paymentId: payment.id,
+        });
 
-  return NextResponse.json(
-    { error: "Gagal mencipta bil pembayaran." },
-    { status: 503 }
-  );
-} const createBillData: unknown =
-  await createBillResponse.json();
-  if (!Array.isArray(createBillData) || createBillData.length === 0) {
-  console.error("Format respons Create Bill toyyibPay tidak sah.");
+        return needsReview(
+          "Kod bil tidak dapat dipastikan. Jangan bayar semula. Hubungi sokongan dengan ID pesanan."
+        );
+      }
+    } catch (error) {
+      console.error("Create Bill response uncertain:", {
+        paymentId: payment.id,
+        errorName: error instanceof Error ? error.name : "unknown",
+      });
 
-  return NextResponse.json(
-    { error: "Respons penciptaan bil tidak sah." },
-    { status: 503 }
-  );
-}const firstBill = createBillData[0];
+      return needsReview(
+        "Sambungan penciptaan bil terganggu atau tamat masa. Bil mungkin telah dicipta. Jangan bayar semula; hubungi sokongan dengan ID pesanan."
+      );
+    }
 
-const billCode =
-  firstBill !== null &&
-  typeof firstBill === "object" &&
-  !Array.isArray(firstBill) &&
-  "BillCode" in firstBill &&
-  typeof firstBill.BillCode === "string"
-    ? firstBill.BillCode.trim()
-    : "";
-    if (!billCode) {
-  console.error("Bill Code daripada toyyibPay tidak sah.");
+    // Retry penyimpanan kod yang SAMA, bukan penciptaan bil.
+    let billSaved = false;
 
-  return NextResponse.json(
-    { error: "Kod bil pembayaran tidak diterima." },
-    { status: 503 }
-  );
-}
-const { data: billSaved, error: billSaveError } = await admin.rpc(
-  "save_payment_bill_code",
-  {
-    p_payment_id: payment.id,
-    p_bill_code: billCode,
-  }
-);
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+      try {
+        const { data: saved, error: saveError } = await admin.rpc(
+          "save_payment_bill_code",
+          {
+            p_payment_id: payment.id,
+            p_bill_code: billCode,
+          }
+        );
 
-if (billSaveError || billSaved !== true) {
-  console.error("Gagal menyimpan Bill Code pembayaran.");
+        if (!saveError && saved === true) {
+          billSaved = true;
+          break;
+        }
 
-  return NextResponse.json(
-    { error: "Bil telah dicipta tetapi belum dapat disimpan. Sila hubungi sokongan." },
-    { status: 503 }
-  );
-}
-return NextResponse.json(
-  {
-    success: true,
-    message: "Bil pembayaran berjaya dicipta.",
-    orderId: order.id,
-    paymentId: payment.id,
-    billCode,
-paymentUrl: `${toyyibPayBaseUrl}/${billCode}`,
-paymentStatus: "creating",
-  },
-  { status: 200 }
-);
+        console.error("Bill code save failed:", {
+          paymentId: payment.id,
+          attempt,
+          errorCode: saveError?.code,
+        });
+      } catch {
+        console.error("Bill code save connection failed:", {
+          paymentId: payment.id,
+          attempt,
+        });
+      }
+    }
 
+    if (!billSaved) {
+      // Kod bil disimpan dalam log server untuk pemulihan oleh operator.
+      // Jangan log secret key atau maklumat peribadi pembeli.
+      console.error("Bill requires manual recovery:", {
+        orderId: order.id,
+        paymentId: payment.id,
+        billCode,
+      });
 
+      return needsReview(
+        "Bil telah dicipta tetapi kodnya belum dapat disimpan. Jangan bayar semula. Hubungi sokongan dengan ID pesanan."
+      );
+    }
+
+    return reply({
+      success: true,
+      message: "Bil pembayaran berjaya disediakan.",
+      orderId: order.id,
+      paymentId: payment.id,
+      billCode,
+      paymentUrl: `${baseUrl}/${billCode}`,
+      paymentStatus: "creating",
+    });
   } catch (error) {
-    console.error("Create Bill API error:", error);
+    console.error("Create Bill API error:", {
+      errorName: error instanceof Error ? error.name : "unknown",
+    });
 
-    return NextResponse.json(
-      { error: "Ralat dalaman server." },
-      { status: 500 }
+    return reply(
+      {
+        error:
+          "Permintaan pembayaran belum dapat diselesaikan. Semak pesanan sebelum mencuba lagi.",
+      },
+      500
     );
   }
 }
