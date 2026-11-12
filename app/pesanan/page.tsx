@@ -180,9 +180,31 @@ export default function PesananSaya() {
         return;
       }
 
-      if (
-        typeof result.paymentUrl !== "string" ||
-        !result.paymentUrl.startsWith("https://dev.toyyibpay.com/")
+      let validPaymentUrl = false;
+
+      if (typeof result.paymentUrl === "string") {
+        try {
+          const url = new URL(result.paymentUrl);
+
+          validPaymentUrl =
+            url.protocol === "https:" &&
+            ["toyyibpay.com", "dev.toyyibpay.com"].includes(
+              url.hostname
+            ) &&
+            !url.username &&
+            !url.password &&
+            !url.port &&
+            /^\/[a-zA-Z0-9]+$/.test(url.pathname) &&
+            !url.search &&
+            !url.hash;
+        } catch {
+          validPaymentUrl = false;
+        }
+      }
+
+            if (
+        !validPaymentUrl ||
+        typeof result.paymentUrl !== "string"
       ) {
         setError("Pautan pembayaran ToyyibPay tidak sah.");
         return;
