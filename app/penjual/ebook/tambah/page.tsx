@@ -84,10 +84,10 @@ export default function TambahEbookPage() {
       if (
         price.trim() === "" ||
         !Number.isFinite(numericPrice) ||
-        numericPrice < 0 ||
+        numericPrice < 5 ||
         !/^\d+(\.\d{1,2})?$/.test(price)
       ) {
-        throw new Error("Harga tidak sah. Contoh: 29.90");
+        throw new Error("Harga minimum eBook ialah RM5. Contoh: 29.90");
       }
 
       if (!coverFile || !pdfFile) {
@@ -286,7 +286,7 @@ export default function TambahEbookPage() {
                 id="ebook-price"
                 type="number"
                 inputMode="decimal"
-                min="0"
+                min="5"
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
