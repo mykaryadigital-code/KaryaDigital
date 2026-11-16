@@ -347,6 +347,14 @@ async function submitForReview(ebookId: string) {
               <CircleDollarSign size={19} />
               Butiran Bank
             </Link>
+                        <Link
+              href="/penjual/payout"
+              onClick={() => setMobileMenu(false)}
+              className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
+            >
+              <CircleDollarSign size={19} />
+              Sejarah Payout
+            </Link>
             <Link
               href="/"
               className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
