@@ -355,6 +355,14 @@ async function submitForReview(ebookId: string) {
               <CircleDollarSign size={19} />
               Sejarah Payout
             </Link>
+                        <Link
+              href="/akaun"
+              onClick={() => setMobileMenu(false)}
+              className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
+            >
+              <LayoutDashboard size={19} />
+              Akaun Saya
+            </Link>
             <Link
               href="/"
               className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
