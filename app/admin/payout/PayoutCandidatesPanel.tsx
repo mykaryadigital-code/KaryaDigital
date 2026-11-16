@@ -8,6 +8,7 @@ import {
   useMemo,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 type Amount = number | string;
 
@@ -387,6 +388,14 @@ export default function PayoutCandidatesPanel() {
                     <p className="mt-1 break-all">
                       ID: {candidate.existing_payout_id}
                     </p>
+                                        {candidate.existing_payout_id && (
+                      <Link
+                        href={`/admin/payout/${candidate.existing_payout_id}`}
+                        className="mt-4 inline-flex rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
+                      >
+                        Lihat Butiran
+                      </Link>
+                    )}
                   </div>
                 ) : (
                   <>
