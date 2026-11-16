@@ -339,7 +339,14 @@ async function submitForReview(ebookId: string) {
               <ShoppingBag size={19} />
               Jualan
             </a>
-
+            <Link
+              href="/penjual/bank"
+              onClick={() => setMobileMenu(false)}
+              className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
+            >
+              <CircleDollarSign size={19} />
+              Butiran Bank
+            </Link>
             <Link
               href="/"
               className="flex items-center gap-3 rounded-xl px-4 py-3 hover:bg-slate-100"
