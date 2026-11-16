@@ -16,7 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-
+import SellerEarningsSummary from "./SellerEarningsSummary";
 type EbookStatus =
   | "draft"
   | "pending"
@@ -445,7 +445,9 @@ async function submitForReview(ebookId: string) {
               </div>
             ))}
           </section>
+          <SellerEarningsSummary />
 
+          {/* SEJARAH JUALAN */}
           {/* SEJARAH JUALAN */}
           <section className="mt-8 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm sm:p-6" aria-labelledby="sales-history-title">
             <div className="mb-5">
