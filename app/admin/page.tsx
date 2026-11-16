@@ -110,13 +110,19 @@ export default async function AdminPage() {
       icon: "📊",
       href: "/admin/jualan",
     },
+        {
+      title: "Payout Penjual",
+      description: "Sediakan payout bulanan dan urus rekod transfer.",
+      icon: "\u{1F4B8}",
+      href: "/admin/payout",
+    },
     {
       title: "Tetapan Platform",
       description: "Urus tetapan KaryaDigital.",
-      icon: "⚙️",
+      icon: "\u2699\uFE0F",
       href: "/admin/tetapan",
     },
-  ];
+    ];
 
   return (
     <main className="min-h-screen bg-slate-50">
