@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "../../../lib/supabase/server";
+import GatewayCostsPanel from "./GatewayCostsPanel";
 
 export const metadata = {
   title: "Laporan Jualan | KaryaDigital",
@@ -292,7 +293,7 @@ export default async function AdminSalesPage() {
             </section>
           </>
         )}
-
+        <GatewayCostsPanel />
         <div className="mt-10">
           <Link
             href="/admin"
