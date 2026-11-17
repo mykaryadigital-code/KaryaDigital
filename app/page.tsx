@@ -380,27 +380,68 @@ export default function Home() {
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-amber-300">
-                Bersama BukuKita
+                Bersama KaryaDigital
               </p>
               <h2 className="mt-2 text-2xl font-extrabold sm:text-3xl">
                 Ada eBook untuk dijual?
               </h2>
               <p className="mt-2 max-w-xl text-sm text-slate-300">
-                Marketplace ini sedang dibangunkan. Pendaftaran penjual
-                akan tersedia selepas sistem akaun dan kelulusan siap.
+                Buka kedai digital anda di KaryaDigital. Daftar akaun
+                dan hantar permohonan penjual untuk semakan Admin.
               </p>
             </div>
 
-            <span className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-5 py-3 text-sm font-semibold text-white">
+                        <Link
+              href="/jadi-penjual"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
+            >
               <CheckCircle2 size={17} />
-              Pendaftaran Akan Datang
-            </span>
+              Mohon Jadi Penjual
+            </Link>
           </div>
         </section>
       </main>
 
-      <footer className="bg-white px-4 py-8 text-center text-xs text-slate-500">
-        © {new Date().getFullYear()} BukuKita. Demo marketplace eBook Malaysia.
+            <footer className="border-t border-slate-200 bg-white px-4 py-8">
+        <div className="mx-auto max-w-6xl text-center">
+          <p className="text-lg font-extrabold text-indigo-600">
+            KaryaDigital
+          </p>
+
+          <p className="mt-2 text-sm text-slate-600">
+            Marketplace eBook karya penulis Malaysia.
+          </p>
+
+          <nav
+            aria-label="Pautan footer"
+            className="mt-5 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm"
+          >
+            <Link
+              href="/akaun"
+              className="font-medium text-slate-600 hover:text-indigo-600"
+            >
+              Akaun Saya
+            </Link>
+
+            <Link
+              href="/pesanan"
+              className="font-medium text-slate-600 hover:text-indigo-600"
+            >
+              Pesanan Saya
+            </Link>
+
+            <Link
+              href="/jadi-penjual"
+              className="font-medium text-slate-600 hover:text-indigo-600"
+            >
+              Jadi Penjual
+            </Link>
+          </nav>
+
+          <p className="mt-6 text-xs text-slate-500">
+            {"\u00A9"} {new Date().getFullYear()} KaryaDigital.
+          </p>
+        </div>
       </footer>
 
       {showCart && (
