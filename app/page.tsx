@@ -429,7 +429,12 @@ export default function Home() {
             >
               Pesanan Saya
             </Link>
-
+            <Link
+              href="/maklumat-penjual"
+              className="font-medium text-slate-600 hover:text-indigo-600"
+            >
+              Maklumat Penjual
+            </Link>
             <Link
               href="/jadi-penjual"
               className="font-medium text-slate-600 hover:text-indigo-600"
