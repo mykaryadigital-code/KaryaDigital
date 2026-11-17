@@ -26,6 +26,9 @@ type Candidate = {
   existing_payout_id: string | null;
   existing_payout_status: string | null;
   existing_payout_amount: Amount | null;
+    earnings_before_adjustments: Amount;
+  refund_deductions: Amount;
+  refund_held_amount: Amount;
 };
 
 const PAGE_SIZE = 25;
@@ -75,7 +78,7 @@ export default function PayoutCandidatesPanel() {
     }
 
     const { data, error: queryError } = await supabase.rpc(
-      "get_admin_payout_candidates",
+        "get_admin_payout_candidates_v2",
       {
         p_payout_month: `${month}-01`,
         p_limit: PAGE_SIZE,
@@ -150,7 +153,7 @@ export default function PayoutCandidatesPanel() {
     }
 
     const confirmed = window.confirm(
-      `Sediakan payout untuk ${candidate.seller_name}?\n\nBulan: ${month}\nBaki dalam senarai: ${rm(candidate.eligible_amount)}\nBank semasa: ${candidate.bank_name}\nAkaun berakhir: ${candidate.account_last_four}\n\nJumlah akhir dikira semula oleh sistem. Langkah ini belum membuat transfer bank.`
+      `Sediakan payout untuk ${candidate.seller_name}?\n\nBulan: ${month}\nBaki selepas potongan: ${rm(candidate.eligible_amount)}\nBank semasa: ${candidate.bank_name}\nAkaun berakhir: ${candidate.account_last_four}\n\nJumlah akhir dikira semula oleh sistem. Langkah ini belum membuat transfer bank.`
     );
 
     if (!confirmed) return;
@@ -318,7 +321,7 @@ export default function PayoutCandidatesPanel() {
                 <div className="mt-5 grid gap-4 sm:grid-cols-3">
                   <div>
                     <p className="text-sm text-slate-500">
-                      Baki Belum Ditempah yang Layak
+                       Baki Selepas Potongan Refund
                     </p>
                     <p className="mt-1 text-xl font-bold">
                       {rm(candidate.eligible_amount)}
@@ -343,7 +346,42 @@ export default function PayoutCandidatesPanel() {
                     </p>
                   </div>
                 </div>
+                <div className="mt-5 grid gap-4 sm:grid-cols-3">
+                  <div>
+                    <p className="text-sm text-slate-500">
+                      Pendapatan Layak Sebelum Potongan
+                    </p>
+                    <p className="mt-1 font-bold">
+                      {rm(candidate.earnings_before_adjustments)}
+                    </p>
+                  </div>
 
+                  <div>
+                    <p className="text-sm text-slate-500">
+                      Potongan Kos Refund
+                    </p>
+                    <p className="mt-1 font-bold">
+                      {rm(candidate.refund_deductions)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <p className="text-sm text-slate-500">
+                      Pendapatan Ditahan untuk Refund
+                    </p>
+                    <p className="mt-1 font-bold">
+                      {rm(candidate.refund_held_amount)}
+                    </p>
+                  </div>
+                </div>
+
+                <p className="mt-4 text-xs leading-relaxed text-slate-500">
+                  Baki selepas potongan sudah mengambil kira kos
+                  refund. Pendapatan ditahan tidak termasuk dalam
+                  pendapatan layak. Jangan tolak jumlah ini sekali
+                  lagi. Jualan dan potongan dikira sebelum awal
+                  bulan payout yang dipilih.
+                </p>
                 <div className="mt-5 rounded-xl bg-slate-50 p-4 text-sm">
                   {hasBank ? (
                     <>
