@@ -16,6 +16,9 @@ type Summary = {
   unreserved_net_amount: Amount;
   prepared_payout_amount: Amount;
   paid_payout_amount: Amount;
+  refund_charges_total: Amount;
+  refund_charges_unreserved: Amount;
+  refund_held_amount: Amount;
 };
 
 function rm(value: Amount) {
@@ -40,7 +43,7 @@ export default function SellerEarningsSummary() {
 
       try {
         const { data, error: queryError } = await supabase.rpc(
-          "get_seller_earnings_summary"
+          "get_seller_earnings_summary_v2"
         );
 
         if (queryError) {
@@ -53,9 +56,35 @@ export default function SellerEarningsSummary() {
           throw new Error("Ringkasan pendapatan tidak tersedia.");
         }
 
+        const amounts = [
+          row.gross_amount,
+          row.platform_commission,
+          row.confirmed_gateway_fee,
+          row.confirmed_net_amount,
+          row.unreserved_net_amount,
+          row.prepared_payout_amount,
+          row.paid_payout_amount,
+          row.refund_charges_total,
+          row.refund_charges_unreserved,
+          row.refund_held_amount,
+        ];
+
+        if (
+          amounts.some(
+            (value) =>
+              value === null ||
+              value === undefined ||
+              String(value).trim() === "" ||
+              !Number.isFinite(Number(value))
+          )
+        ) {
+          throw new Error("Data ringkasan pendapatan tidak sah.");
+        }
+
         if (active) setSummary(row);
       } catch (err) {
         if (active) {
+          setSummary(null);
           setError(
             err instanceof Error
               ? err.message
@@ -77,24 +106,36 @@ export default function SellerEarningsSummary() {
   const cards = summary
     ? [
         {
-          title: "Jualan Kasar Direkodkan",
+          title: "Jualan Kasar Selepas Refund",
           value: summary.gross_amount,
         },
         {
-          title: "Komisen Platform",
+          title: "Komisen Platform Selepas Refund",
           value: summary.platform_commission,
         },
         {
-          title: "Caj Gateway Disahkan",
+          title: "Caj Gateway Jualan Aktif",
           value: summary.confirmed_gateway_fee,
         },
         {
-          title: "Pendapatan Bersih Disahkan",
+          title: "Bersih Selepas Kos Refund",
           value: summary.confirmed_net_amount,
         },
         {
-          title: "Bersih Belum Ditempah",
+          title: "Bersih Belum Ditempah Selepas Potongan",
           value: summary.unreserved_net_amount,
+        },
+        {
+          title: "Pendapatan Ditahan untuk Semakan Refund",
+          value: summary.refund_held_amount,
+        },
+        {
+          title: "Jumlah Kos Refund Seller",
+          value: summary.refund_charges_total,
+        },
+        {
+          title: "Kos Refund Belum Ditempah dalam Payout",
+          value: summary.refund_charges_unreserved,
         },
         {
           title: "Payout Disediakan",
@@ -124,14 +165,15 @@ export default function SellerEarningsSummary() {
           href="/penjual/payout"
           className="text-sm font-semibold text-indigo-600 hover:underline"
         >
-          Sejarah Payout →
+          Sejarah Payout {"\u2192"}
         </Link>
       </div>
 
       <p className="mt-2 text-sm text-slate-500">
-        Berdasarkan rekod pendapatan yang diwujudkan oleh sistem.
-        Jualan lama yang belum mempunyai rekod pendapatan tidak
-        termasuk dalam ringkasan ini.
+        Berdasarkan rekod pendapatan sistem. Jualan yang telah
+        direfund penuh dikecualikan daripada jumlah jualan dan
+        komisen di bawah. Jualan lama tanpa rekod pendapatan
+        tidak termasuk.
       </p>
 
       {loading ? (
@@ -156,7 +198,14 @@ export default function SellerEarningsSummary() {
                 <p className="text-sm text-slate-500">
                   {card.title}
                 </p>
-                <p className="mt-2 text-xl font-bold text-slate-900">
+
+                <p
+                  className={`mt-2 text-xl font-bold ${
+                    Number(card.value) < 0
+                      ? "text-red-700"
+                      : "text-slate-900"
+                  }`}
+                >
                   {rm(card.value)}
                 </p>
               </div>
@@ -164,23 +213,57 @@ export default function SellerEarningsSummary() {
           </div>
 
           <p className="mt-4 text-sm text-slate-600">
-            Item pendapatan direkodkan: {summary.recorded_items}.
-            Item menunggu pengesahan caj: {summary.unconfirmed_items}.
+            Item pendapatan jualan yang belum direfund:{" "}
+            {summary.recorded_items}.
+            {" "}Item menunggu pengesahan caj:{" "}
+            {summary.unconfirmed_items}.
           </p>
 
-          <div className="mt-4 rounded-xl bg-indigo-50 p-4 text-sm leading-relaxed text-indigo-900">
-            Pendapatan bersih disahkan termasuk bahagian yang
-            sudah dimasukkan dalam payout atau direkodkan dibayar.
-            Baki belum ditempah boleh termasuk jualan bulan semasa
-            dan belum semestinya layak dibayar bulan ini.
-            Payout bulanan bermula pada 7 haribulan, minimum RM20.
+          <div className="mt-4 space-y-3 rounded-xl bg-indigo-50 p-4 text-sm leading-relaxed text-indigo-900">
+            <p>
+              Jumlah bersih di atas sudah mengambil kira kos
+              refund seller. Kad kos refund ialah pecahan
+              maklumat; jangan tolak jumlah itu sekali lagi.
+            </p>
+
+            <p>
+              Bersih selepas kos refund termasuk pendapatan
+              yang sudah ditempah dalam payout atau direkodkan
+              dibayar. Pendapatan yang sedang disemak untuk
+              refund masih termasuk dalam jumlah bersih ini,
+              tetapi dikecualikan daripada baki belum ditempah.
+            </p>
+
+            <p>
+              Baki belum ditempah boleh termasuk jualan bulan
+              semasa dan belum semestinya layak dibayar bulan
+              ini. Payout bulanan bermula pada 7 haribulan,
+              minimum RM20 selepas potongan yang layak.
+            </p>
           </div>
+
+          {Number(summary.refund_held_amount) > 0 && (
+            <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+              Sebahagian pendapatan ditahan sementara
+              permohonan refund disemak. Jumlah ini belum
+              boleh dimasukkan dalam payout.
+            </p>
+          )}
+
+          {Number(summary.unreserved_net_amount) < 0 && (
+            <p className="mt-4 rounded-xl bg-red-50 p-4 text-sm text-red-700">
+              Kos refund yang belum ditempah melebihi
+              pendapatan tersedia. Baki negatif dibawa ke
+              pengiraan berikutnya; paparan ini tidak membuat
+              potongan automatik daripada akaun bank anda.
+            </p>
+          )}
 
           {Number(summary.unconfirmed_items) > 0 && (
             <p className="mt-4 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
-              Sebahagian caj gateway belum disahkan. Pendapatan
-              bersih bagi item tersebut belum dimasukkan dalam
-              jumlah bersih disahkan.
+              Sebahagian caj gateway belum disahkan.
+              Pendapatan bersih bagi item tersebut belum
+              dimasukkan dalam jumlah bersih.
             </p>
           )}
         </>
