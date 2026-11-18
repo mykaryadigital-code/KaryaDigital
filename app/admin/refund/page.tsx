@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-
+import RequestRefundForm from "./RequestRefundForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -114,7 +114,7 @@ export default async function AdminRefundPage({
           wang kepada pembeli. Status Refund Selesai bermaksud
           penyelesaian refund telah direkodkan oleh Admin.
         </div>
-
+        <RequestRefundForm />
         {error ? (
           <p
             role="alert"
