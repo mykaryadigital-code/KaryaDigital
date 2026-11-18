@@ -66,7 +66,7 @@ function statusLabel(status: string) {
     case "cancelled":
       return "Dibatalkan";
     case "refunded":
-      return "Dipulangkan";
+      return "Bayaran Dipulangkan";
     default:
       return status;
   }
@@ -472,7 +472,30 @@ export default function PesananSaya() {
                       {formatRM(order.total_amount)}
                     </span>
                   </div>
-
+                  {order.status === "refunded" && (
+                    <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-4 text-sm leading-relaxed text-blue-900">
+                      <p className="font-bold">
+                        Pemulangan bayaran penuh telah direkodkan.
+                      </p>
+                      <p className="mt-2">
+                        Akses baca dan muat turun melalui pesanan ini
+                        telah ditamatkan. Jika anda mempunyai pembelian
+                        lain yang masih sah untuk eBook yang sama,
+                        gunakan pesanan tersebut.
+                      </p>
+                      <p className="mt-2">
+                        Untuk pertanyaan tentang penerimaan wang,
+                        hubungi{" "}
+                        <a
+                          href="mailto:admin.karyadigital@gmail.com"
+                          className="font-semibold underline"
+                        >
+                          admin.karyadigital@gmail.com
+                        </a>{" "}
+                        dan sertakan ID pesanan.
+                      </p>
+                    </div>
+                  )}
                   {order.status === "pending" && (
                     <div className="mt-3">
                       <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
