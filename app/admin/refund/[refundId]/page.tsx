@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import CancelRefundForm from "./CancelRefundForm";
-
+import RefundCostForm from "./RefundCostForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -79,8 +79,22 @@ export default async function RefundDetailsPage({
 
   if (costError) {
     throw new Error("Gagal mendapatkan keputusan kos refund.");
-  }
+}
+    let originalGatewayFee: number | string | null = null;
 
+  if (refund.status === "requested" && !cost) {
+    const { data: gatewayCost, error: gatewayCostError } = await supabase
+      .from("payment_gateway_costs")
+      .select("fee_amount")
+      .eq("payment_id", refund.payment_id)
+      .maybeSingle();
+
+    if (gatewayCostError) {
+      throw new Error("Gagal membaca caj gateway asal.");
+    }
+
+    originalGatewayFee = gatewayCost?.fee_amount ?? null;
+  }
   const labels: Record<string, string> = {
     requested: "Permohonan Terbuka",
     completed: "Refund Selesai",
@@ -197,6 +211,20 @@ export default async function RefundDetailsPage({
               Permohonan masih terbuka. Wang belum direkodkan sebagai
               dipulangkan dan pendapatan berkaitan ditahan daripada payout.
             </p>
+                        {!cost && (
+              originalGatewayFee !== null ? (
+                <RefundCostForm
+                  key={`cost-${refund.id}`}
+                  refundId={refund.id}
+                  originalFee={originalGatewayFee}
+                />
+              ) : (
+                <p className="mt-6 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
+                  Caj gateway asal belum disahkan. Sahkan caj melalui
+                  Laporan Jualan sebelum merekodkan keputusan kos refund.
+                </p>
+              )
+            )}
             <CancelRefundForm
               key={refund.id}
               refundId={refund.id}
