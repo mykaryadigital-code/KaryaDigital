@@ -133,7 +133,8 @@ export default function SellerInformationPage() {
               termasuk dalam pengiraan bulan berikutnya.
             </p>
             <p className="mt-3 leading-relaxed text-slate-600">
-              Minimum payout ialah RM20 pendapatan bersih yang layak.
+              Minimum payout ialah RM20 pendapatan bersih yang layak
+              selepas potongan kos refund yang dimasukkan dalam pengiraan.
               Baki di bawah RM20 dibawa ke bulan seterusnya.
               Penjual perlu melengkapkan butiran bank sebelum payout
               boleh disediakan.
@@ -203,7 +204,83 @@ export default function SellerInformationPage() {
               izin pemilik hak.
             </p>
           </section>
+          <section className="rounded-2xl border bg-white p-6">
+            <h2 className="text-xl font-bold text-slate-900">
+              7. Refund dan pelarasan pendapatan
+            </h2>
 
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Aduan pembeli disemak oleh Admin berdasarkan masalah
+              produk, pembekalan dan bukti berkaitan. Permohonan
+              refund tidak bermaksud refund telah diluluskan atau
+              wang telah dipulangkan.
+            </p>
+
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Apabila permohonan refund dibuka dalam sistem,
+              pendapatan berkaitan ditahan daripada penyediaan
+              payout. Jika permohonan dibatalkan, penahanan oleh
+              permohonan itu dilepaskan dan pendapatan tertakluk
+              semula kepada syarat kelayakan payout.
+            </p>
+
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Apabila refund penuh selesai direkodkan, jualan
+              tersebut tidak lagi dikira dalam pendapatan yang
+              layak. Komisen platform bagi jualan yang direfund
+              tidak dikenakan dalam pengiraan pendapatan semasa.
+              Rekod jualan, pembayaran dan komisen asal kekal
+              sebagai sejarah audit.
+            </p>
+
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Caj gateway mungkin dipulangkan sepenuhnya,
+              sebahagiannya atau tidak dipulangkan oleh penyedia
+              pembayaran. Admin merekodkan jumlah sebenar
+              berdasarkan bukti. Baki caj ialah caj asal yang
+              disahkan ditolak caj yang dipulangkan oleh gateway.
+            </p>
+
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Jika refund berpunca daripada masalah produk yang
+              menjadi tanggungjawab penjual, baki caj gateway
+              ditanggung penjual berdasarkan keputusan semakan.
+              Jika berpunca daripada kesalahan platform, baki
+              caj ditanggung platform. Sebab keputusan dan
+              rujukan bukti direkodkan.
+            </p>
+
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Kos refund yang ditanggung penjual direkodkan
+              sebagai pelarasan berasingan apabila refund selesai.
+              Kos ini ditolak dalam pengiraan payout yang layak.
+              Jumlah payout yang dipaparkan sudah mengambil kira
+              potongan yang dimasukkan ke payout tersebut; kos
+              yang sama tidak ditolak sekali lagi.
+            </p>
+
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Contoh: jika caj asal RM1 dan gateway memulangkan
+              RM0.40, baki caj ialah RM0.60. Jika keputusan
+              menetapkan penjual sebagai penanggung, pelarasan
+              kos penjual ialah RM0.60, bukan RM1.
+            </p>
+
+            <p className="mt-3 leading-relaxed text-slate-600">
+              Baki selepas pelarasan mungkin berada di bawah
+              minimum payout atau menjadi negatif. Baki tersebut
+              dibawa ke pengiraan berikutnya. Kes yang melibatkan
+              payout sedia ada atau beberapa penjual memerlukan
+              semakan Admin sebelum diproses.
+            </p>
+
+            <Link
+              href="/polisi-refund"
+              className="mt-4 inline-block font-semibold text-indigo-600 hover:underline"
+            >
+              Baca Polisi Bayaran Balik
+            </Link>
+          </section>
           <section className="rounded-2xl border bg-white p-6">
             <h2 className="text-xl font-bold text-slate-900">
               Bantuan penjual

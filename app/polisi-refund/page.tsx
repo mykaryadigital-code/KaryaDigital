@@ -37,11 +37,10 @@ const sections = [
   },
   {
     title: "5. Semakan dan pemprosesan",
-    paragraphs: [
+    paragraphs:[
       "Permohonan disemak secara manual oleh Admin. Kami mungkin meminta maklumat tambahan dan mendapatkan penjelasan daripada penjual. Menghantar permohonan tidak bermaksud bayaran balik telah diluluskan.",
       "Jika diluluskan, kami akan memaklumkan jumlah dan kaedah pemulangan serta anggaran masa pemprosesan. Masa wang diterima tertakluk juga kepada penyedia pembayaran atau bank.",
-      "Jika pembelian dibatalkan sepenuhnya melalui refund, akses digital bagi pembelian tersebut akan ditamatkan. Pembeli hendaklah berhenti menggunakan dan memadam salinan yang telah dimuat turun; fail pada peranti tidak boleh dipadam dari jauh oleh KaryaDigital.",
-    ],
+      "Apabila refund penuh selesai direkodkan, akses baca dan muat turun melalui pesanan tersebut ditamatkan. Jika pembeli mempunyai pesanan lain yang masih sah untuk eBook yang sama, akses melalui pesanan lain itu kekal. Bagi pembelian yang telah direfund, pembeli hendaklah berhenti menggunakan dan memadam salinan yang dimuat turun melainkan mempunyai hak penggunaan lain yang sah. KaryaDigital tidak boleh memadam fail pada peranti dari jauh.",]
   },
   {
     title: "6. Hak pengguna",
