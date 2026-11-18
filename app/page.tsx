@@ -435,6 +435,12 @@ export default function Home() {
             >
               Bantuan Pembeli
             </Link>
+                        <Link
+              href="/polisi-refund"
+              className="font-medium text-slate-600 hover:text-indigo-600"
+            >
+              Polisi Bayaran Balik
+            </Link>
             <Link
               href="/maklumat-penjual"
               className="font-medium text-slate-600 hover:text-indigo-600"
