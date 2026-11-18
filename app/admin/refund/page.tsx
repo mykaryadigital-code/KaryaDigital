@@ -110,8 +110,9 @@ export default async function AdminRefundPage({
         </p>
 
         <div className="mt-5 rounded-xl border border-indigo-100 bg-indigo-50 p-4 text-sm leading-relaxed text-indigo-900">
-          Halaman ini memaparkan rekod sahaja. Ia tidak menghantar
-          wang kepada pembeli. Status Refund Selesai bermaksud
+          Halaman ini membolehkan Admin membuka dan menyemak permohonan
+          refund. Pemindahan wang dibuat secara berasingan.
+          Status Refund Selesai bermaksud
           penyelesaian refund telah direkodkan oleh Admin.
         </div>
         <RequestRefundForm />
@@ -211,6 +212,12 @@ export default async function AdminRefundPage({
                     </p>
                   </div>
                 )}
+                                <Link
+                  href={`/admin/refund/${refund.id}`}
+                  className="mt-5 inline-flex rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-700"
+                >
+                  Lihat Butiran
+                </Link>
               </article>
             ))}
           </div>
