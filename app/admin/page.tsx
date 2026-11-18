@@ -110,11 +110,17 @@ export default async function AdminPage() {
       icon: "📊",
       href: "/admin/jualan",
     },
-        {
+            {
       title: "Payout Penjual",
       description: "Sediakan payout bulanan dan urus rekod transfer.",
       icon: "\u{1F4B8}",
       href: "/admin/payout",
+    },
+    {
+      title: "Pengurusan Refund",
+      description: "Semak permohonan, kos dan rekod pemulangan bayaran.",
+      icon: "\u21A9\uFE0F",
+      href: "/admin/refund",
     },
     {
       title: "Tetapan Platform",
