@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import CancelRefundForm from "./CancelRefundForm";
 import RefundCostForm from "./RefundCostForm";
+import CompleteRefundForm from "./CompleteRefundForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
@@ -224,6 +225,14 @@ export default async function RefundDetailsPage({
                   Laporan Jualan sebelum merekodkan keputusan kos refund.
                 </p>
               )
+            )}
+                        {cost && (
+              <CompleteRefundForm
+                key={`complete-${refund.id}`}
+                refundId={refund.id}
+                amount={refund.amount}
+                requestedAt={refund.created_at}
+              />
             )}
             <CancelRefundForm
               key={refund.id}
