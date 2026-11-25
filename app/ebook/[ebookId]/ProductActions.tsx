@@ -50,8 +50,8 @@ export default function ProductActions({
       if (response.status === 401) {
         setNeedsLogin(true);
         setMessage(
-          "Sila log masuk dahulu. Selepas login, buka semula pautan " +
-            "produk ini untuk meneruskan pembelian."
+        "Sila log masuk dahulu. Selepas login, anda akan kembali " +
+        "ke produk ini untuk meneruskan pembelian."
         );
         return;
       }
@@ -159,7 +159,7 @@ export default function ProductActions({
 
           {needsLogin && (
             <Link
-              href="/login"
+            href={`/login?next=${encodeURIComponent(`/ebook/${ebookId}`)}`}
               className="block font-semibold text-orange-700 underline"
             >
               Log Masuk

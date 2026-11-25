@@ -1,34 +1,52 @@
-
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
 
+function getDestination() {
+  const next = new URLSearchParams(window.location.search).get("next");
+
+  // Hanya laluan produk UUID dibenarkan.
+  const productPath =
+    /^\/ebook\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+  return next && productPath.test(next) ? next : "/akaun";
+}
+
 export default function LoginPage() {
   const router = useRouter();
+  const sending = useRef(false);
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  async function handleLogin(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (sending.current) return;
+
+    sending.current = true;
     setLoading(true);
     setErrorMessage("");
 
+    let navigating = false;
+
     try {
+      const destination = getDestination();
       const supabase = createClient();
 
       const { error } = await supabase.auth.signInWithPassword({
-        email,
+        email: email.trim(),
         password,
       });
 
       if (error) throw error;
 
-      router.replace("/akaun");
+      navigating = true;
+      router.replace(destination);
       router.refresh();
     } catch (error) {
       setErrorMessage(
@@ -37,7 +55,10 @@ export default function LoginPage() {
           : "Log masuk gagal. Sila cuba lagi."
       );
     } finally {
-      setLoading(false);
+      if (!navigating) {
+        sending.current = false;
+        setLoading(false);
+      }
     }
   }
 
@@ -75,11 +96,12 @@ export default function LoginPage() {
               id="email"
               type="email"
               required
+              disabled={loading}
               autoComplete="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(event) => setEmail(event.target.value)}
               placeholder="nama@email.com"
-              className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:border-indigo-500"
+              className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:border-indigo-500 disabled:bg-gray-100"
             />
           </div>
 
@@ -95,13 +117,15 @@ export default function LoginPage() {
               id="password"
               type="password"
               required
+              disabled={loading}
               autoComplete="current-password"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(event) => setPassword(event.target.value)}
               placeholder="Masukkan password"
-              className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:border-indigo-500"
+              className="mt-2 w-full rounded-lg border border-gray-300 p-3 text-gray-900 outline-none focus:border-indigo-500 disabled:bg-gray-100"
             />
           </div>
+
           <div className="text-right">
             <Link
               href="/lupa-password"
@@ -110,8 +134,12 @@ export default function LoginPage() {
               Lupa Password?
             </Link>
           </div>
+
           {errorMessage && (
-            <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700">
+            <p
+              role="alert"
+              className="rounded-lg bg-red-50 p-3 text-sm text-red-700"
+            >
               {errorMessage}
             </p>
           )}
