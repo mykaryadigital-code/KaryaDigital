@@ -1,4 +1,4 @@
-
+import Link from "next/link";
 import { Book, rm } from "@/data/books";
 import { ShoppingCart, Star, BookOpen } from "lucide-react";
 
@@ -11,10 +11,14 @@ export default function BookCard({
   onAdd: (id: number | string) => void;
   inCart: boolean;
 }) {
+  const productHref = `/ebook/${encodeURIComponent(String(book.id))}`;
+
   return (
     <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-      <div
-        className="relative flex h-48 items-center justify-center p-5 sm:h-56"
+      <Link
+        href={productHref}
+        aria-label={`Lihat butiran ${book.title}`}
+        className="relative flex h-48 items-center justify-center p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-600 sm:h-56"
         style={{
           background: `linear-gradient(135deg,${book.color},#0e1d30)`,
         }}
@@ -30,7 +34,7 @@ export default function BookCard({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={book.coverUrl}
-              alt={`Cover ${book.title}`}
+              alt={`Kulit ${book.title}`}
               className="h-full w-full object-cover"
               loading="lazy"
             />
@@ -48,11 +52,11 @@ export default function BookCard({
               {book.title}
             </strong>
             <span className="text-[10px] tracking-widest">
-              BUKUKITA
+              KARYADIGITAL
             </span>
           </div>
         )}
-      </div>
+      </Link>
 
       <div className="p-3.5">
         <span className="text-[11px] font-semibold text-orange-600">
@@ -60,7 +64,12 @@ export default function BookCard({
         </span>
 
         <h3 className="mt-1 line-clamp-2 min-h-11 text-sm font-bold">
-          {book.title}
+          <Link
+            href={productHref}
+            className="hover:text-orange-700 hover:underline"
+          >
+            {book.title}
+          </Link>
         </h3>
 
         <p className="mt-1 text-xs text-slate-500">
@@ -87,6 +96,7 @@ export default function BookCard({
         </div>
 
         <button
+          type="button"
           onClick={() => onAdd(book.id)}
           className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-bold ${
             inCart
