@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Book, rm } from "@/data/books";
-import { ShoppingCart, Star, BookOpen } from "lucide-react";
+import { ShoppingCart, BookOpen } from "lucide-react";
+
 
 export default function BookCard({
   book,
@@ -71,17 +72,6 @@ export default function BookCard({
             {book.title}
           </Link>
         </h3>
-
-        <p className="mt-1 text-xs text-slate-500">
-          {book.author}
-        </p>
-
-        <div className="mt-2 flex items-center gap-1 text-xs text-amber-500">
-          <Star size={13} fill="currentColor" />
-          <span className="font-semibold text-slate-700">
-            {book.rating.toFixed(1)}
-          </span>
-        </div>
 
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <strong className="text-base text-orange-600">

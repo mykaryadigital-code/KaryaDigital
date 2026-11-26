@@ -72,7 +72,7 @@ export default function Home() {
       approvedEbooks.map((ebook) => ({
         id: ebook.id,
         title: ebook.title,
-        author: "Penulis Tempatan",
+        author: "",
         category: ebook.category,
         price: Number(ebook.price),
         rating: 0,
