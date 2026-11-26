@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import Header from "@/components/Header";
 import BookCard from "@/components/BookCard";
-import { categories, rm } from "@/data/books";
+import { rm } from "@/data/books";
 
 type Ebook = {
   id: string;
@@ -38,7 +38,15 @@ export default function Home() {
   const [checkoutOrderId, setCheckoutOrderId] = useState<string | null>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
   const [approvedEbooks, setApprovedEbooks] = useState<Ebook[]>([]);
-
+  const categories = useMemo(
+    () => [
+      "Semua",
+      ...Array.from(
+        new Set(approvedEbooks.map((ebook) => ebook.category))
+      ).filter((name) => name && name !== "Semua"),
+    ],
+    [approvedEbooks]
+  );
   useEffect(() => {
     let active = true;
     const supabase = createClient();
