@@ -1,59 +1,105 @@
-
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { createClient } from "../../lib/supabase/client";
 
+const productPath =
+  /^\/ebook\/[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function getProductDestination() {
+  const next = new URLSearchParams(window.location.search).get("next");
+  return next && productPath.test(next) ? next : null;
+}
+
 export default function DaftarPage() {
+  const sending = useRef(false);
+
   const [nama, setNama] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mesej, setMesej] = useState("");
   const [berjaya, setBerjaya] = useState(false);
+  const [loginHref, setLoginHref] = useState("/login");
 
-  async function daftar(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  useEffect(() => {
+    const next = getProductDestination();
+
+    if (next) {
+      setLoginHref(`/login?next=${encodeURIComponent(next)}`);
+    }
+  }, []);
+
+  async function daftar(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (sending.current || berjaya) return;
+
+    const cleanName = nama.trim();
+    if (!cleanName) {
+      setMesej("Masukkan nama penuh.");
+      return;
+    }
+
+    sending.current = true;
     setLoading(true);
     setMesej("");
-    setBerjaya(false);
 
     try {
+      const next = getProductDestination();
+      const callbackUrl = new URL(
+        "/auth/callback",
+        window.location.origin
+      );
+
+      if (next) callbackUrl.searchParams.set("next", next);
+
       const supabase = createClient();
 
-      const { error } = await supabase.auth.signUp({
-        email,
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim(),
         password,
         options: {
-          data: {
-            full_name: nama.trim()
-          },
-          emailRedirectTo:
-            `${window.location.origin}/login`
-        }
+          data: { full_name: cleanName },
+          emailRedirectTo: callbackUrl.toString(),
+        },
       });
 
       if (error) throw error;
 
       setBerjaya(true);
+
+      // Menyokong persekitaran yang tidak memerlukan
+      // pengesahan email, tanpa membuat pesanan automatik.
+      if (data.session) {
+        setMesej("Pendaftaran diterima. Membuka halaman seterusnya...");
+        window.location.assign(next ?? "/akaun");
+        return;
+      }
+
+      setPassword("");
       setMesej(
-        "Pendaftaran diterima. Sila semak email untuk pengesahan sebelum login."
+        "Pendaftaran diterima. Sila semak email untuk pengesahan " +
+          "sebelum login. Buka pautan pengesahan dalam browser " +
+          "yang sama dengan pendaftaran ini."
       );
     } catch (error) {
       setMesej(
         error instanceof Error
           ? error.message
-          : "Pendaftaran gagal. Cuba lagi."
+          : "Pendaftaran gagal. Semak email sebelum mencuba lagi."
       );
     } finally {
+      sending.current = false;
       setLoading(false);
     }
   }
 
+  const disabled = loading || berjaya;
+
   return (
-    <main className="min-h-screen bg-slate-50 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md rounded-2xl bg-white p-8 shadow-lg border border-slate-100">
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
+      <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-8 shadow-lg">
         <Link href="/" className="block text-center">
           <h1 className="text-3xl font-extrabold text-indigo-600">
             KaryaDigital
@@ -74,7 +120,10 @@ export default function DaftarPage() {
 
         <form onSubmit={daftar} className="mt-6 space-y-4">
           <div>
-            <label htmlFor="nama" className="text-sm font-medium text-gray-700">
+            <label
+              htmlFor="nama"
+              className="text-sm font-medium text-gray-700"
+            >
               Nama Penuh
             </label>
             <input
@@ -82,30 +131,40 @@ export default function DaftarPage() {
               type="text"
               required
               maxLength={100}
+              autoComplete="name"
+              disabled={disabled}
               value={nama}
-              onChange={(e) => setNama(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-gray-900"
+              onChange={(event) => setNama(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-gray-900 disabled:bg-gray-100"
               placeholder="Nama anda"
             />
           </div>
 
           <div>
-            <label htmlFor="email" className="text-sm font-medium text-gray-700">
+            <label
+              htmlFor="email"
+              className="text-sm font-medium text-gray-700"
+            >
               Alamat Email
             </label>
             <input
               id="email"
               type="email"
               required
+              autoComplete="email"
+              disabled={disabled}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-gray-900"
+              onChange={(event) => setEmail(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-gray-900 disabled:bg-gray-100"
               placeholder="nama@email.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="text-sm font-medium text-gray-700">
+            <label
+              htmlFor="password"
+              className="text-sm font-medium text-gray-700"
+            >
               Password
             </label>
             <input
@@ -113,16 +172,18 @@ export default function DaftarPage() {
               type="password"
               required
               minLength={8}
+              autoComplete="new-password"
+              disabled={disabled}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-gray-900"
+              onChange={(event) => setPassword(event.target.value)}
+              className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-gray-900 disabled:bg-gray-100"
               placeholder="Minimum 8 aksara"
             />
           </div>
 
           {mesej && (
             <p
-              role="status"
+              role={berjaya ? "status" : "alert"}
               className={`rounded-lg p-3 text-sm ${
                 berjaya
                   ? "bg-green-50 text-green-700"
@@ -135,16 +196,20 @@ export default function DaftarPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={disabled}
             className="w-full rounded-lg bg-indigo-600 py-3 font-semibold text-white hover:bg-indigo-700 disabled:opacity-50"
           >
-            {loading ? "Sedang mendaftar..." : "Daftar Sekarang"}
+            {loading
+              ? "Sedang mendaftar..."
+              : berjaya
+              ? "Semak Email Anda"
+              : "Daftar Sekarang"}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Sudah ada akaun?{" "}
-          <Link href="/login" className="font-semibold text-indigo-600">
+          <Link href={loginHref} className="font-semibold text-indigo-600">
             Log Masuk
           </Link>
         </p>

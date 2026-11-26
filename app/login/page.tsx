@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "../../lib/supabase/client";
+import { useEffect, useRef, useState } from "react";
 
 function getDestination() {
   const next = new URLSearchParams(window.location.search).get("next");
@@ -23,6 +23,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [registerHref, setRegisterHref] = useState("/daftar");
+
+  useEffect(() => {
+    const destination = getDestination();
+
+    if (destination !== "/akaun") {
+      setRegisterHref(
+        `/daftar?next=${encodeURIComponent(destination)}`
+      );
+    }
+  }, []);
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -155,7 +166,7 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-sm text-gray-600">
           Belum ada akaun?{" "}
-          <Link href="/daftar" className="font-semibold text-indigo-600">
+          <Link href={registerHref} className="font-semibold text-indigo-600">
             Daftar Sekarang
           </Link>
         </p>
