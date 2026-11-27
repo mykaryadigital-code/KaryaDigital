@@ -17,6 +17,7 @@ export default function DaftarPage() {
 
   const [nama, setNama] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [mesej, setMesej] = useState("");
@@ -33,6 +34,12 @@ export default function DaftarPage() {
 
   async function daftar(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+        const cleanPhone = phone.replace(/[\s-]/g, "");
+
+    if (!/^(\+?60|0)1\d{8,9}$/.test(cleanPhone)) {
+      setMesej("Masukkan nombor telefon Malaysia yang sah.");
+      return;
+    }
     if (sending.current || berjaya) return;
 
     const cleanName = nama.trim();
@@ -59,8 +66,11 @@ export default function DaftarPage() {
       const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
-        options: {
-          data: { full_name: cleanName },
+                options: {
+          data: {
+            full_name: cleanName,
+            phone: cleanPhone,
+          },
           emailRedirectTo: callbackUrl.toString(),
         },
       });
@@ -159,7 +169,37 @@ export default function DaftarPage() {
               placeholder="nama@email.com"
             />
           </div>
+          <div>
+            <label
+              htmlFor="phone"
+              className="text-sm font-medium text-gray-700"
+            >
+              Nombor Telefon
+            </label>
 
+            <input
+              id="phone"
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              required
+              maxLength={24}
+              disabled={disabled}
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              aria-describedby="phone-help"
+              placeholder="Contoh: 0123456789"
+              className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-gray-900 disabled:bg-gray-100"
+            />
+
+            <p
+              id="phone-help"
+              className="mt-2 text-xs text-gray-500"
+            >
+              Digunakan untuk urusan pembayaran. Format 0123456789
+              atau +60123456789 diterima.
+            </p>
+          </div>
           <div>
             <label
               htmlFor="password"
