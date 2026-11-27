@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { Book, rm } from "@/data/books";
-import { ShoppingCart, BookOpen } from "lucide-react";
-
+import { BookOpen, ShoppingCart } from "lucide-react";
 
 export default function BookCard({
   book,
@@ -15,88 +14,88 @@ export default function BookCard({
   const productHref = `/ebook/${encodeURIComponent(String(book.id))}`;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
       <Link
         href={productHref}
         aria-label={`Lihat butiran ${book.title}`}
-        className="relative flex h-48 items-center justify-center p-5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-600 sm:h-56"
-        style={{
-          background: `linear-gradient(135deg,${book.color},#0e1d30)`,
-        }}
+        className="relative block aspect-[3/4] w-full shrink-0 overflow-hidden bg-[#faf7f2] focus-visible:outline focus-visible:outline-2 focus-visible:outline-orange-600"
       >
-        {book.tag && (
-          <span className="absolute left-3 top-3 rounded-full bg-amber-300 px-2.5 py-1 text-[10px] font-bold text-slate-900">
-            {book.tag}
-          </span>
-        )}
-
         {book.coverUrl ? (
-          <div className="book-shadow h-40 w-28 overflow-hidden rounded-sm sm:h-44 sm:w-32">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={book.coverUrl}
-              alt={`Kulit ${book.title}`}
-              className="h-full w-full object-cover"
-              loading="lazy"
-            />
-          </div>
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={book.coverUrl}
+            alt={`Kulit ${book.title}`}
+            className="absolute inset-0 h-full w-full object-contain"
+            loading="lazy"
+          />
         ) : (
           <div
-            className="book-shadow flex h-40 w-28 flex-col items-center justify-between border-l-8 border-black/20 p-3 text-center sm:h-44 sm:w-32"
+            className="absolute inset-0 flex h-full w-full flex-col items-center justify-center gap-5 p-5 text-center"
             style={{
-              background: book.color,
+              background: `linear-gradient(145deg, ${book.color}, #0e1d30)`,
               color: book.accent,
             }}
           >
-            <BookOpen size={20} />
-            <strong className="text-sm leading-snug">
+            <BookOpen size={40} aria-hidden="true" />
+            <strong className="break-words text-base leading-snug sm:text-xl">
               {book.title}
             </strong>
-            <span className="text-[10px] tracking-widest">
+            <span className="text-[10px] font-semibold tracking-widest">
               KARYADIGITAL
             </span>
           </div>
         )}
+
+        {book.tag && (
+          <span className="absolute left-3 top-3 rounded-full bg-amber-300 px-2.5 py-1 text-[10px] font-bold text-slate-900 shadow-sm">
+            {book.tag}
+          </span>
+        )}
       </Link>
 
-      <div className="p-3.5">
-        <span className="text-[11px] font-semibold text-orange-600">
+      <div className="flex flex-1 flex-col p-3 sm:p-4">
+        <p
+          title={book.category}
+          className="line-clamp-1 text-[11px] font-semibold text-orange-700 sm:text-xs"
+        >
           {book.category}
-        </span>
+        </p>
 
-        <h3 className="mt-1 line-clamp-2 min-h-11 text-sm font-bold">
+        <h3 className="mt-2 min-h-10 text-sm font-bold leading-5 text-slate-900 sm:min-h-12 sm:text-base sm:leading-6">
           <Link
             href={productHref}
-            className="hover:text-orange-700 hover:underline"
+            className="line-clamp-2 break-words hover:text-orange-700 hover:underline"
           >
             {book.title}
           </Link>
         </h3>
 
-        <div className="mt-3 flex flex-wrap items-end gap-2">
-          <strong className="text-base text-orange-600">
-            {rm(book.price)}
-          </strong>
+        <div className="mt-auto pt-4">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <strong className="text-lg font-extrabold text-orange-600 sm:text-xl">
+              {rm(book.price)}
+            </strong>
+            {book.oldPrice && (
+              <span className="text-xs text-slate-400 line-through">
+                {rm(book.oldPrice)}
+              </span>
+            )}
+          </div>
 
-          {book.oldPrice && (
-            <span className="text-xs text-slate-400 line-through">
-              {rm(book.oldPrice)}
-            </span>
-          )}
+          <button
+            type="button"
+            aria-pressed={inCart}
+            onClick={() => onAdd(book.id)}
+            className={`mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-bold transition-colors sm:text-sm ${
+              inCart
+                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-200"
+                : "bg-orange-500 text-white hover:bg-orange-600"
+            }`}
+          >
+            <ShoppingCart size={16} aria-hidden="true" />
+            {inCart ? "Buang dari Troli" : "Tambah ke Troli"}
+          </button>
         </div>
-
-        <button
-          type="button"
-          onClick={() => onAdd(book.id)}
-          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl px-2 py-2.5 text-xs font-bold ${
-            inCart
-              ? "bg-emerald-100 text-emerald-800"
-              : "bg-orange-500 text-white hover:bg-orange-600"
-          }`}
-        >
-          <ShoppingCart size={15} />
-          {inCart ? "Buang dari Troli" : "Tambah ke Troli"}
-        </button>
       </div>
     </article>
   );

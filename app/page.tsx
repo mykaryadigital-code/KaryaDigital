@@ -38,6 +38,7 @@ export default function Home() {
   const [checkoutOrderId, setCheckoutOrderId] = useState<string | null>(null);
   const [needsLogin, setNeedsLogin] = useState(false);
   const [approvedEbooks, setApprovedEbooks] = useState<Ebook[]>([]);
+
   const categories = useMemo(
     () => [
       "Semua",
@@ -47,6 +48,7 @@ export default function Home() {
     ],
     [approvedEbooks]
   );
+
   useEffect(() => {
     let active = true;
     const supabase = createClient();
@@ -95,12 +97,16 @@ export default function Home() {
     [approvedEbooks]
   );
 
+  const featuredBook = marketplaceBooks.find(
+    (book) => Number.isFinite(book.price) && book.price >= 5
+  );
+
   const filtered = useMemo(
     () =>
       marketplaceBooks.filter(
         (book) =>
           (category === "Semua" || book.category === category) &&
-          `${book.title} ${book.author} ${book.category}`
+          `${book.title} ${book.category}`
             .toLowerCase()
             .includes(search.toLowerCase())
       ),
@@ -209,7 +215,7 @@ export default function Home() {
             Menu
           </button>
 
-          <span className="hidden md:inline">Kategori Popular</span>
+          <span className="hidden md:inline">Kategori eBook</span>
 
           <div
             className={`${menu ? "flex" : "hidden"} flex-wrap gap-4 md:flex`}
@@ -233,96 +239,122 @@ export default function Home() {
       </nav>
 
       <main>
-        <section className="mx-auto grid max-w-7xl gap-6 px-4 py-7 lg:grid-cols-[1.65fr_1fr] lg:px-8">
-          <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-400 px-7 py-10 text-white sm:px-12 sm:py-14">
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold">
-              🇲🇾 Marketplace eBook Malaysia
-            </span>
-
-            <h1 className="mt-5 max-w-lg text-3xl font-extrabold leading-tight sm:text-5xl">
-              Ribuan Cerita.
-              <br />
-              Satu Tempat.
-            </h1>
-
-            <p className="mt-4 max-w-md text-sm leading-relaxed text-orange-50 sm:text-base">
-              Terokai eBook daripada penulis tempatan. Beli dengan mudah,
-              baca di mana-mana.
-            </p>
-
-            <button
-              type="button"
-              onClick={scrollToCatalog}
-              className="mt-7 flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-orange-600 shadow-sm hover:bg-orange-50"
-            >
-              Terokai eBook
-              <ArrowRight size={17} />
-            </button>
-
-            <BookOpen
-              size={180}
-              strokeWidth={0.7}
-              className="absolute -bottom-10 -right-10 rotate-[-15deg] text-white/20 sm:right-3"
-            />
-          </div>
-
-          <div className="flex flex-col justify-between gap-5 rounded-3xl bg-[#163d54] p-7 text-white sm:p-9">
+        <section
+          aria-labelledby="marketplace-title"
+          className="mx-auto max-w-7xl px-4 pb-5 pt-5 lg:px-8"
+        >
+          <div className="grid items-center gap-6 overflow-hidden rounded-3xl bg-gradient-to-br from-orange-500 via-orange-500 to-amber-400 px-6 py-6 text-white sm:px-8 sm:py-7 lg:grid-cols-[1.1fr_1fr] lg:gap-8">
             <div>
-              <span className="text-xs font-bold tracking-widest text-amber-300">
-                UNTUK PENULIS & PENERBIT
-              </span>
-              <h2 className="mt-4 text-2xl font-extrabold sm:text-3xl">
-                Karya anda, peluang baharu.
-              </h2>
-              <p className="mt-3 text-sm leading-7 text-slate-200">
-                Bina kedai eBook sendiri dan capai lebih ramai pembaca
-                di Malaysia.
+              <p className="text-xs font-bold uppercase tracking-wider text-orange-50">
+                Marketplace eBook Malaysia
               </p>
+              <h1
+                id="marketplace-title"
+                className="mt-3 max-w-lg text-3xl font-extrabold leading-tight sm:text-4xl"
+              >
+                Temui Bacaan
+                <br />
+                Seterusnya.
+              </h1>
+              <p className="mt-3 max-w-md text-sm leading-relaxed text-orange-50">
+                Beli eBook digital. Baca online atau muat turun PDF
+                selepas pembayaran disahkan.
+              </p>
+              <button
+                type="button"
+                onClick={scrollToCatalog}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-bold text-orange-700 shadow-sm hover:bg-orange-50"
+              >
+                Terokai eBook
+                <ArrowRight size={17} aria-hidden="true" />
+              </button>
             </div>
 
-            <button
-              type="button"
-              onClick={() =>
-                document
-                  .getElementById("jadi-penjual")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
-              className="flex w-fit items-center gap-2 rounded-xl bg-amber-300 px-5 py-3 text-sm font-bold text-slate-900"
-            >
-              Ketahui Lebih Lanjut
-              <ArrowRight size={16} />
-            </button>
+            {featuredBook ? (
+              <div className="flex min-w-0 items-center gap-4 rounded-2xl border border-orange-100 bg-[#fffdf8] p-4 text-slate-900 shadow-sm sm:gap-5 sm:p-5">
+                <Link
+                  href={`/ebook/${encodeURIComponent(String(featuredBook.id))}`}
+                  aria-label={`Lihat butiran ${featuredBook.title}`}
+                  className="flex h-32 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-orange-50 p-2 sm:h-44 sm:w-32"
+                >
+                  {featuredBook.coverUrl ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img
+                      src={featuredBook.coverUrl}
+                      alt={`Kulit ${featuredBook.title}`}
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <BookOpen size={48} aria-hidden="true" />
+                  )}
+                </Link>
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold text-orange-700">
+                    {featuredBook.category}
+                  </p>
+                  <h2 className="mt-2 break-words text-lg font-bold leading-snug sm:text-xl">
+                    <Link
+                      href={`/ebook/${encodeURIComponent(String(featuredBook.id))}`}
+                      className="hover:underline"
+                    >
+                      {featuredBook.title}
+                    </Link>
+                  </h2>
+                  <p className="mt-3 text-xl font-extrabold text-orange-600 sm:text-2xl">
+                    {rm(featuredBook.price)}
+                  </p>
+                  <Link
+                    href={`/ebook/${encodeURIComponent(String(featuredBook.id))}`}
+                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-orange-500 px-4 py-2.5 text-xs font-bold text-white hover:bg-orange-600 sm:text-sm"
+                  >
+                    Lihat eBook
+                    <ArrowRight size={15} aria-hidden="true" />
+                  </Link>
+                </div>
+              </div>
+            ) : (
+              <div className="hidden items-center justify-center rounded-2xl bg-white/10 p-8 lg:flex">
+                <BookOpen size={120} strokeWidth={1} aria-hidden="true" />
+              </div>
+            )}
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl grid-cols-1 gap-3 px-4 pb-8 sm:grid-cols-3 lg:px-8">
+        <section
+          aria-label="Cara pembelian eBook"
+          className="mx-auto grid max-w-7xl grid-cols-3 gap-2 px-4 pb-6 sm:gap-3 lg:px-8"
+        >
           {[
             {
               icon: Download,
               title: "100% Digital",
-              sub: "Akses eBook tanpa penghantaran fizikal",
+              sub: "Tanpa penghantaran fizikal",
             },
             {
               icon: ShieldCheck,
-              title: "Pembelian Selamat",
-              sub: "Akses selepas pembayaran disahkan",
+              title: "Akses Selepas Bayaran",
+              sub: "Selepas pembayaran disahkan",
             },
             {
-              icon: Store,
-              title: "Penulis Tempatan",
-              sub: "Sokong karya kreatif Malaysia",
+              icon: BookOpen,
+              title: "Baca & Muat Turun",
+              sub: "Baca online atau simpan PDF",
             },
           ].map(({ icon: Icon, title, sub }) => (
             <div
               key={title}
-              className="flex items-center gap-3 rounded-2xl bg-white p-4"
+              className="flex min-w-0 flex-col items-start gap-2 rounded-2xl bg-white p-3 sm:flex-row sm:items-center sm:gap-3 sm:p-4"
             >
-              <span className="rounded-xl bg-orange-50 p-3 text-orange-500">
-                <Icon size={23} />
+              <span className="shrink-0 rounded-xl bg-orange-50 p-2 text-orange-600 sm:p-3">
+                <Icon size={20} aria-hidden="true" />
               </span>
-              <div>
-                <h3 className="text-sm font-bold">{title}</h3>
-                <p className="text-xs text-slate-500">{sub}</p>
+              <div className="min-w-0">
+                <h3 className="text-[11px] font-bold leading-snug text-slate-900 sm:text-sm">
+                  {title}
+                </h3>
+                <p className="mt-1 hidden text-xs text-slate-500 sm:block">
+                  {sub}
+                </p>
               </div>
             </div>
           ))}
@@ -330,7 +362,7 @@ export default function Home() {
 
         <section
           id="katalog"
-          className="mx-auto max-w-7xl px-4 pb-16 lg:px-8"
+          className="mx-auto max-w-7xl scroll-mt-40 px-4 pb-16 lg:px-8"
         >
           <div className="mb-5 flex flex-wrap items-end justify-between gap-2">
             <div>
@@ -383,7 +415,7 @@ export default function Home() {
 
         <section
           id="jadi-penjual"
-          className="bg-slate-900 px-4 py-14 text-white"
+          className="scroll-mt-40 bg-slate-900 px-4 py-14 text-white"
         >
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div>
@@ -394,12 +426,12 @@ export default function Home() {
                 Ada eBook untuk dijual?
               </h2>
               <p className="mt-2 max-w-xl text-sm text-slate-300">
-                Buka kedai digital anda di KaryaDigital. Daftar akaun
-                dan hantar permohonan penjual untuk semakan Admin.
+                Jual eBook anda melalui KaryaDigital. Daftar akaun dan
+                hantar permohonan penjual untuk semakan Admin.
               </p>
             </div>
 
-                        <Link
+            <Link
               href="/jadi-penjual"
               className="inline-flex items-center gap-2 rounded-xl border border-white/30 px-5 py-3 text-sm font-semibold text-white hover:bg-white/10"
             >
@@ -410,7 +442,7 @@ export default function Home() {
         </section>
       </main>
 
-            <footer className="border-t border-slate-200 bg-white px-4 py-8">
+      <footer className="border-t border-slate-200 bg-white px-4 py-8">
         <div className="mx-auto max-w-6xl text-center">
           <p className="text-lg font-extrabold text-indigo-600">
             KaryaDigital
@@ -437,13 +469,13 @@ export default function Home() {
             >
               Pesanan Saya
             </Link>
-                        <Link
+            <Link
               href="/bantuan"
               className="font-medium text-slate-600 hover:text-indigo-600"
             >
               Bantuan Pembeli
             </Link>
-                        <Link
+            <Link
               href="/polisi-refund"
               className="font-medium text-slate-600 hover:text-indigo-600"
             >
@@ -507,9 +539,6 @@ export default function Home() {
                   >
                     <div>
                       <p className="text-sm font-bold">{book.title}</p>
-                      <p className="text-xs text-slate-500">
-                        {book.author}
-                      </p>
                       <p className="text-sm font-semibold text-orange-600">
                         {rm(book.price)}
                       </p>
