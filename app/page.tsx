@@ -442,64 +442,68 @@ export default function Home() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white px-4 py-8">
-        <div className="mx-auto max-w-6xl text-center">
-          <p className="text-lg font-extrabold text-indigo-600">
-            KaryaDigital
-          </p>
+      <footer className="border-t border-slate-200 bg-white px-4 py-6 sm:py-8">
+  <div className="mx-auto max-w-6xl text-center">
+    <p className="text-lg font-extrabold text-indigo-600">
+      KaryaDigital
+    </p>
 
-          <p className="mt-2 text-sm text-slate-600">
-            Marketplace eBook karya penulis Malaysia.
-          </p>
+    <p className="mt-1 text-xs text-slate-600 sm:text-sm">
+      Marketplace eBook karya penulis Malaysia.
+    </p>
 
-          <nav
-            aria-label="Pautan footer"
-            className="mt-5 flex flex-wrap justify-center gap-x-6 gap-y-3 text-sm"
-          >
-            <Link
-              href="/akaun"
-              className="font-medium text-slate-600 hover:text-indigo-600"
-            >
-              Akaun Saya
-            </Link>
+    <nav
+      aria-label="Pautan footer"
+      className="mx-auto mt-4 grid max-w-sm grid-cols-2 gap-x-3 text-xs sm:flex sm:max-w-none sm:flex-wrap sm:justify-center sm:gap-x-6 sm:text-sm"
+    >
+      <Link
+        href="/akaun"
+        className="flex min-h-10 items-center justify-center font-medium text-slate-600 hover:text-indigo-600"
+      >
+        Akaun Saya
+      </Link>
 
-            <Link
-              href="/pesanan"
-              className="font-medium text-slate-600 hover:text-indigo-600"
-            >
-              Pesanan Saya
-            </Link>
-            <Link
-              href="/bantuan"
-              className="font-medium text-slate-600 hover:text-indigo-600"
-            >
-              Bantuan Pembeli
-            </Link>
-            <Link
-              href="/polisi-refund"
-              className="font-medium text-slate-600 hover:text-indigo-600"
-            >
-              Polisi Bayaran Balik
-            </Link>
-            <Link
-              href="/maklumat-penjual"
-              className="font-medium text-slate-600 hover:text-indigo-600"
-            >
-              Maklumat Penjual
-            </Link>
-            <Link
-              href="/jadi-penjual"
-              className="font-medium text-slate-600 hover:text-indigo-600"
-            >
-              Jadi Penjual
-            </Link>
-          </nav>
+      <Link
+        href="/pesanan"
+        className="flex min-h-10 items-center justify-center font-medium text-slate-600 hover:text-indigo-600"
+      >
+        Pesanan Saya
+      </Link>
 
-          <p className="mt-6 text-xs text-slate-500">
-            {"\u00A9"} {new Date().getFullYear()} KaryaDigital.
-          </p>
-        </div>
-      </footer>
+      <Link
+        href="/bantuan"
+        className="flex min-h-10 items-center justify-center font-medium text-slate-600 hover:text-indigo-600"
+      >
+        Bantuan Pembeli
+      </Link>
+
+      <Link
+        href="/polisi-refund"
+        className="flex min-h-10 items-center justify-center font-medium text-slate-600 hover:text-indigo-600"
+      >
+        Polisi Bayaran Balik
+      </Link>
+
+      <Link
+        href="/maklumat-penjual"
+        className="flex min-h-10 items-center justify-center font-medium text-slate-600 hover:text-indigo-600"
+      >
+        Maklumat Penjual
+      </Link>
+
+      <Link
+        href="/jadi-penjual"
+        className="flex min-h-10 items-center justify-center font-medium text-slate-600 hover:text-indigo-600"
+      >
+        Jadi Penjual
+      </Link>
+    </nav>
+
+    <p className="mt-4 text-xs text-slate-500">
+      {"\u00A9"} {new Date().getFullYear()} KaryaDigital.
+    </p>
+  </div>
+</footer>
 
       {showCart && (
         <div
