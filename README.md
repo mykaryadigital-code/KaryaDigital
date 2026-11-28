@@ -1,4 +1,8 @@
-# BukuKita — Marketplace eBook Malaysia (Frontend Demo)
+# MyKarya — Marketplace eBook Malaysia (Frontend Demo)
+
+Temui Karya, Luaskan Dunia.
+
+Domain rasmi: https://mykarya.digital
 
 ## Cara jalankan dalam VS Code
 

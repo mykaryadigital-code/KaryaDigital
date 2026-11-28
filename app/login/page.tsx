@@ -77,8 +77,8 @@ export default function LoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 py-12">
       <div className="w-full max-w-md rounded-2xl border border-slate-100 bg-white p-8 shadow-lg">
         <Link href="/" className="block text-center">
-          <h1 className="text-3xl font-extrabold text-indigo-600">
-            KaryaDigital
+          <h1 className="text-3xl font-extrabold text-slate-900">
+            My<span className="text-orange-500">Karya</span>
           </h1>
         </Link>
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
         </h2>
 
         <p className="mt-2 text-sm text-gray-500">
-          Selamat kembali ke KaryaDigital.
+          Selamat kembali ke MyKarya.
         </p>
 
         <form onSubmit={handleLogin} className="mt-6 space-y-5">

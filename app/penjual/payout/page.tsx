@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Sejarah Payout | KaryaDigital",
+  title: "Sejarah Payout | MyKarya",
 };
 
 const PAGE_SIZE = 20;

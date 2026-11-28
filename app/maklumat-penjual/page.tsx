@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Maklumat Penjual | KaryaDigital",
+  title: "Maklumat Penjual | MyKarya",
   description:
-    "Panduan komisen, caj gateway dan payout bulanan penjual KaryaDigital.",
+    "Panduan komisen, caj gateway dan payout bulanan penjual MyKarya.",
 };
 
 export default function SellerInformationPage() {
@@ -18,15 +18,15 @@ export default function SellerInformationPage() {
         </Link>
 
         <header className="mt-6">
-          <p className="text-sm font-semibold text-indigo-600">
-            KaryaDigital
+          <p className="text-sm font-semibold text-slate-900">
+            My<span className="text-orange-500">Karya</span>
           </p>
           <h1 className="mt-2 text-3xl font-extrabold text-slate-900">
             Maklumat Penjual
           </h1>
           <p className="mt-3 leading-relaxed text-slate-600">
             Panduan membuka kedai, menjual eBook dan menerima payout
-            melalui KaryaDigital.
+            melalui MyKarya.
           </p>
         </header>
 
@@ -52,7 +52,7 @@ export default function SellerInformationPage() {
               2. Komisen platform
             </h2>
             <p className="mt-3 leading-relaxed text-slate-600">
-              KaryaDigital mengenakan komisen sebanyak 10% daripada
+              MyKarya mengenakan komisen sebanyak 10% daripada
               harga jualan setiap item eBook yang pembayarannya berjaya
               disahkan. Komisen dikira dan dibundarkan kepada dua
               tempat perpuluhan bagi setiap item.

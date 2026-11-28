@@ -80,7 +80,7 @@ export default async function PermohonanPenjualPage() {
         </h1>
 
         <p className="mt-2 text-gray-600">
-          Semak dan urus permohonan penjual KaryaDigital.
+          Semak dan urus permohonan penjual MyKarya.
         </p>
 
         <div className="mt-8 grid grid-cols-3 gap-3">

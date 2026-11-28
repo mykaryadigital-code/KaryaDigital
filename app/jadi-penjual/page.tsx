@@ -106,8 +106,8 @@ export default function JadiPenjualPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-12">
       <div className="mx-auto max-w-xl rounded-2xl bg-white p-8 shadow-sm">
-        <Link href="/" className="text-2xl font-bold text-indigo-600">
-          KaryaDigital
+        <Link href="/" className="text-2xl font-bold text-slate-900">
+          My<span className="text-orange-500">Karya</span>
         </Link>
 
         <h1 className="mt-8 text-3xl font-bold text-gray-900">

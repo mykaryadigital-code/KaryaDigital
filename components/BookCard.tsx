@@ -41,7 +41,7 @@ export default function BookCard({
               {book.title}
             </strong>
             <span className="text-[10px] font-semibold tracking-widest">
-              KARYADIGITAL
+              <span className="text-white">MY</span><span className="text-orange-500">KARYA</span>
             </span>
           </div>
         )}

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import SellerProfileForm from "@/components/seller/SellerProfileForm";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Profil Penjual | KaryaDigital" };
+export const metadata = { title: "Profil Penjual | MyKarya" };
 
 export default async function SellerProfilePage() {
   const supabase = await createClient();

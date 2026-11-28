@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import PayoutCandidatesPanel from "./PayoutCandidatesPanel";
 
 export const metadata = {
-  title: "Payout Penjual | KaryaDigital",
+  title: "Payout Penjual | MyKarya",
 };
 
 export const dynamic = "force-dynamic";

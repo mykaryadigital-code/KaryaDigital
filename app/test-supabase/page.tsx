@@ -23,8 +23,8 @@ export default function TestSupabase() {
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-100 p-6">
       <div className="rounded-2xl bg-white p-10 text-center shadow-lg">
-        <h1 className="text-3xl font-bold text-blue-600">
-          KaryaDigital
+        <h1 className="text-3xl font-bold text-slate-900">
+          My<span className="text-orange-500">Karya</span>
         </h1>
 
         <p className="mt-4 text-gray-700">{status}</p>

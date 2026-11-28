@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition":
-          `attachment; filename="karyadigital-${ebookId}.pdf"`,
+          `attachment; filename="mykarya-${ebookId}.pdf"`,
         "Content-Length": String(pdfBytes.byteLength),
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",

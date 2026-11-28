@@ -27,14 +27,14 @@ export default function Header({
       <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-4 py-3 sm:gap-4 lg:px-8">
         <Link
           href="/"
-          aria-label="KaryaDigital, halaman utama"
+          aria-label="MyKarya, halaman utama"
           className="flex shrink-0 items-center gap-2 text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl"
         >
           <span className="rounded-xl bg-orange-500 p-2 text-white">
             <BookOpen size={20} aria-hidden="true" />
           </span>
           <span>
-            Karya<span className="text-orange-500">Digital</span>
+            My<span className="text-orange-500">Karya</span>
           </span>
         </Link>
 

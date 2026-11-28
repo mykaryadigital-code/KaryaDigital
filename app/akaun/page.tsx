@@ -104,7 +104,7 @@ export default function AkaunPage() {
     <main className="min-h-screen bg-slate-50 px-4 py-10">
       <div className="mx-auto max-w-3xl">
         <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-          <Link href="/" className="text-2xl font-extrabold text-indigo-600">KaryaDigital</Link>
+          <Link href="/" className="text-2xl font-extrabold text-slate-900">My<span className="text-orange-500">Karya</span></Link>
           <div className="mt-6 flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Akaun Saya</h1>

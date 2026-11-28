@@ -1,9 +1,9 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Bantuan Pembeli | KaryaDigital",
+  title: "Bantuan Pembeli | MyKarya",
   description:
-    "Panduan membeli eBook, menyemak pembayaran, membaca dan memuat turun pembelian KaryaDigital.",
+    "Panduan membeli eBook, menyemak pembayaran, membaca dan memuat turun pembelian MyKarya.",
 };
 
 const sections = [
@@ -65,8 +65,8 @@ export default function BuyerHelpPage() {
         </Link>
 
         <header className="mt-6">
-          <p className="text-sm font-semibold text-indigo-600">
-            KaryaDigital
+          <p className="text-sm font-semibold text-slate-900">
+            My<span className="text-orange-500">Karya</span>
           </p>
 
           <h1 className="mt-2 text-3xl font-extrabold text-slate-900">

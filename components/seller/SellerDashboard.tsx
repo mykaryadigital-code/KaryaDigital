@@ -297,7 +297,7 @@ async function submitForReview(ebookId: string) {
               className="flex items-center gap-2 text-xl font-extrabold text-indigo-700"
             >
               <BookOpen />
-              KaryaDigital
+              <span className="text-slate-900">My<span className="text-orange-500">Karya</span></span>
             </Link>
 
             <button

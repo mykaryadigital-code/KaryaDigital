@@ -239,8 +239,8 @@ export async function POST(request: NextRequest) {
     const billData = new URLSearchParams({
       userSecretKey: secretKey,
       categoryCode,
-      billName: `KaryaDigital - ${order.id.slice(0, 8)}`,
-      billDescription: "Pembelian eBook KaryaDigital",
+      billName: `MyKarya ${order.id.slice(0, 8)}`,
+      billDescription: "Pembelian eBook MyKarya",
       billPriceSetting: "1",
       billPayorInfo: "1",
       billAmount: String(amountInSen),
@@ -252,7 +252,7 @@ export async function POST(request: NextRequest) {
       billPhone: buyerPhone,
       billSplitPayment: "0",
       billPaymentChannel: "0",
-      billContentEmail: "Terima kasih kerana membeli di KaryaDigital.",
+      billContentEmail: "Terima kasih kerana membeli di MyKarya.",
       billChargeToCustomer: "1",
     });
 

@@ -7,7 +7,7 @@ import CompleteRefundForm from "./CompleteRefundForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Butiran Refund | KaryaDigital",
+  title: "Butiran Refund | MyKarya",
 };
 
 const uuidPattern =

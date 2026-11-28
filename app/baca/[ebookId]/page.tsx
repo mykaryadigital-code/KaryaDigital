@@ -188,7 +188,7 @@ export default function BacaEbookPage() {
         </Link>
 
         <h1 className="mt-5 text-2xl font-bold text-slate-900">
-          📖 Pembaca eBook KaryaDigital
+          📖 Pembaca eBook MyKarya
         </h1>
 
         <p className="mt-2 text-sm text-slate-500">
@@ -257,7 +257,7 @@ export default function BacaEbookPage() {
             </div>
 
             <p className="mt-6 text-center text-xs text-slate-500">
-              © KaryaDigital — Untuk bacaan pemilik akaun sahaja.
+              © MyKarya — Untuk bacaan pemilik akaun sahaja.
             </p>
           </div>
         )}

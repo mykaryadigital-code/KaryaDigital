@@ -69,7 +69,7 @@ export default async function AdminEbooksPage() {
           </h1>
           <p className="mt-2 text-slate-500">
             Senarai eBook yang menunggu kelulusan
-            Super Admin KaryaDigital.
+            Super Admin MyKarya.
           </p>
         </div>
 

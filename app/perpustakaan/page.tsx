@@ -108,7 +108,7 @@ export default function PerpustakaanPage() {
           href="/"
           className="text-sm font-semibold text-orange-600"
         >
-          ← Kembali ke KaryaDigital
+          ← Kembali ke MyKarya
         </Link>
 
         <h1 className="mt-7 text-3xl font-bold text-gray-900">

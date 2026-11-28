@@ -53,7 +53,7 @@ export default function LupaPasswordPage() {
         </h1>
 
         <p className="mt-2 text-sm text-gray-600">
-          Masukkan alamat emel akaun KaryaDigital anda.
+          Masukkan alamat emel akaun MyKarya anda.
         </p>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">

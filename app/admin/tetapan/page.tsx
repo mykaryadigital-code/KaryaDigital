@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "../../../lib/supabase/server";
 
 export const metadata = {
-  title: "Tetapan Platform | KaryaDigital",
+  title: "Tetapan Platform | MyKarya",
 };
 
 type PlatformSettings = {
@@ -149,7 +149,7 @@ export default async function AdminSettingsPage({
 
           <p className="mt-2 text-gray-600">
             Urus maklumat asas dan konfigurasi
-            KaryaDigital.
+            MyKarya.
           </p>
         </div>
 
@@ -203,7 +203,7 @@ export default async function AdminSettingsPage({
               </h2>
 
               <p className="mt-1 text-sm text-gray-500">
-                Maklumat asas KaryaDigital yang
+                Maklumat asas MyKarya yang
                 boleh dikemas kini oleh Super Admin.
               </p>
 

@@ -1,16 +1,16 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Polisi Bayaran Balik | KaryaDigital",
+  title: "Polisi Bayaran Balik | MyKarya",
   description:
-    "Polisi bayaran balik pembelian eBook digital di KaryaDigital.",
+    "Polisi bayaran balik pembelian eBook digital di MyKarya.",
 };
 
 const sections = [
   {
     title: "1. Pembelian produk digital",
     paragraphs: [
-      "Produk di KaryaDigital dibekalkan secara digital. Selepas pembayaran disahkan, pembeli boleh membaca eBook secara online dan memuat turun PDF melalui akaun pembelian.",
+      "Produk di MyKarya dibekalkan secara digital. Selepas pembayaran disahkan, pembeli boleh membaca eBook secara online dan memuat turun PDF melalui akaun pembelian.",
       "Bayaran balik biasa tidak ditawarkan semata-mata kerana berubah fikiran, tidak lagi memerlukan produk atau tidak menyukai gaya penulisan selepas akses atau muat turun diberikan. Ini tidak menjejaskan pertimbangan aduan berkaitan masalah sebenar pada produk atau pembekalannya.",
     ],
   },
@@ -40,7 +40,7 @@ const sections = [
     paragraphs:[
       "Permohonan disemak secara manual oleh Admin. Kami mungkin meminta maklumat tambahan dan mendapatkan penjelasan daripada penjual. Menghantar permohonan tidak bermaksud bayaran balik telah diluluskan.",
       "Jika diluluskan, kami akan memaklumkan jumlah dan kaedah pemulangan serta anggaran masa pemprosesan. Masa wang diterima tertakluk juga kepada penyedia pembayaran atau bank.",
-      "Apabila refund penuh selesai direkodkan, akses baca dan muat turun melalui pesanan tersebut ditamatkan. Jika pembeli mempunyai pesanan lain yang masih sah untuk eBook yang sama, akses melalui pesanan lain itu kekal. Bagi pembelian yang telah direfund, pembeli hendaklah berhenti menggunakan dan memadam salinan yang dimuat turun melainkan mempunyai hak penggunaan lain yang sah. KaryaDigital tidak boleh memadam fail pada peranti dari jauh.",]
+      "Apabila refund penuh selesai direkodkan, akses baca dan muat turun melalui pesanan tersebut ditamatkan. Jika pembeli mempunyai pesanan lain yang masih sah untuk eBook yang sama, akses melalui pesanan lain itu kekal. Bagi pembelian yang telah direfund, pembeli hendaklah berhenti menggunakan dan memadam salinan yang dimuat turun melainkan mempunyai hak penggunaan lain yang sah. MyKarya tidak boleh memadam fail pada peranti dari jauh.",]
   },
   {
     title: "6. Hak pengguna",
@@ -62,8 +62,8 @@ export default function RefundPolicyPage() {
         </Link>
 
         <header className="mt-6">
-          <p className="text-sm font-semibold text-indigo-600">
-            KaryaDigital
+          <p className="text-sm font-semibold text-slate-900">
+            My<span className="text-orange-500">Karya</span>
           </p>
 
           <h1 className="mt-2 text-3xl font-extrabold text-slate-900">

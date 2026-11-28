@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import SellerBankForm from "./SellerBankForm";
 
 export const metadata = {
-  title: "Butiran Bank Penjual | KaryaDigital",
+  title: "Butiran Bank Penjual | MyKarya",
 };
 
 export const dynamic = "force-dynamic";

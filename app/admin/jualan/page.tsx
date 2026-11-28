@@ -5,7 +5,7 @@ import { createClient } from "../../../lib/supabase/server";
 import GatewayCostsPanel from "./GatewayCostsPanel";
 
 export const metadata = {
-  title: "Laporan Jualan | KaryaDigital",
+  title: "Laporan Jualan | MyKarya",
 };
 
 type SalesRow = {
@@ -118,8 +118,8 @@ export default async function AdminSalesPage() {
       <header className="border-b bg-white px-6 py-5">
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-extrabold text-indigo-600">
-              KaryaDigital
+            <h1 className="text-2xl font-extrabold text-slate-900">
+              My<span className="text-orange-500">Karya</span>
             </h1>
             <p className="text-sm text-gray-500">
               Laporan Jualan Marketplace
@@ -143,7 +143,7 @@ export default async function AdminSalesPage() {
 
           <p className="mt-2 text-gray-600">
             Rekod transaksi berbayar seluruh marketplace
-            KaryaDigital.
+            MyKarya.
           </p>
         </div>
 

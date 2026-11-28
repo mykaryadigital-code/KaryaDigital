@@ -289,7 +289,7 @@ export default function PesananSaya() {
       try {
         const anchor = document.createElement("a");
         anchor.href = objectUrl;
-        anchor.download = `karyadigital-${ebookId}.pdf`;
+        anchor.download = `mykarya-${ebookId}.pdf`;
         document.body.appendChild(anchor);
 
         try {
@@ -315,7 +315,7 @@ export default function PesananSaya() {
           className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600 hover:text-orange-700"
         >
           <ArrowLeft size={17} />
-          Kembali ke KaryaDigital
+          Kembali ke MyKarya
         </Link>
 
         <div className="mt-7 flex items-center gap-3">

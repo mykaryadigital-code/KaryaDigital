@@ -5,7 +5,7 @@ import RequestRefundForm from "./RequestRefundForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Pengurusan Refund | KaryaDigital",
+  title: "Pengurusan Refund | MyKarya",
 };
 
 const PAGE_SIZE = 20;

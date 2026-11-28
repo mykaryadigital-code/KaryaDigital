@@ -420,13 +420,13 @@ export default function Home() {
           <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 md:flex-row md:items-center">
             <div>
               <p className="text-xs font-bold uppercase tracking-widest text-amber-300">
-                Bersama KaryaDigital
+                Bersama MyKarya
               </p>
               <h2 className="mt-2 text-2xl font-extrabold sm:text-3xl">
                 Ada eBook untuk dijual?
               </h2>
               <p className="mt-2 max-w-xl text-sm text-slate-300">
-                Jual eBook anda melalui KaryaDigital. Daftar akaun dan
+                Jual eBook anda melalui MyKarya. Daftar akaun dan
                 hantar permohonan penjual untuk semakan Admin.
               </p>
             </div>
@@ -444,12 +444,12 @@ export default function Home() {
 
       <footer className="border-t border-slate-200 bg-white px-4 py-6 sm:py-8">
   <div className="mx-auto max-w-6xl text-center">
-    <p className="text-lg font-extrabold text-indigo-600">
-      KaryaDigital
+    <p className="text-lg font-extrabold text-slate-900">
+      My<span className="text-orange-500">Karya</span>
     </p>
 
     <p className="mt-1 text-xs text-slate-600 sm:text-sm">
-      Marketplace eBook karya penulis Malaysia.
+      Temui Karya, Luaskan Dunia.
     </p>
 
     <nav
@@ -500,7 +500,7 @@ export default function Home() {
     </nav>
 
     <p className="mt-4 text-xs text-slate-500">
-      {"\u00A9"} {new Date().getFullYear()} KaryaDigital.
+      {"\u00A9"} {new Date().getFullYear()} MyKarya.
     </p>
   </div>
 </footer>

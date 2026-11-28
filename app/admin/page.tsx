@@ -4,7 +4,7 @@ import Link from "next/link";
 import { createClient } from "../../lib/supabase/server";
 
 export const metadata = {
-  title: "Super Admin Dashboard | KaryaDigital",
+  title: "Super Admin Dashboard | MyKarya",
 };
 
 const rm = (value: number) =>
@@ -124,7 +124,7 @@ export default async function AdminPage() {
     },
     {
       title: "Tetapan Platform",
-      description: "Urus tetapan KaryaDigital.",
+      description: "Urus tetapan MyKarya.",
       icon: "\u2699\uFE0F",
       href: "/admin/tetapan",
     },
@@ -135,8 +135,8 @@ export default async function AdminPage() {
       <header className="border-b bg-white px-6 py-5">
         <div className="mx-auto flex max-w-6xl items-center justify-between">
           <div>
-            <h1 className="text-2xl font-extrabold text-indigo-600">
-              KaryaDigital
+            <h1 className="text-2xl font-extrabold text-slate-900">
+              My<span className="text-orange-500">Karya</span>
             </h1>
             <p className="text-sm text-gray-500">
               Super Admin Dashboard
@@ -167,7 +167,7 @@ export default async function AdminPage() {
           </h3>
 
           <p className="mt-1 text-sm text-gray-500">
-            Statistik jualan berbayar seluruh KaryaDigital.
+            Statistik jualan berbayar seluruh MyKarya.
           </p>
 
           {statsError && (

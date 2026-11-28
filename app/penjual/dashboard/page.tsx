@@ -4,7 +4,7 @@ import SellerDashboard from "@/components/seller/SellerDashboard";
 import SellerAvatar from "@/components/seller/SellerAvatar";
 import { createClient } from "@/lib/supabase/server";
 
-export const metadata = { title: "Dashboard Penjual | KaryaDigital" };
+export const metadata = { title: "Dashboard Penjual | MyKarya" };
 
 export default async function SellerDashboardPage() {
   const supabase = await createClient();
@@ -34,7 +34,7 @@ export default async function SellerDashboardPage() {
       {shop ? (
         <section className="border-b border-indigo-100 bg-indigo-50 px-6 py-5">
           <div className="mx-auto max-w-6xl">
-            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Kedai KaryaDigital Anda</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Kedai MyKarya Anda</p>
             <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
               <div className="flex min-w-0 items-start gap-4">
                 <SellerAvatar src={avatarUrl} name={shop.shop_name} />

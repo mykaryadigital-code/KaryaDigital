@@ -62,16 +62,17 @@ export async function generateMetadata({ params }: {
   const { ebookId } = await params;
   const product = await getProduct(ebookId);
   if (!product) {
-    return { title: "eBook Tidak Ditemui | KaryaDigital", robots: { index: false, follow: false } };
+    return { title: "eBook Tidak Ditemui | MyKarya", robots: { index: false, follow: false } };
   }
-  const description = product.description?.trim().slice(0, 160) || `Dapatkan ${product.title} di KaryaDigital.`;
+  const description = product.description?.trim().slice(0, 160) || `Dapatkan ${product.title} di MyKarya.`;
   return {
-    title: `${product.title} | KaryaDigital`,
+    title: `${product.title} | MyKarya`,
     description,
     openGraph: {
       title: product.title,
       description,
       type: "website",
+      siteName: "MyKarya",
       ...(product.coverUrl ? { images: [{ url: product.coverUrl, alt: `Kulit ${product.title}` }] } : {}),
     },
     twitter: {
@@ -102,7 +103,7 @@ export default async function EbookProductPage({ params }: {
     <main className="min-h-screen bg-slate-50 px-4 py-8">
       <div className="mx-auto max-w-5xl">
         <header className="flex flex-wrap items-center justify-between gap-4">
-          <Link href="/" className="text-xl font-extrabold text-indigo-600">KaryaDigital</Link>
+          <Link href="/" className="text-xl font-extrabold text-slate-900">My<span className="text-orange-500">Karya</span></Link>
           <Link href="/akaun" className="text-sm font-semibold text-slate-600 hover:underline">Akaun Saya</Link>
         </header>
         <Link href="/#katalog" className="mt-8 inline-block text-sm font-semibold text-orange-700 hover:underline">

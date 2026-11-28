@@ -7,7 +7,7 @@ import RecordTransferForm from "./RecordTransferForm";
 export const dynamic = "force-dynamic";
 
 export const metadata = {
-  title: "Butiran Payout | KaryaDigital",
+  title: "Butiran Payout | MyKarya",
 };
 
 const rm = (value: number | string) =>
